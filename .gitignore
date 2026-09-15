@@ -1,11 +1,51 @@
-# Pastas de trabalho e material de cliente — nunca versionar
-.tmp-drive/
-revisoes/
-validacao/
-calibracao/aprovadas/
-calibracao/reprovadas/
+# ---------------------------------------------------------------
+# SQUAD NK — nada de segredo, dado de cliente ou artefato de execução
+# ---------------------------------------------------------------
 
-# Artefatos de sistema
+# Segredos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_ed25519*
+id_rsa*
+.credentials.json
+**/publish.conf.json
+
+# Dados de cliente e material de trabalho (NUNCA versionar)
+**/clients/
+**/previews/
+**/jobs/
+**/output/
+**/entregas/
+**/revisoes/
+**/validacao/
+**/calibracao/aprovadas/
+**/calibracao/reprovadas/
+.tmp-drive/
+entrada de vídeo/
+entrega/
+
+# Dependências e caches regeneráveis
+venv/
+.venv/
+node_modules/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+runtime/lib/
+shared/skills/humanizer/
+
+# Artefatos de execução
+*.ass
+*.log
+*.mp4
+*.mov
+*.zip
+
+# Sistema
 *:Zone.Identifier
 .DS_Store
 Thumbs.db
