@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# ---------------------------------------------------------------
+# SQUAD NK — diagnóstico. Diz o que está reprodutível e o que falta.
+# Só lê. Não altera nada.
+# ---------------------------------------------------------------
+set -uo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CLAUDE_HOME="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+FAIL=0
+
+green() { printf '  \033[32m🟢 %s\033[0m\n' "$1"; }
+yellow(){ printf '  \033[33m🟡 %s\033[0m\n' "$1"; }
+red()   { printf '  \033[31m🔴 %s\033[0m\n' "$1"; FAIL=1; }
+head_() { printf '\n\033[1m%s\033[0m\n' "$1"; }
+
+have()  { command -v "$1" >/dev/null 2>&1; }
+file_()  { [ -f "$1" ]; }
+
+head_ "Ferramentas de base"
+have git     && green "git"     || red "git ausente"
+have python3 && green "python3 $(python3 -V 2>&1 | cut -d' ' -f2)" || red "python3 ausente"
+have ffmpeg  && green "ffmpeg"  || yellow "ffmpeg ausente (Legend IA e medição técnica do Revisor)"
+have node    && green "node $(node -v)" || yellow "node ausente (opcional)"
+have claude  && green "claude code" || yellow "claude code não está no PATH"
+
+head_ "1. LP BUILDER"
+for f in publish.py lp_qa.py drive_ingest.py; do
+  file_ "$REPO/apps/lp-builder/engine/$f" && green "engine/$f" || red "engine/$f ausente"
+done
+for s in lp-ingestao lp-design-review lp-qa lp-publicar; do
+  file_ "$REPO/apps/lp-builder/skills/$s/SKILL.md" && green "skill $s" || red "skill $s ausente"
+done
+python3 -c "import playwright" 2>/dev/null && green "playwright (QA/screenshot)" \
+  || yellow "playwright ausente — 'pip install playwright && python3 -m playwright install chromium'"
+[ -L "$CLAUDE_HOME/skills/lp-qa" ] && green "skills ligadas em $CLAUDE_HOME" || yellow "rode scripts/setup.sh"
+
+head_ "2. DIRETOR DE OPERAÇÕES"
+file_ "$REPO/agents/diretor-operacoes/agents/diretor-de-operacoes.md" && green "agente" || red "agente ausente"
+file_ "$REPO/agents/diretor-operacoes/REGISTRY.md" && green "REGISTRY.md" || red "REGISTRY.md ausente"
+[ -L "$CLAUDE_HOME/agents/diretor-de-operacoes.md" ] && green "registrado no Claude Code" || yellow "rode scripts/setup.sh"
+
+head_ "3. DESIGN IA"
+for f in render.py brand.py job.py artdirection.py revisor.py validate.py autofix.py assets.py selfcheck.py formats.json; do
+  file_ "$REPO/agents/design-ia/engine/$f" && green "engine/$f" || red "engine/$f ausente"
+done
+[ -d "$REPO/agents/design-ia/engine/templates" ] && green "templates ($(ls "$REPO/agents/design-ia/engine/templates" | wc -l))" || red "templates ausentes"
+[ -d "$REPO/agents/design-ia/engine/fonts/pool" ] && green "pool de fontes ($(ls "$REPO/agents/design-ia/engine/fonts/pool" | wc -l))" || red "fontes ausentes"
+file_ "$REPO/agents/design-ia/skills/designer-ia/SKILL.md" && green "skill designer-ia" || red "skill ausente"
+python3 -c "import playwright" 2>/dev/null && green "playwright (render)" || yellow "playwright ausente — render não roda"
+
+head_ "4. REVISOR DE ARTE"
+file_ "$REPO/agents/revisor-arte/agents/revisor-de-criacao.md" && green "agente" || red "agente ausente"
+[ -d "$REPO/agents/revisor-arte/conhecimento/criterios" ] && green "base de critérios" || red "critérios ausentes"
+file_ "$REPO/.claude-plugin/marketplace.json" && green "marketplace do plugin" || red "marketplace ausente"
+python3 "$REPO/agents/design-ia/engine/revisor.py" locate >/dev/null 2>&1 \
+  && green "plugin localizável na máquina" || yellow "plugin não instalado — 'claude plugin install revisor-de-criacao@squad-legend-ai'"
+
+head_ "5. LEGEND IA"
+file_ "$REPO/apps/legend-ia/process_video.py" && green "process_video.py" || red "process_video.py ausente"
+file_ "$REPO/apps/legend-ia/requirements.txt" && green "requirements.txt" || red "requirements.txt ausente"
+[ -d "$REPO/apps/legend-ia/fonts" ] && green "fontes embarcadas ($(ls "$REPO/apps/legend-ia/fonts" | wc -l))" || red "fontes ausentes"
+file_ "$REPO/apps/legend-ia/venv/bin/python" && green "venv pronto" || yellow "venv ausente — rode scripts/setup.sh"
+"$REPO/apps/legend-ia/venv/bin/python" -c "import faster_whisper" 2>/dev/null && green "faster-whisper" || yellow "faster-whisper ausente"
+
+head_ "Segredos no repositório"
+if grep -rIqE "(sk-ant-|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|BEGIN .*PRIVATE KEY)" "$REPO" --exclude-dir=.git --exclude-dir=venv --exclude-dir=node_modules 2>/dev/null; then
+  red "possível segredo encontrado — NÃO faça push"
+else
+  green "nenhum segredo detectado"
+fi
+
+printf '\n'
+[ "$FAIL" -eq 0 ] && printf '\033[32mSem bloqueios.\033[0m\n' || printf '\033[31mHá itens 🔴 — veja acima.\033[0m\n'
+exit "$FAIL"
