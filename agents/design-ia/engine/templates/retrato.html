@@ -1,0 +1,307 @@
+<!-- FAMILIA: retrato
+     Duas colunas: uma leva um retrato VERTICAL, a outra leva o texto. O retrato ocupa
+     apenas a sua coluna -- nunca a peca inteira.
+     Existe para aproveitar retrato pequeno (ex.: 590x973, 663x819, 720x1280) que as
+     familias de sangria descartariam por largura nativa. Numa coluna de ~40% da peca,
+     um arquivo de 590px de largura ainda sobra em resolucao.
+
+     Tokens obrigatorios: photo, headline
+     Tokens opcionais :
+       photo_pos    foco do recorte (object-position; default "center").
+                    Em retrato, quase sempre vale apontar para o rosto: "center 22%".
+       col_w_pct    largura da coluna da foto, em % da largura da peca (default 42)
+       photo_side   left | right — de que lado fica a coluna da foto (default left)
+       photo_shape  coluna | retangulo | arco | circulo (default coluna)
+                      coluna    — encosta na borda externa e no topo da peca; e a
+                                  unica que sangra, e mesmo assim so na sua coluna
+                      retangulo — painel recuado pelas margens (aceita photo_radius)
+                      arco      — mesmo painel com o topo em semicirculo completo
+                      circulo   — circulo inscrito na coluna, centrado na vertical
+       photo_radius arredondamento do retangulo, em px (default 0)
+       gap_pct      goteira entre as colunas, em % da largura (vazio = usa pad_pct).
+                    A coluna de texto e o rodape compartilham a margem EXTERNA, entao
+                    a borda externa do texto cai sobre a borda externa do rodape. Do
+                    lado da foto nao ha alinhamento: o rodape e de largura inteira e
+                    comeca na margem da peca, por baixo da coluna da foto.
+       bg_role      paper|primary|ink|<qualquer chave da paleta> (default paper)
+       accent_role  qualquer chave da paleta; vazio = automatico pela luminancia
+       eyebrow, support, cta, inst_handle, inst_assinatura_legal
+       headline_size, eyebrow_size, support_size, foot_size, cta_scale, logo_scale
+       headline_case  uppercase (default, comportamento historico) | none
+       cta_style    text (default) | pill — pilula com cta_bg/cta_fg da paleta
+       cta_bg, cta_fg  papeis da paleta para a pilula (default primary/on-primary)
+       rule (0|1), align (left|center), mid_justify (center|flex-start|flex-end)
+       pad_pct (margem), pad_top_pct / pad_bottom_pct (margens verticais proprias.
+         ATENCAO: como todo padding percentual em CSS, os tres sao percentuais da LARGURA
+         da peca, nunca da altura. Em formato alto, como story 1080x1920, 20% nao e 384px:
+         e 216px. Calcule a reserva de interface em px e converta dividindo pela largura.)
+       foot_stack (0: lado a lado | 1: CTA em cima, institucional embaixo |
+         2: institucional em cima, CTA embaixo)
+       foot_h_pct (piso do rodape em % da altura; vazio = calculado pelo conteudo)
+       foot_max_pct (teto do rodape em % da altura; default 30)
+
+     RODAPE — assinatura legal:
+       `inst_assinatura_legal` carrega a identificacao do responsavel. Em segmento
+       regulado a peca precisa levar isso NO CRIATIVO: ele circula sozinho em midia
+       paga, e legenda e bio nao o acompanham.
+       O token segue a convencao ja usada por `inst_handle` nas familias existentes:
+       o render.py publica cada chave de brand.json > institutional como `inst_<chave>`,
+       entao a linha se preenche sozinha para todo cliente cujo brand kit tenha
+       `institutional.assinatura_legal` -- sem nada especifico dentro do template. O
+       briefing pode sobrescrever pelo mesmo nome em `copy`. Cliente sem a chave
+       simplesmente nao mostra a linha, e o rodape encolhe a reserva na mesma medida.
+       O rodape ocupa a LARGURA INTEIRA, fora da divisao em colunas: a coluna de texto
+       e estreita por definicao e nao e lugar para espremer identificacao obrigatoria.
+
+     AUTO-AJUSTE DO RODAPE (correcao de um defeito conhecido da familia `minimal`):
+       no `minimal` o `.foot` ficou FORA de qualquer `data-fit-scope`, entao o rodape
+       nao auto-ajusta e pode estourar em silencio sem o validate acusar. Aqui o rodape
+       e um escopo proprio (`data-fit-scope="rodape"`) com area RESERVADA. Em ordem:
+         1. PISO (min-height --foot-h, calculado pelas linhas que o rodape realmente
+            tem): a reserva existe antes de o texto disputar espaco, entao nada
+            espreme a assinatura;
+         2. CRESCIMENTO: passando do piso, o rodape cresce com o conteudo -- uma
+            assinatura longa fica em tamanho cheio em vez de encolher a toa;
+         3. TETO (max-height, `foot_max_pct`, default 30% da altura): o crescimento
+            nao pode devorar a composicao;
+         4. do teto em diante o escopo auto-ajusta como qualquer outro e, se nem
+            assim couber no piso de legibilidade (data-fit-min=15px), reporta
+            overflow -- o validate.py transforma isso em FAIL.
+       Ou seja: nao encolhe abaixo do legivel, nao estoura calado e nao rouba a arte.
+       O passo 3 importa: sem teto, um flex item de altura automatica simplesmente
+       cresce e empurra a composicao sem ninguem decidir isso -- o mesmo defeito do
+       `minimal`, de cabeca para baixo.
+       Mesmo tratamento para a marca (`data-fit-scope="marca"`), que no `minimal`
+       tambem ficava fora do escopo. Nenhum escopo usa overflow:hidden de proposito:
+       corte silencioso esconderia o problema do relatorio medido. -->
+<meta charset="utf-8">
+<style>
+  {{font_face}}
+  :root { {{palette}} }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:{{format_w}}px; height:{{format_h}}px; overflow:hidden; }
+  body { font-family:var(--font-text), system-ui, sans-serif; -webkit-font-smoothing:antialiased;
+         background:var(--bg); color:var(--fg);
+         padding-bottom:var(--pad-bottom);
+         display:flex; flex-direction:column; }
+
+  /* As colunas. A ordem visual e do photo_side; a ordem no DOM nao muda, para o
+     relatorio medido continuar lendo a peca na mesma sequencia. */
+  .stage { flex:1 1 auto; min-height:0; display:flex; align-items:stretch; }
+  .pcol { flex:0 0 var(--col-w); position:relative; order:var(--pcol-order); }
+  .tcol { flex:1 1 auto; min-width:0; order:var(--tcol-order);
+          display:flex; flex-direction:column;
+          padding:var(--pad-top) var(--tcol-r) 0 var(--tcol-l); }
+
+  .photo { position:absolute; overflow:hidden; background:var(--c-line, #ddd); }
+  .photo img { width:100%; height:100%; object-fit:cover;
+               object-position:var(--photo-pos); display:block; }
+  [data-shape="coluna"]    .photo { inset:0 var(--in-r) 0 var(--in-l); }
+  [data-shape="retangulo"] .photo { inset:var(--pad-top) var(--in-r) 0 var(--in-l);
+                                    border-radius:var(--photo-radius); }
+  /* 999px em duas quinas adjacentes: o browser reduz os raios proporcionalmente ate
+     caberem no lado, o que da exatamente meio circulo, seja qual for col_w_pct. */
+  [data-shape="arco"]      .photo { inset:var(--pad-top) var(--in-r) 0 var(--in-l);
+                                    border-radius:999px 999px 0 0; }
+  [data-shape="circulo"]   .photo { left:var(--in-l); right:var(--in-r);
+                                    top:50%; transform:translateY(-50%);
+                                    aspect-ratio:1; border-radius:50%; }
+
+  .top { flex:0 0 var(--mark-h); display:flex; align-items:center; }
+  .top img { height:calc(56px * var(--logo-scale)); width:auto; display:block; }
+  /* logo_scale vale para os dois caminhos da assinatura: arquivo de logo e wordmark. */
+  .wordmark { font-family:var(--font-display), Impact, sans-serif; font-weight:400;
+    text-transform:uppercase; letter-spacing:.02em; line-height:1; }
+
+  .mid { flex:1 1 auto; min-height:0; display:flex; flex-direction:column;
+         justify-content:var(--mid-justify); align-items:var(--mid-items);
+         text-align:var(--align); gap:2.6%; padding-bottom:var(--pad-top); }
+  .eyebrow { font-weight:700; font-size:var(--eyebrow-size); letter-spacing:.19em;
+             text-transform:uppercase; color:var(--accent); }
+  h1 { font-family:var(--font-display), Impact, sans-serif; font-weight:400;
+       font-size:var(--headline-size); line-height:1.02; letter-spacing:-.02em;
+       text-transform:var(--headline-case); overflow-wrap:break-word; }
+  /* Enfase semantica da headline (headline_parts). O compilador ja emite
+     <span class="accent|strong|lead|alt">; sem estas regras a enfase existia no
+     HTML e nao aparecia na peca. */
+  h1 .accent { color:var(--accent); }
+  h1 .strong { font-weight:700; }
+  h1 .alt    { font-family:var(--font-text), system-ui, sans-serif; }
+  h1 .lead   { display:block; }
+  .rule { width:76px; height:6px; background:var(--accent); border:0; }
+  .support { font-size:var(--support-size); line-height:1.45; opacity:.78; }
+
+  /* Rodape: largura inteira, altura RESERVADA e escopo proprio de auto-ajuste. */
+  /* PISO + TETO, nao altura unica: min-height garante a reserva (nada espreme o
+     rodape), o conteudo pode crescer alem dela (a assinatura legal nunca encolhe a
+     toa) e max-height impede que esse crescimento coma a arte. Passou do teto, o
+     escopo acusa e o auto-ajuste entra. */
+  .foot { flex:0 0 auto; min-height:var(--foot-h); max-height:var(--foot-max);
+          display:flex; flex-direction:var(--foot-dir);
+          align-items:var(--foot-items); justify-content:var(--foot-justify);
+          padding:0 var(--pad-x); font-weight:600; font-size:var(--foot-size);
+          letter-spacing:.05em; opacity:.8; gap:var(--foot-gap); }
+  .foot [data-fit] { overflow-wrap:break-word; }
+  .inst > span { display:block; line-height:1.35; }
+  .foot .cta { font-size:calc(var(--foot-size) * var(--cta-scale));
+               text-align:var(--foot-cta-align); line-height:1.35; }
+  /* cta_style=pill: a acao vira objeto com fundo proprio em vez de mais uma
+     linha de texto do rodape. Tokens de cor sao papeis da paleta, nunca hex. */
+  [data-cta="pill"] .foot .cta {
+    background:var(--c-{{cta_bg=primary}}, #000); color:var(--c-{{cta_fg=on-primary}}, #fff);
+    border-radius:999px; opacity:1; letter-spacing:.02em;
+    padding:calc(var(--foot-size) * var(--cta-scale) * .62)
+            calc(var(--foot-size) * var(--cta-scale) * 1.35); }
+</style>
+<script>
+  const r = document.documentElement.style;
+  const role = "{{bg_role=paper}}";
+  const cs = getComputedStyle(document.documentElement);
+  const c = n => cs.getPropertyValue('--c-' + n).trim();
+  const bg = c(role) || '#fff';
+  // fundo escuro pede texto claro: decidido pela luminancia, nao por cliente
+  const rgb = bg.match(/\w\w/g).map(h => parseInt(h, 16));
+  const lum = (0.2126*rgb[0] + 0.7152*rgb[1] + 0.0722*rgb[2]) / 255;
+  r.setProperty('--bg', bg);
+  r.setProperty('--fg', lum > 0.55 ? (c('ink') || '#111') : (c('paper') || '#fff'));
+  // acento: automatico pela luminancia; accent_role permite fixar uma chave da paleta,
+  // para que um fundo escuro nao precise abrir mao do acento da marca.
+  const accentRole = "{{accent_role=}}";
+  r.setProperty('--accent', (accentRole && c(accentRole))
+    || (lum > 0.55 ? (c('primary') || '#111') : (c('paper') || '#fff')));
+
+  const W = {{format_w}}, H = {{format_h}};
+  r.setProperty('--headline-size', {{headline_size=62}} + 'px');
+  r.setProperty('--eyebrow-size', {{eyebrow_size=20}} + 'px');
+  r.setProperty('--support-size', {{support_size=25}} + 'px');
+  r.setProperty('--foot-size', {{foot_size=23}} + 'px');
+  r.setProperty('--cta-scale', {{cta_scale=1}});
+  r.setProperty('--logo-scale', {{logo_scale=1}});
+  r.setProperty('--mark-h', (72 * {{logo_scale=1}}) + 'px');
+  r.setProperty('--photo-pos', "{{photo_pos=center}}");
+  r.setProperty('--photo-radius', {{photo_radius=0}} + 'px');
+  // Caixa da headline: display em caixa alta e o default historico da familia.
+  // `none` existe para campanha cuja base verbal proibe caixa alta gritada.
+  r.setProperty('--headline-case', "{{headline_case=uppercase}}");
+  document.documentElement.dataset.cta = "{{cta_style=text}}".trim().toLowerCase();
+
+  // Margens em PX derivadas da peca. Aqui elas valem dentro de colunas estreitas, e
+  // padding percentual se mediria contra a largura da COLUNA, nao da peca -- o que
+  // faria a mesma margem valer coisas diferentes em cada lado.
+  const padXp = {{pad_pct=7.0}}, padTp = {{pad_top_pct=-1}}, padBp = {{pad_bottom_pct=-1}};
+  const padX = W * padXp / 100;
+  const padTop = W * (padTp >= 0 ? padTp : padXp) / 100;
+  const padBottom = W * (padBp >= 0 ? padBp : padXp) / 100;
+  r.setProperty('--pad-x', padX + 'px');
+  r.setProperty('--pad-top', padTop + 'px');
+  r.setProperty('--pad-bottom', padBottom + 'px');
+
+  // Goteira: por padrao igual a margem da peca, para a coluna de texto respirar tanto
+  // da foto quanto da borda.
+  const gapP = {{gap_pct=-1}};
+  const gap = W * (gapP >= 0 ? gapP : padXp) / 100;
+
+  r.setProperty('--col-w', ({{col_w_pct=42}} / 100 * W) + 'px');
+
+  const shape = ({ coluna:'coluna', retangulo:'retangulo', retangular:'retangulo',
+                   arco:'arco', arch:'arco', circulo:'circulo', circle:'circulo'
+                 })["{{photo_shape=coluna}}".trim().toLowerCase()] || 'coluna';
+  document.documentElement.dataset.shape = shape;
+
+  // So `coluna` encosta na borda externa da peca; as demais respeitam a margem.
+  const bordaExterna = shape === 'coluna' ? 0 : padX;
+  const esquerda = "{{photo_side=left}}".trim().toLowerCase() !== 'right';
+  r.setProperty('--pcol-order', esquerda ? 1 : 2);
+  r.setProperty('--tcol-order', esquerda ? 2 : 1);
+  r.setProperty('--in-l', (esquerda ? bordaExterna : 0) + 'px');
+  r.setProperty('--in-r', (esquerda ? 0 : bordaExterna) + 'px');
+  // a goteira fica sempre do lado da coluna de texto que encara a foto
+  r.setProperty('--tcol-l', (esquerda ? gap : padX) + 'px');
+  r.setProperty('--tcol-r', (esquerda ? padX : gap) + 'px');
+
+  const align = "{{align=left}}";
+  r.setProperty('--align', align);
+  r.setProperty('--mid-items', align === 'center' ? 'center' : 'flex-start');
+  r.setProperty('--mid-justify', "{{mid_justify=center}}");
+
+  // 0 = lado a lado. 1 = empilhado com o CTA acima (column-reverse).
+  // 2 = empilhado com a assinatura institucional acima do CTA: em segmento
+  // regulado, ler quem responde antes do pedido de acao e a ordem que serve.
+  const stackMode = "{{foot_stack=0}}".trim().toLowerCase();
+  const stack = stackMode === "1" || stackMode === "2" || stackMode === "inst";
+  const instFirst = stackMode === "2" || stackMode === "inst";
+  r.setProperty('--foot-dir', !stack ? 'row' : (instFirst ? 'column' : 'column-reverse'));
+  r.setProperty('--foot-items', stack ? 'flex-start' : 'center');
+  // em column-reverse o inicio do eixo principal e a BASE: flex-start ancora no pe.
+  r.setProperty('--foot-justify', !stack ? 'space-between' : (instFirst ? 'center' : 'flex-start'));
+  r.setProperty('--foot-gap', stack ? 'calc(var(--foot-size) * 0.6)' : '4%');
+  r.setProperty('--foot-cta-align', stack ? 'left' : 'right');
+</script>
+
+<div class="stage">
+  <div class="pcol"><div class="photo"><img src="{{photo}}" data-role="photo" alt=""></div></div>
+
+  <div class="tcol">
+    <div class="top" data-fit-scope="marca" data-mark><img src="{{logo=}}" data-role="logo" alt=""><span class="wordmark" data-fit="wordmark" style="font-size:calc(38px * var(--logo-scale));color:var(--fg)">{{brand_name}}</span></div>
+
+    <div class="mid" data-fit-scope="texto">
+      <div class="eyebrow" data-fit="eyebrow" data-fit-min="15">{{eyebrow=}}</div>
+      <h1 data-fit="headline" data-fit-min="34">{{headline}}</h1>
+      <hr class="rule">
+      <p class="support" data-fit="support" data-fit-min="17">{{support=}}</p>
+    </div>
+  </div>
+</div>
+
+<div class="foot" data-fit-scope="rodape">
+  <div class="inst"><span data-fit="legal" data-fit-min="15">{{inst_assinatura_legal=}}</span><span data-fit="handle" data-fit-min="15">{{inst_handle=}}</span></div>
+  <span class="cta" data-fit="cta" data-fit-min="15">{{cta=}}</span>
+</div>
+
+<script>
+  for (const el of document.querySelectorAll('[data-fit]')) {
+    if (!el.textContent.trim()) el.remove();
+  }
+  if ("{{rule=1}}" === "0") document.querySelector('.rule')?.remove();
+</script>
+<script>
+  // Cliente sem arquivo de logo: cai para wordmark tipografico em vez de quebrar a peca.
+  for (const mk of document.querySelectorAll('[data-mark]')) {
+    const im = mk.querySelector('img');
+    const wm = mk.querySelector('.wordmark');
+    if (im && im.getAttribute('src')) { wm && wm.remove(); }
+    else { im && im.remove(); }
+  }
+</script>
+<script>
+  // Reserva do rodape: medida pelas LINHAS que sobraram depois da limpeza acima, nao
+  // por um chute fixo. Empilhado soma CTA + institucional; em linha, vale o maior dos
+  // dois. A reserva existe ANTES do texto disputar espaco -- por isso o rodape nunca e
+  // espremido -- e o auto-ajuste so trabalha DENTRO dela.
+  const st = document.documentElement.style;
+  const raiz = getComputedStyle(document.documentElement);
+  const fs = parseFloat(raiz.getPropertyValue('--foot-size'));
+  const ctaScale = parseFloat(raiz.getPropertyValue('--cta-scale')) || 1;
+  const modo = "{{foot_stack=0}}".trim().toLowerCase();
+  const empilhado = modo === "1" || modo === "2" || modo === "inst";
+  const nInst = document.querySelectorAll('.foot .inst [data-fit]').length;
+  const nCta = document.querySelectorAll('.foot .cta').length;
+  const LINHA = 1.45;
+  let u = 0;
+  if (nInst || nCta) {
+    u = empilhado
+      ? nInst * LINHA + nCta * LINHA * ctaScale + (nInst && nCta ? .6 : 0)
+      : Math.max(nInst * LINHA, nCta * LINHA * ctaScale);
+    u += .55;
+  }
+  // Teto do rodape. Sem ele, um flex item de altura automatica cresce indefinidamente
+  // e rouba a area da composicao em silencio -- que e a versao do mesmo defeito que
+  // estamos corrigindo, so que por baixo.
+  const teto = {{format_h}} * {{foot_max_pct=30}} / 100;
+  const pct = {{foot_h_pct=-1}};
+  // O piso nunca pode passar o teto: em CSS, min-height vence max-height, e um piso
+  // maior que o teto desligaria a protecao em silencio.
+  const piso = Math.min(pct >= 0 ? {{format_h}} * pct / 100 : fs * u, teto);
+  st.setProperty('--foot-h', piso + 'px');
+  st.setProperty('--foot-max', teto + 'px');
+</script>

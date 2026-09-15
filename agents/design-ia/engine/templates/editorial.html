@@ -1,0 +1,72 @@
+<!-- FAMILIA: editorial
+     Foto protagonista no topo, bloco de texto em fundo claro, assinatura em barra.
+     Bom para: institucional, portfolio, prova de trabalho, mensagem com respiro.
+     Tokens obrigatorios: photo, logo, eyebrow, headline, support
+     Tokens opcionais : photo_h_pct (default 60), photo_pos (default "center"),
+                        headline_size, headline_lh (default 0.99; abra a entrelinha quando a
+                        display tiver descendente longo ou a headline levar caixa alta
+                        acentuada), bar_h, inst_handle -->
+<meta charset="utf-8">
+<style>
+  {{font_face}}
+  :root { {{palette}} }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:{{format_w}}px; height:{{format_h}}px; overflow:hidden; }
+  body {
+    background: var(--c-paper, #fff);
+    font-family: var(--font-text), system-ui, sans-serif;
+    display:flex; flex-direction:column; -webkit-font-smoothing:antialiased;
+  }
+  .photo { flex:0 0 calc({{format_h}}px * var(--photo-pct)); position:relative; overflow:hidden; background:var(--c-line,#ddd); }
+  .photo img { width:100%; height:100%; object-fit:cover; object-position:var(--photo-pos); display:block; }
+  .photo::after { content:""; position:absolute; inset:auto 0 0 0; height:12%;
+    background:linear-gradient(to bottom, rgba(0,0,0,0), rgba(20,17,16,.14)); }
+
+  .body { flex:1 1 auto; min-height:0; padding:0 calc(var(--pad-pct) * 1%); display:flex; flex-direction:column;
+          justify-content:center; gap:3.1%; border-top:5px solid var(--c-primary,#000); }
+  .eyebrow { font-weight:700; font-size:21px; letter-spacing:.19em; text-transform:uppercase;
+             color:var(--c-primary,#000); }
+  h1 { font-family:var(--font-display), Impact, sans-serif; font-weight:400;
+       font-size:var(--headline-size); line-height:var(--headline-lh); letter-spacing:-.018em;
+       color:var(--c-ink,#111); text-transform:uppercase; overflow-wrap:break-word; }
+  .support { font-size:26px; line-height:1.45; color:var(--c-muted,#555); max-width:92%; }
+
+  .bar { flex:0 0 var(--bar-h); background:var(--c-primary,#000); color:var(--c-on-primary,#fff);
+         display:flex; align-items:center; justify-content:space-between; padding:0 calc(var(--pad-pct) * 1%); }
+  .bar img { height:calc(46% * var(--logo-scale)); max-height:calc(56px * var(--logo-scale)); width:auto; display:block; }
+  .wordmark { font-family:var(--font-display), Impact, sans-serif; font-weight:400;
+    text-transform:uppercase; letter-spacing:.02em; line-height:1; }
+  .bar .handle { font-weight:600; font-size:23px; letter-spacing:.05em; }
+</style>
+<script>
+  document.documentElement.style.setProperty('--photo-pct', {{photo_h_pct=60}} / 100);
+  document.documentElement.style.setProperty('--photo-pos', "{{photo_pos=center}}");
+  document.documentElement.style.setProperty('--headline-size', {{headline_size=68}} + 'px');
+  document.documentElement.style.setProperty('--headline-lh', {{headline_lh=0.99}});
+  document.documentElement.style.setProperty('--bar-h', {{bar_h=108}} + 'px');
+  document.documentElement.style.setProperty('--pad-pct', {{pad_pct=6.3}});
+  document.documentElement.style.setProperty('--logo-scale', {{logo_scale=1}});
+</script>
+
+<div class="photo"><img src="{{photo}}" data-role="photo" alt=""></div>
+
+<div class="body" data-fit-scope="texto">
+  <div class="eyebrow" data-fit="eyebrow" data-fit-min="15">{{eyebrow=}}</div>
+  <h1 data-fit="headline" data-fit-min="34">{{headline}}</h1>
+  <p class="support" data-fit="support" data-fit-min="17">{{support=}}</p>
+</div>
+
+<div class="bar" data-mark>
+  <img src="{{logo=}}" data-role="logo" alt="">
+  <span class="wordmark" data-fit="wordmark" style="font-size:34px;color:var(--c-on-primary,#fff)">{{brand_name}}</span>
+  <span class="handle">{{inst_handle=}}</span>
+</div>
+<script>
+  // Cliente sem arquivo de logo: cai para wordmark tipografico em vez de quebrar a peca.
+  for (const mk of document.querySelectorAll('[data-mark]')) {
+    const im = mk.querySelector('img');
+    const wm = mk.querySelector('.wordmark');
+    if (im && im.getAttribute('src')) { wm && wm.remove(); }
+    else { im && im.remove(); }
+  }
+</script>

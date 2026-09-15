@@ -1,0 +1,89 @@
+<!-- FAMILIA: promocional
+     Foto full-bleed, escurecimento controlado, texto sobreposto e CTA em destaque.
+     Bom para: oferta, lancamento, campanha de conversao, chamada com urgencia.
+     Tokens obrigatorios: photo, logo, headline, cta
+     Tokens opcionais : eyebrow, support, badge, photo_pos, scrim (0-100),
+                        headline_size, align (left|center) -->
+<meta charset="utf-8">
+<style>
+  {{font_face}}
+  :root { {{palette}} }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:{{format_w}}px; height:{{format_h}}px; overflow:hidden; }
+  body { font-family:var(--font-text), system-ui, sans-serif; -webkit-font-smoothing:antialiased;
+         background:var(--c-ink,#111); position:relative; }
+
+  .bg { position:absolute; inset:0; }
+  .bg img { width:100%; height:100%; object-fit:cover; object-position:var(--photo-pos); display:block; }
+  /* scrim: garante contraste do texto sobre qualquer foto */
+  .scrim { position:absolute; inset:0; background:
+      linear-gradient(to top, rgba(10,8,7,var(--scrim)) 0%, rgba(10,8,7,calc(var(--scrim)*.72)) 42%,
+                      rgba(10,8,7,0) 78%); }
+
+  .stack { position:absolute; inset:0; display:flex; flex-direction:column;
+           justify-content:flex-end; padding:calc(var(--pad-pct) * 1%); gap:2.2%; text-align:var(--align); }
+  .badge { align-self:var(--badge-align); background:var(--c-primary,#c00); color:var(--c-on-primary,#fff);
+           font-weight:700; font-size:24px; letter-spacing:.12em; text-transform:uppercase;
+           padding:12px 22px; border-radius:4px; }
+  .eyebrow { font-weight:700; font-size:21px; letter-spacing:.19em; text-transform:uppercase;
+             color:var(--c-on-primary,#fff); opacity:.92; }
+  h1 { font-family:var(--font-display), Impact, sans-serif; font-weight:400;
+       font-size:var(--headline-size); line-height:.99; letter-spacing:-.018em;
+       color:#fff; text-transform:uppercase; overflow-wrap:break-word;
+       text-shadow:0 2px 24px rgba(0,0,0,.35); }
+  .support { font-size:27px; line-height:1.42; color:rgba(255,255,255,.93); max-width:88%; }
+  .cta { align-self:var(--badge-align); margin-top:1%; background:var(--c-primary,#c00);
+         color:var(--c-on-primary,#fff); font-weight:700; font-size:calc(28px * var(--cta-scale));
+         letter-spacing:.04em; padding:calc(20px * var(--cta-scale)) calc(34px * var(--cta-scale));
+         border-radius:6px; }
+
+  /* base de leitura para a assinatura quando o topo da foto e claro */
+  .topscrim { position:absolute; inset:0 0 auto 0; height:26%;
+    background:linear-gradient(to bottom, rgba(10,8,7,var(--mark-scrim)), rgba(10,8,7,0)); }
+  .mark { position:absolute; top:5.4%; left:calc(var(--pad-pct) * 1%); }
+  .mark img { height:calc(52px * var(--logo-scale)); width:auto; display:block; filter:drop-shadow(0 2px 14px rgba(0,0,0,.4)); }
+  .wordmark { font-family:var(--font-display), Impact, sans-serif; font-weight:400;
+    text-transform:uppercase; letter-spacing:.02em; line-height:1; }
+</style>
+<script>
+  const r = document.documentElement.style;
+  r.setProperty('--photo-pos', "{{photo_pos=center}}");
+  r.setProperty('--scrim', {{scrim=82}} / 100);
+  r.setProperty('--headline-size', {{headline_size=76}} + 'px');
+  const al = "{{align=left}}";
+  r.setProperty('--align', al);
+  r.setProperty('--badge-align', al === 'center' ? 'center' : 'flex-start');
+  r.setProperty('--pad-pct', {{pad_pct=6.3}});
+  r.setProperty('--logo-scale', {{logo_scale=1}});
+  r.setProperty('--cta-scale', {{cta_scale=1}});
+  r.setProperty('--mark-scrim', {{mark_scrim=0}} / 100);
+</script>
+
+<div class="bg"><img src="{{photo}}" data-role="photo" alt=""></div>
+<div class="scrim"></div>
+<div class="topscrim"></div>
+<div class="mark" data-mark data-over-image><img src="{{logo=}}" data-role="logo" alt=""><span class="wordmark" data-fit="wordmark" style="font-size:38px;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.45)">{{brand_name}}</span></div>
+
+<div class="stack" data-fit-scope="texto" data-over-image>
+  <span class="badge" data-fit="badge" data-fit-min="15">{{badge=}}</span>
+  <div class="eyebrow" data-fit="eyebrow" data-fit-min="15">{{eyebrow=}}</div>
+  <h1 data-fit="headline" data-fit-min="38">{{headline}}</h1>
+  <p class="support" data-fit="support" data-fit-min="18">{{support=}}</p>
+  <span class="cta" data-fit="cta" data-fit-min="19">{{cta}}</span>
+</div>
+
+<script>
+  // elementos opcionais sem conteudo nao ocupam espaco nem entram no auto-fit
+  for (const el of document.querySelectorAll('[data-fit]')) {
+    if (!el.textContent.trim()) { el.remove(); }
+  }
+</script>
+<script>
+  // Cliente sem arquivo de logo: cai para wordmark tipografico em vez de quebrar a peca.
+  for (const mk of document.querySelectorAll('[data-mark]')) {
+    const im = mk.querySelector('img');
+    const wm = mk.querySelector('.wordmark');
+    if (im && im.getAttribute('src')) { wm && wm.remove(); }
+    else { im && im.remove(); }
+  }
+</script>

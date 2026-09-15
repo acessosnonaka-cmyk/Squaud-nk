@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "_comment": "Formatos de saida. Adicionar formato aqui NAO exige tocar em render.py.",
+  "formats": {
+    "instagram-feed": {
+      "label": "Instagram Feed vertical",
+      "w": 1080, "h": 1350, "scale": 1,
+      "safe": { "top": 60, "right": 60, "bottom": 60, "left": 60 },
+      "aliases": ["feed", "feed-vertical", "post", "4:5"]
+    },
+    "instagram-story": {
+      "label": "Instagram Story",
+      "w": 1080, "h": 1920, "scale": 1,
+      "safe": { "top": 250, "right": 60, "bottom": 320, "left": 60 },
+      "_safe_note": "Topo e base reservados para a UI do app (perfil, barra de resposta).",
+      "aliases": ["story", "stories", "reels-capa", "9:16"]
+    },
+    "instagram-square": {
+      "label": "Instagram quadrado",
+      "w": 1080, "h": 1080, "scale": 1,
+      "safe": { "top": 60, "right": 60, "bottom": 60, "left": 60 },
+      "aliases": ["quadrado", "square", "1:1"]
+    }
+  }
+}

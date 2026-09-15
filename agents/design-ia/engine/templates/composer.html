@@ -1,0 +1,300 @@
+<!-- SISTEMA DE COMPOSICAO (V2.2)
+     Nao e um template: e um sistema de camadas parametrizado. Todos os parametros
+     chegam como DADOS do job (art-direction.json -> brief.layout). As familias
+     editorial / promocional / minimal viraram PRESETS de parametros, nao arquivos.
+
+     Camadas, de tras para a frente:
+       background · photography · photo-treatment · scrim · shapes · texture ·
+       decorative-type · secondary-type · primary-type · cta · brand-signature
+
+     Nenhuma camada e obrigatoria. O diretor de arte liga so o que tem funcao. -->
+<meta charset="utf-8">
+<style>
+  {{font_face}}
+  :root {
+    {{palette}}
+    {{type_vars}}
+    --pad: calc({{pad_pct=6.6}} * 1%);
+    --split: calc({{split_pct=55}} * 1%);
+    --photo-pos: {{photo_pos=center}};
+    --scrim: {{scrim=0}};
+    --scrim-from: {{scrim_from=bottom}};
+    --treat-sat: {{treat_saturate=100}}%;
+    --treat-con: {{treat_contrast=100}}%;
+    --treat-bri: {{treat_brightness=100}}%;
+    --treat-sepia: {{treat_sepia=0}}%;
+    --texture: {{texture=0}};
+    --deco-op: {{deco_opacity=0}};
+    --logo-scale: {{logo_scale=1}};
+    --cta-scale: {{cta_scale=1}};
+    --rule-w: {{rule_w=0}}px;
+    --radius: {{radius=0}}px;
+    --sig-reserve: calc(var(--pad) + var(--s-sig) * 3.4);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:{{format_w}}px; height:{{format_h}}px; overflow:hidden; }
+  body {
+    background: var(--c-{{bg_role=paper}}, #fff);
+    color: var(--c-{{fg_role=ink}}, #111);
+    font-family: var(--font-body), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+  }
+
+  /* ---------- camada: fotografia ---------------------------------------- */
+  .photo { position:absolute; overflow:hidden; background:var(--c-line, #ddd); }
+  .photo img {
+    width:100%; height:100%; object-fit:cover; object-position:var(--photo-pos);
+    display:block;
+    filter: saturate(var(--treat-sat)) contrast(var(--treat-con))
+            brightness(var(--treat-bri)) sepia(var(--treat-sepia));
+  }
+  /* image_mode define APENAS a geometria da foto */
+  body[data-image="full"]       .photo,
+  body[data-image="background"] .photo { inset:0; }
+  body[data-image="bleed"]      .photo { inset:0 0 auto 0; height:var(--split); }
+  body[data-image="split-top"]  .photo { inset:0 0 auto 0; height:var(--split); }
+  body[data-image="split-bottom"] .photo { inset:auto 0 0 0; height:var(--split); }
+  body[data-image="split-left"] .photo { inset:0 auto 0 0; width:var(--split); }
+  body[data-image="split-right"] .photo { inset:0 0 0 auto; width:var(--split); }
+  body[data-image="inset"]      .photo {
+    inset: var(--pad); border-radius: var(--radius);
+  }
+  /* card-*: a fotografia vira OBJETO sobre o papel, com respiro em volta, em vez de
+     uma faixa colada na borda. Muda a leitura de "post em duas faixas" para editorial. */
+  body[data-image="card-bottom"] .photo {
+    inset: auto var(--pad) var(--pad) var(--pad);
+    height: calc(var(--split) - var(--pad)); border-radius: var(--radius);
+  }
+  body[data-image="card-top"] .photo {
+    inset: var(--pad) var(--pad) auto var(--pad);
+    height: calc(var(--split) - var(--pad)); border-radius: var(--radius);
+  }
+  body[data-image="none"] .photo { display:none; }
+
+  /* ---------- camada: scrim / gradiente ---------------------------------- */
+  .scrim { position:absolute; inset:0; pointer-events:none; }
+  body[data-scrim-from="bottom"] .scrim {
+    background: linear-gradient(to top,
+      rgba(8,7,6,calc(var(--scrim)/100)) 0%,
+      rgba(8,7,6,calc(var(--scrim)/100 * .62)) 38%,
+      rgba(8,7,6,0) 76%); }
+  body[data-scrim-from="top"] .scrim {
+    background: linear-gradient(to bottom,
+      rgba(8,7,6,calc(var(--scrim)/100)) 0%,
+      rgba(8,7,6,0) 55%); }
+  body[data-scrim-from="left"] .scrim {
+    background: linear-gradient(to right,
+      rgba(8,7,6,calc(var(--scrim)/100)) 0%,
+      rgba(8,7,6,0) 62%); }
+  body[data-scrim-from="full"] .scrim {
+    background: rgba(8,7,6,calc(var(--scrim)/100)); }
+
+  /* ---------- camada: formas graficas ------------------------------------ */
+  .shapes { position:absolute; inset:0; pointer-events:none; }
+  .shape-block {
+    position:absolute; background:var(--c-{{shape_role=primary}}, #000);
+    opacity:{{shape_opacity=1}};
+  }
+  .shape-rule {
+    position:absolute; background:var(--c-{{rule_role=primary}}, #000);
+    height:var(--rule-w); width:{{rule_len=120}}px;
+  }
+  .shape-frame {
+    position:absolute; inset:calc(var(--pad) * .55);
+    border:{{frame_w=0}}px solid var(--c-{{frame_role=paper}}, #fff);
+    border-radius: var(--radius);
+  }
+
+  /* ---------- camada: textura ------------------------------------------- */
+  /* gerada em CSS: sem arquivo, sem dependencia, custo zero */
+  .texture {
+    position:absolute; inset:0; pointer-events:none; opacity:var(--texture);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.5) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.4) 0 1px, transparent 1px 4px);
+    mix-blend-mode: overlay;
+  }
+
+  /* ---------- camada: tipografia decorativa ------------------------------ */
+  .deco {
+    position:absolute; pointer-events:none; opacity:var(--deco-op);
+    font-family:var(--font-display); font-weight:var(--w-display);
+    font-size:{{deco_size=340}}px; line-height:.82; letter-spacing:-.04em;
+    color:var(--c-{{deco_role=primary}}, #000); text-transform:uppercase;
+    white-space:pre-line;
+    top:{{deco_top=-4}}%; left:{{deco_left=-3}}%;
+  }
+
+  /* ---------- camada: conteudo ------------------------------------------ */
+  .content {
+    position:absolute; display:flex; flex-direction:column;
+    gap:calc({{gap_pct=2.4}} * 1%);
+    padding: var(--pad);
+    text-align: {{align=left}};
+    align-items: {{items=flex-start}};
+  }
+  /* text_position define APENAS onde o bloco de conteudo vive */
+  body[data-text="overlay"]  .content { inset:auto 0 0 0; }
+  body[data-text="edge-top"] .content { inset:0 0 auto 0; }
+  body[data-text="block-bottom"] .content {
+    inset:var(--split) 0 0 0; justify-content:center;
+    background:var(--c-{{block_role=none}}, transparent); }
+  body[data-text="block-top"] .content {
+    inset:0 0 var(--split) 0; justify-content:center;
+    background:var(--c-{{block_role=none}}, transparent); }
+  body[data-text="split-right"] .content {
+    inset:0 0 0 var(--split); justify-content:center;
+    background:var(--c-{{block_role=none}}, transparent); }
+  body[data-text="split-left"] .content {
+    inset:0 var(--split) 0 0; justify-content:center;
+    background:var(--c-{{block_role=none}}, transparent); }
+  body[data-text="floating"] .content {
+    inset:auto calc(var(--pad)) calc(var(--pad)) calc(var(--pad));
+    background:var(--c-{{block_role=none}}, transparent);
+    border-radius:var(--radius); padding:calc(var(--pad) * .9); }
+  body[data-text="center"] .content { inset:0; justify-content:center; }
+
+  /* ---------- papeis tipograficos --------------------------------------- */
+  /* Cada papel tem familia, corpo, peso, caixa, tracking, entrelinha e medida
+     proprios. Nao sao variacoes de uma unica escala. */
+  .eyebrow {
+    font-family:var(--font-eyebrow); font-size:var(--s-eyebrow); font-weight:var(--w-eyebrow);
+    letter-spacing:var(--t-eyebrow); text-transform:var(--c-case-eyebrow);
+    line-height:1.2; color:var(--c-{{eyebrow_role=primary}}, #000);
+  }
+  .headline {
+    font-family:var(--font-headline); font-size:var(--s-headline); font-weight:var(--w-headline);
+    letter-spacing:var(--t-headline); line-height:var(--l-headline);
+    text-transform:var(--c-case-headline); max-width:var(--m-headline);
+    color:var(--c-{{headline_role=ink}}, #111); overflow-wrap:break-word;
+  }
+  .subheadline {
+    font-family:var(--font-sub); font-size:var(--s-sub); font-weight:var(--w-sub);
+    letter-spacing:var(--t-sub); line-height:var(--l-sub); max-width:var(--m-sub);
+    text-transform:var(--c-case-sub); color:var(--c-{{sub_role=muted}}, #555);
+  }
+  .body-text {
+    font-family:var(--font-body); font-size:var(--s-body); font-weight:var(--w-body);
+    line-height:var(--l-body); max-width:var(--m-body);
+    color:var(--c-{{body_role=muted}}, #555);
+  }
+  .caption {
+    font-family:var(--font-caption); font-size:var(--s-caption); font-weight:var(--w-caption);
+    letter-spacing:var(--t-caption); line-height:1.35;
+    color:var(--c-{{caption_role=muted}}, #777);
+  }
+
+  /* enfase dentro da headline: so existe quando o job pede */
+  .headline .lead   { font-size:var(--e-lead); font-weight:var(--e-lead-w);
+                      font-family:var(--font-lead); letter-spacing:var(--e-lead-t);
+                      color:var(--c-{{lead_role=ink}}, #111); display:block; }
+  .headline .strong { font-weight:var(--e-strong-w); }
+  .headline .accent { color:var(--c-{{accent_role=primary}}, #000); }
+  .headline .alt    { font-family:var(--font-alt); font-style:{{alt_style=normal}}; }
+
+  /* ---------- CTA -------------------------------------------------------- */
+  .cta {
+    font-family:var(--font-cta); font-size:calc(var(--s-cta) * var(--cta-scale));
+    font-weight:var(--w-cta); letter-spacing:var(--t-cta);
+    text-transform:var(--c-case-cta); line-height:1;
+    display:inline-block; white-space:nowrap;
+  }
+  body[data-cta="button"] .cta {
+    background:var(--c-{{cta_bg=primary}}, #000); color:var(--c-{{cta_fg=on-primary}}, #fff);
+    padding:calc(var(--s-cta) * .72) calc(var(--s-cta) * 1.25); border-radius:var(--radius);
+  }
+  body[data-cta="pill"] .cta {
+    background:var(--c-{{cta_bg=primary}}, #000); color:var(--c-{{cta_fg=on-primary}}, #fff);
+    padding:calc(var(--s-cta) * .72) calc(var(--s-cta) * 1.4); border-radius:999px;
+  }
+  body[data-cta="underline"] .cta {
+    color:var(--c-{{cta_fg=ink}}, #111);
+    border-bottom:2px solid var(--c-{{cta_bg=primary}}, #000);
+    padding-bottom:calc(var(--s-cta) * .22);
+  }
+  body[data-cta="text"] .cta { color:var(--c-{{cta_fg=primary}}, #000); }
+  body[data-cta="none"] .cta { display:none; }
+
+  /* ---------- assinatura da marca ---------------------------------------- */
+  .sig { position:absolute; display:flex; align-items:center; gap:16px; }
+  .sig img { height:calc(var(--s-sig) * 1.9 * var(--logo-scale)); width:auto; display:block; }
+  .sig .wordmark {
+    font-family:var(--font-sig); font-size:var(--s-sig); font-weight:var(--w-sig);
+    letter-spacing:var(--t-sig); text-transform:var(--c-case-sig); line-height:1;
+  }
+  .sig .handle {
+    font-family:var(--font-caption); font-size:calc(var(--s-sig) * .78);
+    font-weight:500; letter-spacing:.04em; opacity:.9;
+  }
+  body[data-brand="top"] .sig { top:var(--pad); left:var(--pad); right:var(--pad);
+    justify-content:space-between; color:var(--c-{{sig_role=paper}}, #fff); }
+  body[data-brand="bottom"] .sig { bottom:var(--pad); left:var(--pad); right:var(--pad);
+    justify-content:space-between; color:var(--c-{{sig_role=ink}}, #111); }
+  body[data-brand="bar"] .sig {
+    bottom:0; left:0; right:0; height:{{bar_h=104}}px; padding:0 var(--pad);
+    background:var(--c-{{bar_role=primary}}, #000); color:var(--c-{{sig_role=on-primary}}, #fff);
+    justify-content:space-between; }
+  body[data-brand="integrated"] .sig { position:static; margin-top:calc({{gap_pct=2.4}} * 1%);
+    color:var(--c-{{sig_role=ink}}, #111); }
+  body[data-brand="minimal"] .sig { bottom:var(--pad); left:var(--pad);
+    color:var(--c-{{sig_role=ink}}, #111); }
+  /* Assinatura ancorada no canvas + bloco de texto centralizado colidem: o bloco
+     reserva a faixa do pe para ela. */
+  body[data-brand="minimal"] [data-text^="block"] .content,
+  body[data-brand="minimal"] .content,
+  body[data-brand="bottom"]  .content,
+  body[data-brand="bar"]     .content { padding-bottom: var(--sig-reserve); }
+</style>
+
+<body
+  data-image="{{image_mode=full}}"
+  data-text="{{text_position=overlay}}"
+  data-scrim-from="{{scrim_from=bottom}}"
+  data-cta="{{cta_style=none}}"
+  data-brand="{{brand_position=bottom}}">
+
+  <div class="photo"><img src="{{photo=}}" data-role="photo" alt=""></div>
+  <div class="scrim"></div>
+  <div class="texture"></div>
+  <div class="deco">{{deco_text=}}</div>
+
+  <div class="shapes">
+    <div class="shape-frame"></div>
+    <div class="shape-rule" style="{{rule_style=display:none}}"></div>
+    <div class="shape-block" style="{{block_style=display:none}}"></div>
+  </div>
+
+  <div class="content" data-fit-scope="conteudo" {{over_image=}}>
+    <div class="eyebrow"     data-fit="eyebrow" data-fit-min="14">{{eyebrow=}}</div>
+    <h1  class="headline"    data-fit="headline" data-fit-min="30">{{headline}}</h1>
+    <div class="subheadline" data-fit="subheadline" data-fit-min="17">{{subheadline=}}</div>
+    <p   class="body-text"   data-fit="body" data-fit-min="16">{{body=}}</p>
+    <div class="caption"     data-fit="caption" data-fit-min="12">{{caption=}}</div>
+    <span class="cta"        data-fit="cta" data-fit-min="16">{{cta=}}</span>
+  </div>
+
+  <div class="sig" data-mark {{sig_over_image=}}>
+    <img src="{{logo=}}" data-role="logo" alt="">
+    <span class="wordmark" data-fit="wordmark">{{brand_name}}</span>
+    <span class="handle">{{inst_handle=}}</span>
+  </div>
+</body>
+
+<script>
+  // Elementos opcionais vazios saem do fluxo: nao ocupam espaco, nao entram no
+  // auto-fit e nao viram caixa fantasma no meio da composicao.
+  for (const el of document.querySelectorAll('[data-fit], .deco, .handle')) {
+    if (!el.textContent.trim()) el.remove();
+  }
+  // Sem arquivo de logo, a marca vira wordmark tipografico.
+  const mk = document.querySelector('[data-mark]');
+  if (mk) {
+    const im = mk.querySelector('img'), wm = mk.querySelector('.wordmark');
+    if (im && im.getAttribute('src')) { wm && wm.remove(); } else { im && im.remove(); }
+  }
+  // Assinatura "integrated" pertence ao bloco de conteudo, nao ao canvas.
+  if (document.body.dataset.brand === 'integrated' && mk) {
+    document.querySelector('.content').appendChild(mk);
+  }
+</script>

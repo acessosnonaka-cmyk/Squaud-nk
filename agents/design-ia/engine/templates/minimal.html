@@ -1,0 +1,123 @@
+<!-- FAMILIA: minimal
+     Tipografia sobre fundo solido da marca. Sem foto (ou com foto discreta ao pe).
+     Bom para: frase, aviso, recado, data comemorativa, quando nao ha boa fotografia.
+     Tokens obrigatorios: logo, headline
+     Tokens opcionais : eyebrow, support, cta, bg_role (paper|primary|ink),
+                        accent_role (qualquer chave da paleta; vazio = automatico),
+                        headline_size, eyebrow_size, support_size, foot_size,
+                        rule (0|1), inst_handle, align (left|center), cta_scale,
+                        pad_pct (margem lateral),
+                        pad_top_pct / pad_bottom_pct (margem vertical propria: formatos
+                          com interface sobreposta, como story, reservam topo e base),
+                        mid_justify (center|flex-start|flex-end: ancora do bloco),
+                        foot_stack (0|1: rodape em duas linhas quando handle e CTA nao
+                          cabem lado a lado; empilhado, o CTA fica acima e a assinatura
+                          institucional abaixo) -->
+<meta charset="utf-8">
+<style>
+  {{font_face}}
+  :root { {{palette}} }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:{{format_w}}px; height:{{format_h}}px; overflow:hidden; }
+  body { font-family:var(--font-text), system-ui, sans-serif; -webkit-font-smoothing:antialiased;
+         background:var(--bg); color:var(--fg);
+         padding:calc(var(--pad-top) * 1%) calc(var(--pad-x) * 1%) calc(var(--pad-bottom) * 1%);
+         display:flex; flex-direction:column; }
+
+  .top { flex:0 0 auto; display:flex; align-items:flex-start; }
+  .top img { height:calc(56px * var(--logo-scale)); width:auto; display:block; }
+  /* logo_scale vale para os dois caminhos da assinatura: arquivo de logo e wordmark. */
+  .wordmark { font-family:var(--font-display), Impact, sans-serif; font-weight:400;
+    text-transform:uppercase; letter-spacing:.02em; line-height:1; }
+
+  .mid { flex:1 1 auto; min-height:0; display:flex; flex-direction:column;
+         justify-content:var(--mid-justify); align-items:var(--mid-items);
+         text-align:var(--align); gap:2.4%; }
+  .eyebrow { font-weight:700; font-size:var(--eyebrow-size); letter-spacing:.19em; text-transform:uppercase;
+             color:var(--accent); }
+  h1 { font-family:var(--font-display), Impact, sans-serif; font-weight:400;
+       font-size:var(--headline-size); line-height:1.0; letter-spacing:-.02em;
+       text-transform:uppercase; overflow-wrap:break-word; }
+  .rule { width:96px; height:6px; background:var(--accent); border:0; }
+  .support { font-size:var(--support-size); line-height:1.45; opacity:.78; max-width:86%; }
+
+  /* Rodape em linha unica por padrao. Quando o conteudo institucional e longo
+     (identificacao de responsavel tecnico, registro profissional), foot_stack=1
+     empilha em duas linhas em vez de espremer os dois blocos. */
+  .foot { flex:0 0 auto; display:flex; flex-direction:var(--foot-dir);
+          align-items:var(--foot-items); justify-content:space-between;
+          font-weight:600; font-size:var(--foot-size); letter-spacing:.05em; opacity:.8;
+          gap:var(--foot-gap); }
+  .foot .cta { font-size:calc(var(--foot-size) * var(--cta-scale));
+               text-align:var(--foot-cta-align); }
+</style>
+<script>
+  const r = document.documentElement.style;
+  const role = "{{bg_role=paper}}";
+  const cs = getComputedStyle(document.documentElement);
+  const c = n => cs.getPropertyValue('--c-' + n).trim();
+  const bg = c(role) || '#fff';
+  // fundo escuro pede texto claro: decidido pela luminancia, nao por cliente
+  const rgb = bg.match(/\w\w/g).map(h => parseInt(h, 16));
+  const lum = (0.2126*rgb[0] + 0.7152*rgb[1] + 0.0722*rgb[2]) / 255;
+  r.setProperty('--bg', bg);
+  r.setProperty('--fg', lum > 0.55 ? (c('ink') || '#111') : (c('paper') || '#fff'));
+  // acento: automatico pela luminancia; accent_role permite fixar uma chave da paleta,
+  // para que um fundo escuro nao precise abrir mao do acento da marca.
+  const accentRole = "{{accent_role=}}";
+  r.setProperty('--accent', (accentRole && c(accentRole))
+    || (lum > 0.55 ? (c('primary') || '#111') : (c('paper') || '#fff')));
+  r.setProperty('--headline-size', {{headline_size=92}} + 'px');
+  r.setProperty('--eyebrow-size', {{eyebrow_size=21}} + 'px');
+  r.setProperty('--support-size', {{support_size=28}} + 'px');
+  r.setProperty('--foot-size', {{foot_size=23}} + 'px');
+  r.setProperty('--cta-scale', {{cta_scale=1}});
+  r.setProperty('--logo-scale', {{logo_scale=1}});
+
+  // Margem lateral e, quando informadas, margens verticais proprias. Formatos com
+  // interface sobreposta (story) precisam reservar topo e base sem estrangular as
+  // laterais -- por isso o padding vertical e independente do horizontal.
+  const padX = {{pad_pct=7.4}}, padT = {{pad_top_pct=-1}}, padB = {{pad_bottom_pct=-1}};
+  r.setProperty('--pad-x', padX);
+  r.setProperty('--pad-top', padT >= 0 ? padT : padX);
+  r.setProperty('--pad-bottom', padB >= 0 ? padB : padX);
+
+  const align = "{{align=left}}";
+  r.setProperty('--align', align);
+  r.setProperty('--mid-items', align === 'center' ? 'center' : 'flex-start');
+  r.setProperty('--mid-justify', "{{mid_justify=center}}");
+
+  // column-reverse: o CTA (acao) fica acima e a assinatura institucional abaixo dele.
+  const stack = "{{foot_stack=0}}" === "1";
+  r.setProperty('--foot-dir', stack ? 'column-reverse' : 'row');
+  r.setProperty('--foot-items', stack ? 'flex-start' : 'center');
+  r.setProperty('--foot-gap', stack ? 'calc(var(--foot-size) * 0.6)' : '4%');
+  r.setProperty('--foot-cta-align', stack ? 'left' : 'right');
+</script>
+
+<div class="top" data-mark><img src="{{logo=}}" data-role="logo" alt=""><span class="wordmark" data-fit="wordmark" style="font-size:calc(40px * var(--logo-scale));color:var(--fg)">{{brand_name}}</span></div>
+
+<div class="mid" data-fit-scope="texto">
+  <div class="eyebrow" data-fit="eyebrow" data-fit-min="15">{{eyebrow=}}</div>
+  <h1 data-fit="headline" data-fit-min="40">{{headline}}</h1>
+  <hr class="rule">
+  <p class="support" data-fit="support" data-fit-min="18">{{support=}}</p>
+</div>
+
+<div class="foot"><span data-fit="handle">{{inst_handle=}}</span><span class="cta" data-fit="cta">{{cta=}}</span></div>
+
+<script>
+  for (const el of document.querySelectorAll('[data-fit]')) {
+    if (!el.textContent.trim()) el.remove();
+  }
+  if ("{{rule=1}}" === "0") document.querySelector('.rule')?.remove();
+</script>
+<script>
+  // Cliente sem arquivo de logo: cai para wordmark tipografico em vez de quebrar a peca.
+  for (const mk of document.querySelectorAll('[data-mark]')) {
+    const im = mk.querySelector('img');
+    const wm = mk.querySelector('.wordmark');
+    if (im && im.getAttribute('src')) { wm && wm.remove(); }
+    else { im && im.remove(); }
+  }
+</script>
