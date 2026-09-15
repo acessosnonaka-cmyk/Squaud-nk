@@ -35,7 +35,8 @@ um motor como se fosse o agente inteiro.
    código ou skill. Use `Path(__file__).parent`, `$HOME`, ou variável do `.env`.
 4. **Quem conhece o roteamento é o REGISTRY.** `agents/diretor-operacoes/REGISTRY.md` define quem
    faz o quê por *capability*, a partir do roster de `squad.yaml`. Nenhum agente inventa dono de
-   tarefa — e **Gestor de Tráfego não tem implementação**: ver `docs/gestor-de-trafego.md`.
+   tarefa. O **Gestor de Tráfego** é acionável desde a v1.0.0, mas só *recomenda* por padrão:
+   executar na conta do cliente passa pelo portão de `policy.yaml`.
 5. **Prosa passa pelo humanizer.** Qualquer texto entregue a cliente roda `Skill(humanizer)` antes.
 6. **Nada fecha sem o gate.** O pedido do gestor entra inteiro e imutável em `descricao`,
    vira REQUEST_CHECKLIST com dono por requisito, e `demanda.py concluir` só fecha depois do
@@ -56,6 +57,7 @@ um motor como se fosse o agente inteiro.
 | `agents/copywriter/` | agente de copy + 4 skills importadas |
 | `agents/design-ia/` | agente **Designer**: skill `designer-ia` + motor `art-builder` |
 | `agents/revisor-arte/` | plugin `revisor-de-criacao` (tem `.claude-plugin/`) |
+| `agents/gestor-de-trafego/` | agente **Gestor de Tráfego**: prompt + skill `gestao-de-trafego` + conhecimento (tem `.claude-plugin/`) |
 | `apps/lp-builder/` | agente **LP Builder**: 4 skills `lp-*` + motor Python |
 | `apps/legend-ia/` | agente **Legend IA**: skill `editar-video` + motor `process_video.py` |
 | `shared/skills/` | skills de terceiros instaladas por script (não versionadas) |

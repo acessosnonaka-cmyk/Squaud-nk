@@ -7,7 +7,7 @@
   "properties": {
     "id":             {"type": "string", "description": "JOB-NNN"},
     "demanda_id":     {"type": "string"},
-    "agente":         {"type": "string", "enum": ["copywriter","designer","lp-builder","legend-ia","revisor-de-criacao","gestor-trafego"]},
+    "agente":         {"type": "string", "enum": ["copywriter","designer","lp-builder","legend-ia","revisor-de-criacao","gestor-de-trafego"]},
     "objetivo":       {"type": "string"},
     "entrada":        {"type": "string", "description": "o que o especialista recebe de insumo"},
     "saida_esperada": {"type": "string", "description": "o artefato que precisa voltar"},

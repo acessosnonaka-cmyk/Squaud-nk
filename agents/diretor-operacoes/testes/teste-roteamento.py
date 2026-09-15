@@ -21,7 +21,7 @@ sys.path.insert(0, str(RAIZ))
 TMP = tempfile.mkdtemp(prefix="squad-nk-teste-")
 os.environ["SQUAD_DATA_HOME"] = TMP
 
-from engine import auditoria, demanda, modelo, roster   # noqa: E402
+from engine import auditoria, demanda, modelo, policy, roster   # noqa: E402
 
 falhas = []
 
@@ -78,8 +78,25 @@ checar("menor-squad", roster.dono_da_capability("revisao")["id"] == "revisor-art
 
 _falhas_roster, _notas, _ = auditoria.auditar()
 checar("auditoria", not _falhas_roster, "; ".join(_falhas_roster))
-checar("auditoria/conceito", [n.split(":")[0] for n in _notas] == ["gestor-trafego"],
-       "o único bloqueio conhecido é o Gestor de Tráfego")
+checar("auditoria/sem-bloqueio", not _notas, "; ".join(_notas))
+checar("auditoria/seis", len(modelo.agentes_acionaveis()) == 6, str(modelo.agentes_acionaveis()))
+checar("auditoria/gestor", "gestor-de-trafego" in modelo.agentes_acionaveis())
+
+# A regra do agente-conceito continua valendo para quem entrar amanhã, e é testada
+# contra um roster de mentira — o roster real não tem nenhum hoje.
+_falso = pathlib.Path(TMP) / "roster-conceito.yaml"
+_falso.write_text('''agentes:
+  - id: fulano
+    nome: "Fulano"
+    papel: especialista
+    emoji: "🧪"
+    agente: conceito
+    prompt: null
+    subagent_type: null
+    capabilities: [teste.coisa]
+''', encoding="utf-8")
+checar("conceito/roster", roster.acionaveis(_falso) == [], str(roster.acionaveis(_falso)))
+checar("conceito/roster", roster.conceitos(_falso)[0]["id"] == "fulano")
 
 # ------------------------------------------------------------ 3 · ensaio do contrato
 
@@ -97,11 +114,11 @@ did = modelo.listar()[0]["id"]
 
 rodar(demanda.cmd_planejar, demanda=did, plano="copy -> arte -> revisão")
 
-# Agente sem executor não recebe job: o motor recusa em vez de fingir integração.
+# Agente que não existe não recebe job — nem por engano de grafia.
 msg = erro_de(rodar, demanda.cmd_job_add, demanda=did, agente="gestor-trafego",
               objetivo="subir campanha", entrada=None, saida="campanha", depende=None,
               criterio=None, restricao=None)
-checar("conceito/job", "CONCEITO" in msg, msg or "job para o Gestor de Tráfego foi aceito")
+checar("job/agente-inexistente", "não é acionável" in msg, msg or "id do roster foi aceito como agente")
 
 rodar(demanda.cmd_job_add, demanda=did, agente="copywriter", objetivo="copy dos 2 criativos",
       entrada=None, saida="primary text + headline", depende=None, criterio=None, restricao=None)
@@ -174,6 +191,54 @@ checar("concluir/incompleta", rodar(demanda.cmd_concluir, demanda=outro, motivo=
 checar("isolamento", modelo.carregar(outro)["cliente"] == "outro-cliente"
        and modelo.carregar(did)["cliente"] == "cliente-teste")
 
+# ------------------------------------- 3b · teste seco DIRETOR -> GESTOR DE TRÁFEGO
+
+# Prova que o Gestor recebe job real, briefing completo e devolve retorno ao Diretor —
+# sem tocar em conta de anúncios, sem publicar e sem gastar. Nada aqui executa ação externa.
+rodar(demanda.cmd_nova, cliente="cliente-trafego", titulo="Ensaio de tráfego",
+      descricao="Analise a conta e diga se escalo a campanha de implante.",
+      objetivo="decidir escala", contexto="", prioridade="normal")
+dt = modelo.listar()[0]["id"]
+rodar(demanda.cmd_planejar, demanda=dt, plano="gestor analisa e recomenda")
+rodar(demanda.cmd_job_add, demanda=dt, agente="gestor-de-trafego",
+      objetivo="diagnóstico da conta e recomendação de escala", entrada=None,
+      saida="parecer com evidência", depende=None, criterio=None,
+      restricao=["não executar ação na conta"])
+rodar(demanda.cmd_requisito_add, demanda=dt, texto="parecer sobre escalar ou não",
+      dono="gestor-de-trafego", job="JOB-001")
+
+rodar(demanda.cmd_briefing, demanda=dt, job="JOB-001", json=True, forcar=False)
+bt = modelo.ler_json(modelo.dir_demanda(dt) / "handoffs" / "JOB-001.briefing.json")
+checar("gestor/briefing", bt["agente"] == "gestor-de-trafego", bt["agente"])
+checar("gestor/briefing", bt.get("execution_mode") == "SILENT")
+checar("gestor/briefing", any("parecer" in r for r in bt.get("requisitos", [])), str(bt.get("requisitos")))
+checar("gestor/briefing", not modelo.validar(bt, "briefing"))
+
+# Retorno do especialista, registrado pelo Diretor. Ele recomenda; não executa.
+rodar(demanda.cmd_job_iniciar, demanda=dt, job="JOB-001")
+rodar(demanda.cmd_job_concluir, demanda=dt, job="JOB-001", retorno=None,
+      status="precisa_de_aprovacao", resumo="recomenda escalar 20% no conjunto A",
+      artefato=[f"{TMP}/parecer.md"], decisao=["escala depende de aprovação"],
+      observacao=None, proximo="levar ao portão",
+      pendencia="subir orçamento exige aprovação humana")
+d = modelo.carregar(dt)
+j = modelo.achar_job(d, "JOB-001")
+checar("gestor/retorno", j["status"] == "AGUARDANDO_APROVACAO", j["status"])
+checar("gestor/retorno", j["resultado"]["resumo"].startswith("recomenda"))
+
+# A trava financeira continua de pé: integrar ao motor não autoriza gasto.
+for acao in ("subir a campanha no meta ads", "aumentar o orcamento da campanha",
+             "ativar o conjunto de anuncios"):
+    checar("gestor/policy", policy.classificar(acao)["classe"] == "REQUER_APROVACAO", acao)
+checar("gestor/aprovacao",
+       rodar(demanda.cmd_aprovacao_solicitar, demanda=dt,
+             acao="subir a campanha no meta ads", job="JOB-001") == 2)
+d = modelo.carregar(dt)
+ap = d["aprovacoes"][0]
+checar("gestor/aprovacao", ap["status"] == "PENDENTE", ap["status"])
+checar("gestor/gate", any(ap["id"] in x for x in demanda.avaliar_gate(d)),
+       "aprovação pendente não barrou o fechamento")
+
 # ------------------------------------------------------------ 4 · leitor do roster
 
 try:
@@ -194,5 +259,6 @@ if falhas:
     for f in falhas:
         print(f"  ✗ {f}")
     sys.exit(1)
-print(f"\nteste-roteamento: {len(CENARIOS)} cenários e o contrato completo · OK")
+print(f"\nteste-roteamento: {len(CENARIOS)} cenários de roteamento, o teste seco "
+      "DIRETOR -> GESTOR DE TRÁFEGO e o contrato completo · OK")
 sys.exit(0)

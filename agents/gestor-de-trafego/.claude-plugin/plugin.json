@@ -1,0 +1,18 @@
+{
+  "name": "gestor-de-trafego",
+  "version": "1.0.0",
+  "description": "Gestor de Tráfego e Performance do Squad Legend AI. Planeja, executa, analisa, diagnostica e reporta mídia paga em Meta Ads, Google Ads e TikTok Ads pensando negócio antes de plataforma: encontra o gargalo de aquisição com evidência, propõe a próxima melhor ação, executa dentro de guardrails autorizados e aciona os demais agentes do squad quando o problema está fora da mídia.",
+  "author": {
+    "name": "Squad Legend AI"
+  },
+  "keywords": [
+    "trafego-pago",
+    "performance",
+    "meta-ads",
+    "google-ads",
+    "tiktok-ads",
+    "aquisicao",
+    "growth",
+    "relatorio"
+  ]
+}

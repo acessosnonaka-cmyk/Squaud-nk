@@ -28,6 +28,7 @@ else:
 REPO = roster.REPO
 REGISTRY = REPO / "agents" / "diretor-operacoes" / "REGISTRY.md"
 SETUP = REPO / "scripts" / "setup.sh"
+MARKETPLACE = REPO / ".claude-plugin" / "marketplace.json"
 
 
 def frontmatter(caminho: pathlib.Path) -> dict:
@@ -45,7 +46,22 @@ def frontmatter(caminho: pathlib.Path) -> dict:
     return dados
 
 
-def auditar_agente(a: dict, registry: str, setup: str) -> tuple[list, list]:
+def como_se_instala(prompt: str, setup: str, marketplace: str) -> str:
+    """Por onde o prompt chega ao Claude Code: symlink do setup.sh ou plugin.
+
+    São dois caminhos legítimos e o roster usa os dois — o Revisor de Arte e o
+    Gestor de Tráfego são plugins do marketplace. O que não pode é nenhum: aí o
+    agente existe no repositório e não existe para quem vai acioná-lo.
+    """
+    if prompt in setup:
+        return "symlink"
+    base = pathlib.PurePosixPath(prompt).parent.parent          # agents/<x>/agents/y.md -> agents/<x>
+    if (REPO / base / ".claude-plugin" / "plugin.json").is_file() and str(base) in marketplace:
+        return "plugin"
+    return ""
+
+
+def auditar_agente(a: dict, registry: str, setup: str, marketplace: str) -> tuple[list, list]:
     """Devolve (falhas, notas) de um agente do roster."""
     falhas, notas = [], []
     ident = a.get("id") or "(sem id)"
@@ -95,8 +111,9 @@ def auditar_agente(a: dict, registry: str, setup: str) -> tuple[list, list]:
             falhas.append(f"{ident}: formal, mas o motor não o considera acionável")
         if sub and sub not in registry:
             falhas.append(f"{ident}: ausente no REGISTRY.md — o Diretor não sabe rotear para ele")
-    if prompt not in setup:
-        falhas.append(f"{ident}: scripts/setup.sh não liga o prompt em ~/.claude/agents")
+    if not como_se_instala(prompt, setup, marketplace):
+        falhas.append(f"{ident}: não chega ao Claude Code — nem symlink no setup.sh, "
+                      "nem plugin declarado no marketplace")
     return falhas, notas
 
 
@@ -104,6 +121,7 @@ def auditar() -> tuple[list, list, list]:
     agentes = roster.agentes()
     registry = REGISTRY.read_text(encoding="utf-8") if REGISTRY.is_file() else ""
     setup = SETUP.read_text(encoding="utf-8") if SETUP.is_file() else ""
+    marketplace = MARKETPLACE.read_text(encoding="utf-8") if MARKETPLACE.is_file() else ""
     falhas, notas, linhas = [], [], []
 
     if not registry:
@@ -122,13 +140,13 @@ def auditar() -> tuple[list, list, list]:
                 falhas.append(f"capability '{c}' com dois donos: {donos[c]} e {ident}")
             donos[c] = ident
 
-        f, n = auditar_agente(a, registry, setup)
+        f, n = auditar_agente(a, registry, setup, marketplace)
         falhas += f
         notas += n
-        estado = "BLOQUEIO" if n else ("FALHA" if f else "OK")
-        estado = "FALHA" if f else estado
+        estado = "FALHA" if f else ("BLOQUEIO" if n else "OK")
         alvo = a.get("subagent_type") or "—"
-        linhas.append(f"  {a.get('emoji','?')} {ident:<20} {estado:<9} {alvo}")
+        via = como_se_instala(a.get("prompt") or "", setup, marketplace) if a.get("prompt") else ""
+        linhas.append(f"  {a.get('emoji','?')} {ident:<20} {estado:<9} {alvo:<22} {via}")
     return falhas, notas, linhas
 
 

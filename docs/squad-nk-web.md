@@ -13,8 +13,7 @@ sem Git, sem Claude Code.
 | **LP Builder — Preview** | ✅ integrado — servido pela camada autenticada |
 | **LP Builder — Publicar / Rollback** | ✅ integrado — versionado, com rollback |
 | **LP Builder — Publicação remota** | ⚙️ disponível **somente** quando um servidor estiver configurado em `publish.conf.json`. Sem isso, a interface diz exatamente isso e o preview continua acessível aqui dentro |
-| **Diretor, Copywriter, Designer, Revisor de Arte** | ⛔ agentes ainda não integrados à web — dependem da Etapa 2 |
-| **Gestor de Tráfego** | ⛔ conceito definido, **implementação ausente** (`docs/gestor-de-trafego.md`) |
+| **Diretor, Copywriter, Designer, Revisor de Arte, Gestor de Tráfego** | ⛔ agentes ainda não integrados à web — dependem da Etapa 2 |
 
 O dashboard mostra os **sete agentes** do roster oficial (`squad.yaml`), com três estados:
 `INTEGRADO`, `PARCIALMENTE INTEGRADO` e `AGENTE AINDA NÃO INTEGRADO À WEB`. Cada card diz
