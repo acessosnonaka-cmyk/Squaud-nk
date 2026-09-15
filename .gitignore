@@ -55,6 +55,9 @@ desktop.ini
 agents/design-ia/engine/clients
 agents/design-ia/engine/jobs
 agents/design-ia/engine/output
+# Libs do Chromium: scripts/chromium-libs.sh liga engine/runtime/lib para
+# shared/runtime/lib. O diretório-pai também não pode entrar no git.
+agents/design-ia/engine/runtime/
 shared/runtime/
 
 # --- Squad NK Web: dados de produção NUNCA entram no git ---
