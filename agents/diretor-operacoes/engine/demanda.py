@@ -10,6 +10,8 @@ persistência, estados, contratos, log e recuperação.
     demanda.py job add DEM-... --agente designer --objetivo "..." --depende JOB-001
     demanda.py briefing DEM-... JOB-002
     demanda.py job concluir DEM-... JOB-002 --status concluido --resumo "..."
+    demanda.py requisito add DEM-... --texto "5 criativos" --dono designer
+    demanda.py gate DEM-...
     demanda.py retomar DEM-...
 """
 from __future__ import annotations
@@ -21,9 +23,9 @@ import sys
 
 if __package__ in (None, ""):                      # permite rodar por caminho direto
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-    from engine import modelo, policy            # type: ignore
+    from engine import modelo, policy, roster    # type: ignore
 else:
-    from . import modelo, policy
+    from . import modelo, policy, roster
 
 
 # --------------------------------------------------------------- saída
@@ -46,6 +48,7 @@ def cmd_nova(a) -> int:
         "contexto": a.contexto or "", "prioridade": a.prioridade,
         "status": "RECEBIDA", "plano": "", "agentes": [], "jobs": [],
         "resultados": [], "pendencias": [], "aprovacoes": [], "feedback": [],
+        "requisitos": [], "alteracoes": [],
         "criada_em": modelo.agora(), "atualizada_em": modelo.agora(),
     }
     modelo.salvar(d)
@@ -134,8 +137,16 @@ def cmd_job_add(a) -> int:
     if d["status"] == "RECEBIDA":
         raise modelo.ErroDeEstado(
             "planeje a demanda antes de criar jobs: demanda.py planejar <ID> --plano \"...\"")
-    if a.agente not in modelo.AGENTES:
-        raise modelo.ErroDeEstado(f"agente '{a.agente}' fora do roster: {', '.join(modelo.AGENTES)}")
+    acionaveis = modelo.agentes_acionaveis()
+    if a.agente not in acionaveis:
+        no_roster = roster.por_id(a.agente) or roster.por_subagent_type(a.agente)
+        if no_roster and no_roster.get("agente") == "conceito":
+            raise modelo.ErroDeEstado(
+                f"'{a.agente}' está no roster como CONCEITO: papel definido, implementação "
+                "ausente. Não existe executor para receber este job. Declare a lacuna ao "
+                "gestor humano em vez de abrir job que ninguém roda — docs/gestor-de-trafego.md.")
+        raise modelo.ErroDeEstado(
+            f"agente '{a.agente}' não é acionável. Acionáveis hoje: {', '.join(acionaveis)}")
     jid = modelo.proximo_job_id(d)
     deps = a.depende or []
     modelo.validar_dependencias(d, deps, jid)
@@ -210,6 +221,9 @@ def cmd_briefing(a) -> int:
         "arquivos": arquivos, "dependencias": j.get("dependencias") or [],
         "criterios_conclusao": j.get("criterios") or [],
         "memoria_cliente": mem, "feedback_anterior": [f["texto"] for f in feedback_job],
+        "requisitos": [f"{r['id']} {r['texto']}" for r in d.get("requisitos", [])
+                       if r.get("job") == j["id"]
+                       or (not r.get("job") and r.get("dono") == j["agente"])],
         "tentativa": j.get("tentativas", 0) + 1, "gerado_em": modelo.agora(),
         "execution_mode": modelo.EXECUTION_MODE_PADRAO,
     }
@@ -247,6 +261,8 @@ def formatar_briefing(b: dict) -> str:
     linhas.append(f"RESULTADO ESPERADO {b['resultado_esperado']}")
     if b.get("criterios_conclusao"):
         linhas.append("CRITÉRIOS          " + "\n                   ".join(b["criterios_conclusao"]))
+    if b.get("requisitos"):
+        linhas.append("REQUISITOS DO PEDIDO " + "\n                     ".join(b["requisitos"]))
     if b.get("memoria_cliente"):
         linhas.append(f"MEMÓRIA DO CLIENTE {b['memoria_cliente'][:400]}")
     if b.get("feedback_anterior"):
@@ -365,6 +381,173 @@ def cmd_job_reprocessar(a) -> int:
                             resumo=a.corrigir or "novo ciclo")
     p(f"  {j['id']} -> PENDENTE (ciclo {j.get('tentativas',0)+1})")
     return 0
+
+
+# ------------------------------------- trava de entrada e de saída: requisitos
+
+DONOS_FORA_DO_SQUAD = ("diretor", "gestor-humano")
+
+
+def _validar_dono(nome: str) -> dict | None:
+    """Todo requisito tem dono. Devolve o agente do roster, ou None se o dono é
+    o próprio Diretor ou o gestor humano — os dois únicos donos que não são
+    especialistas."""
+    if nome in DONOS_FORA_DO_SQUAD:
+        return None
+    agente = roster.por_subagent_type(nome) or roster.por_id(nome)
+    if agente is None:
+        raise modelo.ErroDeEstado(
+            f"dono '{nome}' não existe. Use um especialista acionável "
+            f"({', '.join(modelo.agentes_acionaveis())}) ou {', '.join(DONOS_FORA_DO_SQUAD)}.")
+    return agente
+
+
+def cmd_requisito_add(a) -> int:
+    """Um item do REQUEST_CHECKLIST: o que o gestor pediu, com dono."""
+    d = modelo.carregar(a.demanda)
+    agente = _validar_dono(a.dono)
+    if a.job:
+        modelo.achar_job(d, a.job)
+    req = {"id": modelo.proximo_requisito_id(d), "texto": a.texto, "dono": a.dono,
+           "job": a.job, "estado": "PENDENTE", "evidencia": "", "motivo": "",
+           "em": modelo.agora()}
+    d.setdefault("requisitos", []).append(req)
+    modelo.salvar(d)
+    modelo.registrar_evento(d["id"], "REQUISITO_REGISTRADO", job=a.job,
+                            resumo=f"{req['id']} ({a.dono}): {a.texto[:120]}")
+    p(req["id"])
+    if agente is not None and agente.get("agente") == "conceito":
+        p(f"  ⚠ {a.dono} não tem executor: este requisito só fecha como BLOQUEADO.")
+    return 0
+
+
+def cmd_requisito_estado(a) -> int:
+    d = modelo.carregar(a.demanda)
+    r = modelo.achar_requisito(d, a.requisito)
+    estado = a.estado.upper()
+    if estado not in modelo.ESTADOS_REQUISITO:
+        raise modelo.ErroDeEstado(f"estado inválido. Use: {', '.join(modelo.ESTADOS_REQUISITO)}")
+    if estado == "CUMPRIDO" and not a.evidencia:
+        raise modelo.ErroDeEstado(
+            "CUMPRIDO exige --evidencia: o job, o arquivo ou o link que prova a entrega. "
+            "Sem evidência é 'provavelmente cumprido', que não existe.")
+    if estado in ("BLOQUEADO", "NAO_APLICAVEL", "CANCELADO") and not a.motivo:
+        raise modelo.ErroDeEstado(f"{estado} exige --motivo.")
+    agente = _validar_dono(r["dono"])
+    if estado == "CUMPRIDO" and agente is not None and agente.get("agente") == "conceito":
+        raise modelo.ErroDeEstado(
+            f"{r['id']} é de '{r['dono']}', que não tem executor no Squad. Ninguém executou "
+            "isso: marque BLOQUEADO com o motivo e devolva a decisão ao gestor humano.")
+    r["estado"] = estado
+    r["evidencia"] = a.evidencia or r.get("evidencia", "")
+    r["motivo"] = a.motivo or r.get("motivo", "")
+    r["decidido_em"] = modelo.agora()
+    modelo.salvar(d)
+    modelo.registrar_evento(d["id"], "REQUISITO_ATUALIZADO", job=r.get("job"),
+                            resumo=f"{r['id']} -> {estado}")
+    p(f"  {r['id']} -> {estado}")
+    return 0
+
+
+def cmd_requisito_listar(a) -> int:
+    d = modelo.carregar(a.demanda)
+    reqs = d.get("requisitos", [])
+    if not reqs:
+        p("  REQUEST_CHECKLIST vazio"); return 0
+    cab(f"REQUEST_CHECKLIST · {d['id']} ({len(reqs)})")
+    for r in reqs:
+        job = f" [{r['job']}]" if r.get("job") else ""
+        p(f"  {r['id']}  {r['estado']:<14} {r['dono']:<18}{job} {r['texto'][:52]}")
+        prova = r.get("evidencia") or r.get("motivo")
+        if prova:
+            p(f"           {prova[:70]}")
+    return 0
+
+
+def cmd_alteracao(a) -> int:
+    """Mudança do gestor durante a execução. Entra ao lado do original, nunca por cima."""
+    d = modelo.carregar(a.demanda)
+    for req in (a.afeta or []):
+        modelo.achar_requisito(d, req)
+    alt = {"id": modelo.proxima_alteracao_id(d), "texto": a.texto,
+           "afeta": a.afeta or [], "em": modelo.agora()}
+    d.setdefault("alteracoes", []).append(alt)
+    modelo.salvar(d)
+    modelo.registrar_evento(d["id"], "DEMANDA_ALTERADA", resumo=f"{alt['id']}: {a.texto[:140]}")
+    p(alt["id"])
+    p("  o pedido original continua valendo no que não foi alterado.")
+    return 0
+
+
+# ------------------------------------- FINAL_REQUEST_GATE
+
+def avaliar_gate(d: dict) -> list:
+    """O que impede fechar a demanda. Lista vazia é a única autorização para entregar."""
+    trava = []
+    reqs = d.get("requisitos", [])
+    if not reqs:
+        trava.append("REQUEST_CHECKLIST vazio: nenhum requisito foi extraído do pedido "
+                     "original. Sem checklist não há o que conferir.")
+    pendentes = [r for r in reqs if r["estado"] == "PENDENTE"]
+    for r in pendentes:
+        trava.append(f"{r['id']} ainda PENDENTE ({r['dono']}): {r['texto'][:70]}")
+    sem_prova = [r for r in reqs if r["estado"] == "CUMPRIDO" and not r.get("evidencia")]
+    for r in sem_prova:
+        trava.append(f"{r['id']} está CUMPRIDO sem evidência: {r['texto'][:70]}")
+    abertos = [j for j in d.get("jobs", []) if j["status"] != "CONCLUIDO"]
+    for j in abertos:
+        trava.append(f"{j['id']} ({j['agente']}) está {j['status']}, não CONCLUIDO")
+    for x in d.get("aprovacoes", []):
+        if x["status"] == "PENDENTE":
+            trava.append(f"{x['id']} espera aprovação humana: {x['acao'][:60]}")
+    return trava
+
+
+def formatar_gate(d: dict, trava: list) -> str:
+    reqs = d.get("requisitos", [])
+    por_estado = {e: [r for r in reqs if r["estado"] == e] for e in modelo.ESTADOS_REQUISITO}
+    linhas = [f"\n═══ FINAL_REQUEST_GATE · {d['id']} ═══",
+              "PEDIDO ORIGINAL (imutável)",
+              "  " + (d.get("descricao") or "").strip().replace("\n", "\n  ")]
+    if d.get("alteracoes"):
+        linhas.append("ALTERAÇÕES POSTERIORES")
+        for alt in d["alteracoes"]:
+            alvo = f" (afeta {', '.join(alt['afeta'])})" if alt.get("afeta") else ""
+            linhas.append(f"  {alt['id']} [{alt['em'][:10]}]{alvo} {alt['texto']}")
+    linhas.append("CHECKLIST  " + "  ".join(
+        f"{e.lower()} {len(por_estado[e])}" for e in modelo.ESTADOS_REQUISITO))
+    for r in reqs:
+        marca = {"CUMPRIDO": "✓", "PENDENTE": "·", "BLOQUEADO": "⏸",
+                 "NAO_APLICAVEL": "—", "CANCELADO": "✗"}[r["estado"]]
+        prova = r.get("evidencia") or r.get("motivo") or ""
+        linhas.append(f"  {marca} {r['id']} {r['dono']:<18} {r['texto'][:44]}"
+                      + (f"  · {prova[:40]}" if prova else ""))
+    if trava:
+        linhas.append("NÃO FECHA — o que falta:")
+        linhas += [f"  ✗ {x}" for x in trava]
+        linhas.append("Reabra o job certo, corrija e rode o gate de novo.")
+    else:
+        linhas.append("LIBERADO: todo requisito tem estado, todo job terminou, "
+                      "nenhuma aprovação pendente.")
+    linhas.append("═" * 62)
+    return "\n".join(linhas)
+
+
+def cmd_gate(a) -> int:
+    d = modelo.carregar(a.demanda)
+    trava = avaliar_gate(d)
+    p(formatar_gate(d, trava))
+    return 2 if trava else 0
+
+
+def cmd_concluir(a) -> int:
+    """Fechar passa pelo gate. Revisão aprovada não substitui conferir o pedido."""
+    d = modelo.carregar(a.demanda)
+    trava = avaliar_gate(d)
+    if trava:
+        p(formatar_gate(d, trava))
+        return 2
+    return _mudar_status(a, "CONCLUIDA", None)
 
 
 # --------------------------------------------------------------- aprovações
@@ -514,6 +697,14 @@ def cmd_retomar(a) -> int:
         p(f"      tentativas {j.get('tentativas',0)}/{j.get('max_tentativas', modelo.MAX_TENTATIVAS)}")
     if not (por("FALHOU") + por("BLOQUEADO")): p("  (nenhum)")
 
+    reqs = d.get("requisitos", [])
+    if reqs or d.get("alteracoes"):
+        cab("REQUEST_CHECKLIST")
+        for r in reqs:
+            p(f"  {r['id']} {r['estado']:<14} {r['dono']:<18} {r['texto'][:48]}")
+        for alt in d.get("alteracoes", []):
+            p(f"  {alt['id']} ALTERAÇÃO      {alt['texto'][:66]}")
+
     cab("AGUARDANDO APROVAÇÃO HUMANA")
     pend = [x for x in d.get("aprovacoes", []) if x["status"] == "PENDENTE"]
     for x in pend:
@@ -550,7 +741,9 @@ def main(argv=None) -> int:
 
     n = sub.add_parser("nova", help="abre uma demanda")
     n.add_argument("--cliente", required=True); n.add_argument("--titulo", required=True)
-    n.add_argument("--descricao", required=True); n.add_argument("--objetivo")
+    n.add_argument("--descricao", "--pedido", dest="descricao", required=True,
+                   help="ORIGINAL_REQUEST: o pedido do gestor, palavra por palavra. Imutável.")
+    n.add_argument("--objetivo")
     n.add_argument("--contexto")
     n.add_argument("--prioridade", default="normal", choices=["baixa", "normal", "alta", "urgente"])
     n.set_defaults(fn=cmd_nova)
@@ -565,7 +758,11 @@ def main(argv=None) -> int:
     pl.add_argument("demanda"); pl.add_argument("--plano", required=True)
     pl.set_defaults(fn=cmd_planejar)
 
-    for nome, estado, campo in [("concluir", "CONCLUIDA", None), ("bloquear", "BLOQUEADA", "bloqueio"),
+    cc = sub.add_parser("concluir", help="fecha a demanda — passa pelo FINAL_REQUEST_GATE")
+    cc.add_argument("demanda"); cc.add_argument("--motivo", default="")
+    cc.set_defaults(fn=cmd_concluir)
+
+    for nome, estado, campo in [("bloquear", "BLOQUEADA", "bloqueio"),
                                 ("cancelar", "CANCELADA", None), ("revisar", "EM_REVISAO", None)]:
         s = sub.add_parser(nome, help=f"demanda -> {estado}")
         s.add_argument("demanda"); s.add_argument("--motivo", default="")
@@ -610,6 +807,30 @@ def main(argv=None) -> int:
     b.add_argument("demanda"); b.add_argument("job")
     b.add_argument("--json", action="store_true"); b.add_argument("--forcar", action="store_true")
     b.set_defaults(fn=cmd_briefing)
+
+    rq = sub.add_parser("requisito", help="REQUEST_CHECKLIST: o que o gestor pediu, com dono")
+    rqs = rq.add_subparsers(dest="sub", required=True)
+    r1 = rqs.add_parser("add", help="registra um requisito extraído do pedido original")
+    r1.add_argument("demanda"); r1.add_argument("--texto", required=True)
+    r1.add_argument("--dono", required=True,
+                    help="especialista acionável, 'diretor' ou 'gestor-humano'")
+    r1.add_argument("--job"); r1.set_defaults(fn=cmd_requisito_add)
+    r2 = rqs.add_parser("estado", help="cumprido / bloqueado / nao_aplicavel / cancelado")
+    r2.add_argument("demanda"); r2.add_argument("requisito")
+    r2.add_argument("--estado", required=True,
+                    choices=[e.lower() for e in modelo.ESTADOS_REQUISITO])
+    r2.add_argument("--evidencia", help="job, arquivo ou link que prova — exigido em cumprido")
+    r2.add_argument("--motivo"); r2.set_defaults(fn=cmd_requisito_estado)
+    r3 = rqs.add_parser("listar"); r3.add_argument("demanda")
+    r3.set_defaults(fn=cmd_requisito_listar)
+
+    al = sub.add_parser("alteracao", help="mudança do gestor, ao lado do pedido original")
+    al.add_argument("demanda"); al.add_argument("--texto", required=True)
+    al.add_argument("--afeta", action="append", help="REQ-00N afetado; pode repetir")
+    al.set_defaults(fn=cmd_alteracao)
+
+    g = sub.add_parser("gate", help="FINAL_REQUEST_GATE: confere o pedido contra o resultado")
+    g.add_argument("demanda"); g.set_defaults(fn=cmd_gate)
 
     ap = sub.add_parser("aprovacao", help="fluxo de aprovação humana")
     aps = ap.add_subparsers(dest="sub", required=True)

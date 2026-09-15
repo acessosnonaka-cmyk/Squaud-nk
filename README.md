@@ -101,6 +101,23 @@ Agent(subagent_type: "diretor-de-operacoes")
 Ou em linguagem natural: "organize e execute", "acionando o squad", qualquer demanda que envolva
 mais de um especialista.
 
+**Travas de pedido.** O que o gestor escreveu entra na demanda palavra por palavra e é
+imutável; cada coisa pedida vira um requisito com dono; e `demanda.py concluir` passa pelo
+FINAL_REQUEST_GATE — requisito pendente, "cumprido" sem evidência, job aberto ou aprovação
+esperando barram a entrega. Revisão aprovada não substitui a conferência: 4 criativos aprovados
+não fecham um pedido de 5.
+
+```bash
+E=agents/diretor-operacoes/engine
+python3 $E/auditoria.py                     # o roster bate com o disco?
+python3 agents/diretor-operacoes/testes/teste-roteamento.py   # roteamento, contrato e travas
+```
+
+A auditoria compara `squad.yaml` com os prompts, skills, motores, o `REGISTRY.md` e o
+`setup.sh`, e devolve `SQUAD NK VALIDADO` ou o bloqueio. Hoje ela acusa um: o **Gestor de
+Tráfego** não tem executor, e por isso o motor recusa criar job para ele
+([`docs/gestor-de-trafego.md`](docs/gestor-de-trafego.md)).
+
 **Interface — modo ultrassilencioso.** O Diretor analisa, planeja e delega sem publicar nada.
 A única mensagem antes da entrega é o painel, com **apenas os especialistas realmente acionados**:
 

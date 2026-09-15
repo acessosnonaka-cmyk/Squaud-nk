@@ -28,6 +28,17 @@ if file_ "$REPO/squad.yaml"; then
   [ "$faltando" -eq 0 ] && green "todos os prompts declarados existem"
   grep -q 'agente: conceito' "$REPO/squad.yaml" \
     && yellow "há agente sem implementação — ver docs/gestor-de-trafego.md"
+  # Auditoria completa: roster x prompts x skills x motores x REGISTRY x setup.sh.
+  # Sai 2 quando existe agente em estado conceito — bloqueio declarado, não erro.
+  if have python3; then
+    saida=$(python3 "$REPO/agents/diretor-operacoes/engine/auditoria.py" 2>&1)
+    falhas=$(printf '%s' "$saida" | grep -c '✗' || true)
+    if [ "$falhas" -gt 0 ]; then
+      printf '%s\n' "$saida" | grep '✗' | while read -r l; do red "${l#*✗ }"; done
+    else
+      green "auditoria do roster: prompts, skills, motores, REGISTRY e setup.sh conferem"
+    fi
+  fi
 else
   red "squad.yaml ausente — o roster oficial não existe"
 fi

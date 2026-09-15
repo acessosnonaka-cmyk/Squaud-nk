@@ -20,6 +20,13 @@ import pathlib
 import re
 from datetime import datetime, timezone
 
+if __package__ in (None, ""):                      # permite rodar por caminho direto
+    import pathlib as _pl, sys as _sys
+    _sys.path.insert(0, str(_pl.Path(__file__).resolve().parents[1]))
+    from engine import roster                     # type: ignore
+else:
+    from . import roster
+
 # --------------------------------------------------------------- caminhos
 
 def data_home() -> pathlib.Path:
@@ -71,8 +78,18 @@ TRANSICOES = {
 ESTADOS_JOB = ["PENDENTE", "EM_EXECUCAO", "CONCLUIDO", "FALHOU",
                "BLOQUEADO", "AGUARDANDO_APROVACAO"]
 
-AGENTES = ["copywriter", "designer", "lp-builder", "legend-ia",
-           "revisor-de-criacao", "gestor-trafego"]
+def agentes_acionaveis() -> list:
+    """Especialistas com executor real, lidos do roster oficial (squad.yaml).
+
+    Lista copiada aqui vira lista desatualizada: quem entra ou sai do Squad muda
+    no squad.yaml, e este motor enxerga a mudança no mesmo instante. Agente em
+    estado `conceito` fica de fora de propósito — sem executor, job para ele é
+    job que ninguém roda.
+    """
+    return roster.acionaveis()
+
+
+ESTADOS_REQUISITO = ["PENDENTE", "CUMPRIDO", "BLOQUEADO", "NAO_APLICAVEL", "CANCELADO"]
 
 # Teto de tentativas por job. O mesmo princípio do job.py do Designer: o limite
 # vive em código, não na boa vontade do prompt. Sem isto, dois agentes ficam
@@ -205,7 +222,25 @@ def salvar(demanda: dict) -> None:
     erros = validar(demanda, "demanda")
     if erros:
         raise ErroDeEstado("demanda inválida: " + "; ".join(erros))
+    _travar_pedido_original(demanda)
     gravar_json(caminho_demanda(demanda["id"]), demanda)
+
+
+def _travar_pedido_original(demanda: dict) -> None:
+    """`descricao` é o pedido do gestor, palavra por palavra, e não se reescreve.
+
+    Resumo substituindo o original é exatamente como requisito desaparece entre a
+    demanda e o briefing. Mudança do gestor entra como alteração datada, ao lado
+    do original — nunca por cima dele.
+    """
+    caminho = caminho_demanda(demanda["id"])
+    if not caminho.is_file():
+        return
+    anterior = ler_json(caminho).get("descricao")
+    if anterior is not None and anterior != demanda.get("descricao"):
+        raise ErroDeEstado(
+            "o pedido original é imutável. Registre o que mudou com "
+            f"'demanda.py alteracao {demanda['id']} --texto \"...\"' — o original fica.")
 
 
 def listar() -> list:
@@ -240,6 +275,21 @@ def transitar(demanda: dict, novo: str, *, motivo: str = "") -> dict:
 
 def proximo_job_id(demanda: dict) -> str:
     return f"JOB-{len(demanda.get('jobs', [])) + 1:03d}"
+
+
+def proximo_requisito_id(demanda: dict) -> str:
+    return f"REQ-{len(demanda.get('requisitos', [])) + 1:03d}"
+
+
+def proxima_alteracao_id(demanda: dict) -> str:
+    return f"ALT-{len(demanda.get('alteracoes', [])) + 1:03d}"
+
+
+def achar_requisito(demanda: dict, req_id: str) -> dict:
+    for r in demanda.get("requisitos", []):
+        if r["id"] == req_id:
+            return r
+    raise ErroDeEstado(f"requisito '{req_id}' não existe na demanda {demanda['id']}")
 
 
 def achar_job(demanda: dict, job_id: str) -> dict:

@@ -25,6 +25,11 @@ estrutura: "1 orquestrador + 6 especialistas = 7 agentes"
 # Estados possíveis em `agente`:
 #   formal                — tem prompt próprio, invocável como agente
 #   conceito              — papel definido, implementação ausente
+#
+# `subagent_type` é o nome real de acionamento: o mesmo `name` do frontmatter do
+# prompt, o mesmo arquivo que o setup.sh liga em ~/.claude/agents, e o mesmo que
+# o Diretor passa em Agent(subagent_type: "..."). `null` significa sem executor —
+# o motor recusa criar job para ele, em vez de fingir integração.
 
 agentes:
   - id: diretor-operacoes
@@ -33,6 +38,7 @@ agentes:
     emoji: "♟️"
     agente: formal
     prompt: agents/diretor-operacoes/agents/diretor-de-operacoes.md
+    subagent_type: diretor-de-operacoes
     capabilities: [orquestracao, estrategia, pesquisa, roteamento]
     skills: []
     motores: []
@@ -49,6 +55,7 @@ agentes:
     emoji: "✍️"
     agente: formal
     prompt: agents/copywriter/agents/copywriter.md
+    subagent_type: copywriter
     capabilities: [copywriting.script, copywriting.social, copywriting.meta_ads, copywriting.landing_page]
     skills:
       - agents/copywriter/skills/copywriting
@@ -67,6 +74,7 @@ agentes:
     emoji: "🎨"
     agente: formal
     prompt: agents/design-ia/agents/designer.md
+    subagent_type: designer
     capabilities: [design.peca_grafica, design.direcao_de_arte]
     skills:
       - agents/design-ia/skills/designer-ia
@@ -87,6 +95,7 @@ agentes:
     emoji: "🧱"
     agente: formal
     prompt: apps/lp-builder/agents/lp-builder.md
+    subagent_type: lp-builder
     capabilities: [lp.arquitetura, lp.implementacao, lp.qa, lp.publicacao]
     skills:
       - apps/lp-builder/skills/lp-ingestao
@@ -110,6 +119,7 @@ agentes:
     emoji: "🎬"
     agente: formal
     prompt: apps/legend-ia/agents/legend-ia.md
+    subagent_type: legend-ia
     capabilities: [video.edicao, video.motion]
     skills:
       - apps/legend-ia/skills/editar-video
@@ -129,6 +139,7 @@ agentes:
     emoji: "🔎"
     agente: formal
     prompt: agents/revisor-arte/agents/revisor-de-criacao.md
+    subagent_type: revisor-de-criacao
     capabilities: [revisao.visual, revisao.textual, revisao.tecnica]
     skills:
       - agents/revisor-arte/skills/revisao-visual-criativos
@@ -153,6 +164,7 @@ agentes:
     emoji: "📈"
     agente: conceito          # papel definido, implementação ausente
     prompt: null
+    subagent_type: null        # sem executor: não se aciona, não se simula
     capabilities: [trafego.planejamento, trafego.criacao, trafego.otimizacao, trafego.analise]
     skills: []
     motores: []
