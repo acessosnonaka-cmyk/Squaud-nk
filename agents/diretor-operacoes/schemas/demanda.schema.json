@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Demanda do Squad NK",
+  "description": "Unidade de trabalho que o Diretor de Operações abre, acompanha e fecha. Um arquivo por demanda, em SQUAD_DATA_HOME/diretor/demandas/<id>/demanda.json.",
+  "type": "object",
+  "required": ["id", "cliente", "titulo", "descricao", "status", "criada_em"],
+  "properties": {
+    "id":            {"type": "string", "description": "DEM-AAAAMMDD-NNN"},
+    "cliente":       {"type": "string", "description": "slug do cliente"},
+    "titulo":        {"type": "string"},
+    "descricao":     {"type": "string", "description": "a demanda como o gestor humano a formulou"},
+    "objetivo":      {"type": "string", "description": "o resultado de negócio pretendido"},
+    "contexto":      {"type": "string", "description": "o que o Diretor precisa saber e não está na descrição"},
+    "prioridade":    {"type": "string", "enum": ["baixa", "normal", "alta", "urgente"]},
+    "status":        {"type": "string", "enum": ["RECEBIDA","PLANEJADA","EM_EXECUCAO","EM_REVISAO","AGUARDANDO_APROVACAO","BLOQUEADA","CONCLUIDA","CANCELADA"]},
+    "plano":         {"type": "string", "description": "o raciocínio de planejamento em uma linha por decisão — não é chain-of-thought"},
+    "agentes":       {"type": "array", "description": "especialistas envolvidos"},
+    "jobs":          {"type": "array", "description": "ver job.schema.json"},
+    "resultados":    {"type": "array"},
+    "pendencias":    {"type": "array"},
+    "aprovacoes":    {"type": "array"},
+    "feedback":      {"type": "array"},
+    "bloqueio":      {"type": "string"},
+    "criada_em":     {"type": "string"},
+    "atualizada_em": {"type": "string"},
+    "concluida_em":  {"type": "string"}
+  }
+}

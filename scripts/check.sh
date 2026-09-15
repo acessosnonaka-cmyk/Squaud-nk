@@ -60,6 +60,25 @@ done
 [ "$ligados" -eq 6 ] && green "6 agentes registrados no Claude Code" \
   || yellow "$ligados/6 agentes registrados — rode scripts/setup.sh"
 
+head_ "2b. DIRETOR — camada operacional"
+for f in engine/modelo.py engine/demanda.py engine/policy.py policy.yaml; do
+  file_ "$REPO/agents/diretor-operacoes/$f" && green "$f" || red "$f ausente"
+done
+for sc in demanda job briefing retorno; do
+  file_ "$REPO/agents/diretor-operacoes/schemas/$sc.schema.json" || red "schema $sc ausente"
+done
+green "4 schemas de contrato"
+if python3 "$REPO/agents/diretor-operacoes/engine/policy.py" classificar "ler um arquivo" >/dev/null 2>&1; then
+  green "portão de autonomia responde"
+else
+  red "portão de autonomia não executa"
+fi
+if python3 "$REPO/agents/diretor-operacoes/engine/demanda.py" listar >/dev/null 2>&1; then
+  green "CLI de demandas responde"
+else
+  red "CLI de demandas não executa"
+fi
+
 head_ "3. DESIGN IA"
 for f in render.py brand.py job.py artdirection.py revisor.py validate.py autofix.py assets.py selfcheck.py formats.json; do
   file_ "$REPO/agents/design-ia/engine/$f" && green "engine/$f" || red "engine/$f ausente"

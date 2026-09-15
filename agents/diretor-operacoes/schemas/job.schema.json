@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Job de uma demanda",
+  "description": "Uma tarefa entregue a um especialista. Vive dentro de demanda.json, no array jobs.",
+  "type": "object",
+  "required": ["id", "demanda_id", "agente", "objetivo", "status"],
+  "properties": {
+    "id":             {"type": "string", "description": "JOB-NNN"},
+    "demanda_id":     {"type": "string"},
+    "agente":         {"type": "string", "enum": ["copywriter","designer","lp-builder","legend-ia","revisor-de-criacao","gestor-trafego"]},
+    "objetivo":       {"type": "string"},
+    "entrada":        {"type": "string", "description": "o que o especialista recebe de insumo"},
+    "saida_esperada": {"type": "string", "description": "o artefato que precisa voltar"},
+    "criterios":      {"type": "array", "description": "critérios de conclusão verificáveis"},
+    "restricoes":     {"type": "array"},
+    "dependencias":   {"type": "array", "description": "ids de jobs que precisam estar CONCLUIDO antes"},
+    "status":         {"type": "string", "enum": ["PENDENTE","EM_EXECUCAO","CONCLUIDO","FALHOU","BLOQUEADO","AGUARDANDO_APROVACAO"]},
+    "tentativas":     {"type": "integer"},
+    "max_tentativas": {"type": "integer"},
+    "resultado":      {"type": "object", "description": "ver retorno.schema.json"},
+    "erro":           {"type": "string"},
+    "criado_em":      {"type": "string"},
+    "iniciado_em":    {"type": "string"},
+    "concluido_em":   {"type": "string"}
+  }
+}
