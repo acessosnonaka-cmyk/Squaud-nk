@@ -86,6 +86,8 @@ else
   red "CLI de demandas não executa"
 fi
 file_ "$REPO/scripts/hook-pretooluse.py" && green "hook PreToolUse presente" || red "hook ausente"
+python3 -m unittest discover -s "$REPO/agents/diretor-operacoes/tests" >/dev/null 2>&1 \
+  && green "testes da política passam" || red "testes da política FALHAM — a trava pode não estar travando"
 if grep -q "hook-pretooluse" "$CLAUDE_HOME/settings.json" 2>/dev/null; then
   green "hook registrado em settings.json"
 else
