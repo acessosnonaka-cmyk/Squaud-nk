@@ -8,6 +8,11 @@
       "name": "revisor-de-criacao",
       "source": "./agents/revisor-arte",
       "description": "Revisor de Criação — controle de qualidade de criativos, landing pages e vídeos."
+    },
+    {
+      "name": "gestor-de-trafego",
+      "source": "./agents/gestor-de-trafego",
+      "description": "Gestor de Tráfego — performance e aquisição em Meta Ads, Google Ads e TikTok Ads."
     }
   ]
 }

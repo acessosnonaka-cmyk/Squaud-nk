@@ -151,20 +151,21 @@ agentes:
     nome: "Gestor de Tráfego"
     papel: especialista
     emoji: "📈"
-    agente: conceito          # papel definido, implementação ausente
-    prompt: null
+    agente: formal
+    prompt: agents/gestor-de-trafego/agents/gestor-de-trafego.md
     capabilities: [trafego.planejamento, trafego.criacao, trafego.otimizacao, trafego.analise]
-    skills: []
+    skills:
+      - agents/gestor-de-trafego/skills/gestao-de-trafego
     motores: []
     conectores:
       - "claude.ai Meta ADS"   # conector existe na conta; token OAuth expirado em 2026-09-02
     web: nao_integrado
     resumo: >-
-      Mídia paga em Meta e Google: planejamento, criação, acompanhamento e
-      otimização de campanha; mapeamento de gargalos e insights ao gestor humano.
-    nota_web: "Sem implementação. Ver docs/gestor-de-trafego.md antes de acionar."
-    pendencia: >-
-      CONCEITO DEFINIDO, IMPLEMENTAÇÃO AUSENTE. Não existe prompt, skill em disco
-      nem motor. O conhecimento existe na conta claude.ai (5 skills) e há um
-      conector Meta ADS, mas nada disso é invocável pelo Claude Code nem
-      versionável neste repositório.
+      Mídia paga em Meta, Google e TikTok: planejamento, estrutura de campanha,
+      acompanhamento e otimização; mapeamento de gargalos e insights ao gestor
+      humano. Recomenda por padrão; executar na conta exige aprovação.
+    nota_web: "Prompt + skill: depende da Etapa 2. Executar campanha depende de acesso e aprovação."
+    fronteira: >-
+      Sem leitura real da conta, declara a limitação em vez de estimar métrica. Criar,
+      subir, pausar ou alterar orçamento é REQUER_APROVACAO no policy.yaml e exige
+      guardrails preenchidos para a conta. A copy do anúncio é do Copywriter.

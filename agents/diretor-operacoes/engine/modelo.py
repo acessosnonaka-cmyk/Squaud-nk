@@ -72,7 +72,7 @@ ESTADOS_JOB = ["PENDENTE", "EM_EXECUCAO", "CONCLUIDO", "FALHOU",
                "BLOQUEADO", "AGUARDANDO_APROVACAO"]
 
 AGENTES = ["copywriter", "designer", "lp-builder", "legend-ia",
-           "revisor-de-criacao", "gestor-trafego"]
+           "revisor-de-criacao", "gestor-de-trafego"]
 
 # Teto de tentativas por job. O mesmo princípio do job.py do Designer: o limite
 # vive em código, não na boa vontade do prompt. Sem isto, dois agentes ficam

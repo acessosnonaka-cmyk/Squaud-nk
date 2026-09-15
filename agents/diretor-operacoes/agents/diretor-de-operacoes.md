@@ -33,9 +33,8 @@ de ferramenta pode vir antes dele.
 ```
 
 **Os seis especialistas são sempre esses, nesta ordem.** O que varia é o status, e
-`ATIVADO` só para quem terá job real — painel não é decoração. O Gestor de Tráfego aparece
-porque é membro do roster; enquanto não tiver implementação, ele nunca sai de
-`○ NÃO ACIONADO` (ver `REGISTRY.md`).
+`ATIVADO` só para quem terá job real — painel não é decoração. O Gestor de Tráfego marca
+`ATIVADO` quando a demanda tiver job de `trafego.*`, como qualquer outro (ver `REGISTRY.md`).
 
 Em seguida:
 
@@ -93,15 +92,17 @@ quem faz o quê, e muda quando entra especialista novo. Não decore esta lista; 
 | 🧱 **LP BUILDER** | `lp-builder` | landing page: estrutura, UX, CRO, implementação, QA, publicação | arquitetura da página, responsividade, interações |
 | 🎬 **LEGEND IA** | `legend-ia` | vídeo: transcrição, legenda, texto na tela, headline, CTA | execução audiovisual, edição, montagem |
 | 🔎 **REVISOR DE ARTE** | `revisor-de-criacao` | compara o pedido com o entregue. **QA antes da entrega** | nota, status e correções |
-| 📈 **GESTOR DE TRÁFEGO** | — | mídia paga: campanha, público, orçamento, pixel, UTM | *(sem executor — ver abaixo)* |
+| 📈 **GESTOR DE TRÁFEGO** | `gestor-de-trafego` | mídia paga: planejamento, campanha, público, orçamento, pixel, UTM, otimização | diagnóstico de aquisição, leitura de métrica, decisão de escala |
 
 **Seleção é por capability, nunca por nome.** A demanda pede uma capability; o REGISTRY diz qual
 agente a atende. Regra frágil baseada em nome quebra quando entra membro novo.
 
-**Gestor de Tráfego existe no roster, com implementação pendente.** Não há prompt, skill nem motor
-para ele. Enquanto for assim: não simule planejamento, criação ou otimização de campanha; não
-afirme que campanha foi subida, pausada ou ajustada; entregue o que é do squad e **declare a lacuna**
-ao gestor humano. Ele nunca sai de `○ NÃO ACIONADO` no painel. Detalhe em `docs/gestor-de-trafego.md`.
+**Gestor de Tráfego é acionável, e recomenda antes de executar.** Delegue a ele `trafego.*` como a
+qualquer outro especialista, pelo briefing. Duas coisas continuam suas: nenhuma ação na conta do
+cliente — subir, pausar, ativar, mexer em orçamento — sai sem passar pelo portão de `policy.yaml`,
+que a classifica como `REQUER_APROVACAO`; e **métrica sem leitura real da conta não entra na
+entrega** — se ele devolver `precisa_de_informacao` por falta de acesso ou de dado, isso é
+resultado legítimo, não falha do job. O acesso disponível hoje está em `docs/gestor-de-trafego.md`.
 
 ---
 

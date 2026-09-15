@@ -27,7 +27,7 @@ if file_ "$REPO/squad.yaml"; then
   done
   [ "$faltando" -eq 0 ] && green "todos os prompts declarados existem"
   grep -q 'agente: conceito' "$REPO/squad.yaml" \
-    && yellow "há agente sem implementação — ver docs/gestor-de-trafego.md"
+    && yellow "há agente sem implementação — ver squad.yaml"
 else
   red "squad.yaml ausente — o roster oficial não existe"
 fi
@@ -125,6 +125,16 @@ file_ "$REPO/apps/legend-ia/requirements.txt" && green "requirements.txt" || red
 [ -d "$REPO/apps/legend-ia/fonts" ] && green "fontes embarcadas ($(ls "$REPO/apps/legend-ia/fonts" | wc -l))" || red "fontes ausentes"
 file_ "$REPO/apps/legend-ia/venv/bin/python" && green "venv pronto" || yellow "venv ausente — rode scripts/setup.sh"
 "$REPO/apps/legend-ia/venv/bin/python" -c "import faster_whisper" 2>/dev/null && green "faster-whisper" || yellow "faster-whisper ausente"
+
+head_ "5b. GESTOR DE TRÁFEGO"
+file_ "$REPO/agents/gestor-de-trafego/agents/gestor-de-trafego.md" && green "agente" || red "agente ausente"
+file_ "$REPO/agents/gestor-de-trafego/skills/gestao-de-trafego/SKILL.md" && green "skill gestao-de-trafego" || red "skill ausente"
+[ -d "$REPO/agents/gestor-de-trafego/conhecimento" ] && green "base de conhecimento ($(ls "$REPO/agents/gestor-de-trafego/conhecimento" | wc -l))" || red "conhecimento ausente"
+[ -d "$REPO/agents/gestor-de-trafego/modelos/cliente" ] && green "modelos de memória de cliente" || red "modelos/cliente ausente"
+file_ "$REPO/agents/gestor-de-trafego/capabilities.json" && green "capabilities.json" || red "capabilities.json ausente"
+ls "${SQUAD_DATA_HOME:-$HOME/.squad-nk}"/trafego/clients/*/guardrails.md >/dev/null 2>&1 \
+  && green "guardrails preenchidos para ao menos um cliente" \
+  || yellow "nenhum guardrails.md — o Gestor recomenda, mas nao executa alteracao financeira"
 
 head_ "6. SQUAD NK WEB"
 file_ "$REPO/apps/web/squadnk/main.py" && green "aplicação" || red "apps/web ausente"

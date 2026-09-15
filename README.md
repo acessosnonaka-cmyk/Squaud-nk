@@ -15,14 +15,16 @@ Diretor de Operações e pelo dashboard do Squad NK Web. Os três reconhecem a m
 | 🧱 | **LP Builder** | especialista | prompt + 4 skills + motor | parcial |
 | 🎬 | **Legend IA** | especialista | prompt + skill + motor | **integrado** |
 | 🔎 | **Revisor de Arte** | especialista | prompt + 4 skills + motor | não integrado |
-| 📈 | **Gestor de Tráfego** | especialista | **conceito — sem implementação** | não integrado |
+| 📈 | **Gestor de Tráfego** | especialista | prompt + skill + conhecimento | não integrado |
 
 **Agente ≠ skill ≠ motor ≠ conector.** Um agente raciocina e decide; skill é conhecimento que ele
 carrega; motor é executor determinístico que ele aciona; conector é integração externa que ele usa.
 Estar implementado hoje como skill ou motor não faz de ninguém menos agente.
 
-O Gestor de Tráfego tem papel definido e **nenhuma implementação** — ver
-[`docs/gestor-de-trafego.md`](docs/gestor-de-trafego.md). Nada de campanha é simulado.
+O Gestor de Tráfego **recomenda por padrão e só executa com autorização**: criar, subir, pausar
+ou mexer em orçamento é `REQUER_APROVACAO` no [`policy.yaml`](agents/diretor-operacoes/policy.yaml).
+Sem leitura real da conta ele declara a limitação em vez de estimar — nada de campanha é
+simulado. Estado do acesso em [`docs/gestor-de-trafego.md`](docs/gestor-de-trafego.md).
 
 ---
 
@@ -48,6 +50,13 @@ O Gestor de Tráfego tem papel definido e **nenhuma implementação** — ver
                     └────────┬─────────┘  (LP passa por lp-qa)
                              ▼
                           entrega
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │  GESTOR DE TRÁFEGO   │  veicula, mede e diagnostica;
+                  └──────────┬───────────┘  o gargalo vira a próxima demanda
+                             │
+                             └────────────► volta ao Diretor de Operações
 ```
 
 Precedência verbal: existindo job de copy, os executores não reinventam a estratégia verbal.
@@ -134,6 +143,35 @@ claude plugin install revisor-de-criacao@squad-legend-ai
 Depois, em linguagem natural: link do Drive + tipo da peça. O Design IA o localiza sozinho via
 `python3 ~/.claude/art-builder/revisor.py locate`.
 
+### Gestor de Tráfego
+
+**Função** — performance e aquisição em Meta Ads, Google Ads e TikTok Ads: planeja mídia, lê
+resultado, encontra o gargalo com evidência e recomenda manter, pausar, testar ou escalar. Pensa
+negócio antes de plataforma. **Não escreve a copy do anúncio** (Copywriter) e não produz peça
+(Designer, Legend IA, LP Builder) — ele define o ângulo, o público e o critério de sucesso, e
+depois mede o que voltou.
+
+**Capabilities** — `trafego.planejamento`, `trafego.criacao`, `trafego.otimizacao`,
+`trafego.analise`. Acionável pelo Diretor por qualquer uma delas.
+
+**Fronteira de execução** — recomendar é autônomo; executar na conta do cliente não. Subir,
+pausar, ativar ou mexer em orçamento cai em `REQUER_APROVACAO` no `policy.yaml`, passa pelo portão
+do Diretor e pelo hook `PreToolUse`, e exige `guardrails.md` preenchido para aquela conta.
+
+**Como executar** — é um plugin do Claude Code. Uma vez por máquina:
+
+```bash
+claude plugin marketplace add acessosnonaka-cmyk/Squaud-nk
+claude plugin install gestor-de-trafego@squad-legend-ai
+```
+
+Depois, em linguagem natural: "use o Gestor de Tráfego para analisar a conta do cliente X".
+
+**Antes de operar uma conta** — a memória de mídia fica fora do git, em
+`$SQUAD_DATA_HOME/trafego/clients/<slug>/` (`contexto.md`, `guardrails.md`,
+`historico.md`). Sem `guardrails.md` preenchido, toda alteração financeira exige aprovação
+humana. Detalhe em [`agents/gestor-de-trafego/README.md`](agents/gestor-de-trafego/README.md).
+
 ### Legend IA
 
 **Função** — pipeline de vídeo: transcreve o áudio, revisa a transcrição, queima legendas,
@@ -173,7 +211,7 @@ no repositório com o LICENSE de cada uma. Procedência completa em
 
 | Dependência | Quem precisa | Obrigatória |
 |---|---|---|
-| **Claude Code** 2.1.251+ | todos os cinco | sim — é o runtime |
+| **Claude Code** 2.1.251+ | todos os componentes | sim — é o runtime |
 | Python 3.11+ | LP Builder, Design IA, Legend IA | sim |
 | Git | setup e plugin do Revisor | sim |
 | FFmpeg + ffprobe (libx264, libass) | Legend IA; medição técnica do Revisor | sim para vídeo |
@@ -221,11 +259,13 @@ bash scripts/check.sh
 `~/.claude/art-builder` e `~/.claude/lp-builder`, clona o `humanizer` e monta o venv do Legend IA.
 É idempotente e não sobrescreve dado de cliente já existente.
 
-Falta o plugin do Revisor, que é manual (uma vez por máquina):
+Faltam os plugins, que são manuais (uma vez por máquina). Cada um é instalado
+separadamente — instalar um não traz o outro:
 
 ```bash
 claude plugin marketplace add acessosnonaka-cmyk/Squaud-nk
 claude plugin install revisor-de-criacao@squad-legend-ai
+claude plugin install gestor-de-trafego@squad-legend-ai
 ```
 
 Dependências de sistema, se `check.sh` reclamar:
@@ -257,6 +297,7 @@ Dados de trabalho ficam fora do git, por desenho:
 | `~/.claude/art-builder/jobs/` | rastro de produção das peças |
 | `~/.claude/lp-builder/clients/<slug>/index.json` | acervo triado da ingestão |
 | `~/.claude/lp-builder/previews/<slug>/current/` | LP vigente |
+| `$SQUAD_DATA_HOME/trafego/clients/<slug>/` | memória de mídia do Gestor de Tráfego |
 
 ---
 

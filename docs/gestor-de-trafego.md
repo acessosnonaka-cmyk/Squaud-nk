@@ -1,10 +1,33 @@
 # Gestor de Tráfego — o sétimo agente
 
-**Estado: CONCEITO DEFINIDO, IMPLEMENTAÇÃO AUSENTE.**
+**Estado: IMPLEMENTADO. Recomenda por padrão; executar na conta exige aprovação.**
 
-Ele é membro do roster oficial (`squad.yaml`) e tem capabilities reservadas. Não tem
-prompt, não tem skill em disco, não tem motor. Enquanto for assim, **nada de campanha é
-simulado**: o Squad declara a lacuna e devolve a decisão ao gestor humano.
+Membro formal do roster (`squad.yaml`), com prompt, skill e base de conhecimento em
+`agents/gestor-de-trafego/`, publicado como plugin `gestor-de-trafego@squad-legend-ai`. O
+Diretor delega a ele por `trafego.planejamento`, `trafego.criacao`, `trafego.otimizacao` e
+`trafego.analise`.
+
+**O que continua valendo do desenho original:** nada de campanha é simulado. Sem leitura
+real da conta ele declara a limitação em vez de estimar métrica, e qualquer ação de subir,
+pausar, ativar ou mexer em orçamento é `REQUER_APROVACAO` no `policy.yaml` — não sai sem
+aprovação registrada do gestor humano.
+
+**A decisão que estava em aberto — recomendar ou executar — foi resolvida como
+"recomendar primeiro":** ele é seguro de acionar porque a execução depende de um portão
+externo a ele, não da própria boa vontade.
+
+---
+
+## O que ainda falta (e não é bloqueio para acionar)
+
+| Lacuna | Efeito hoje |
+|---|---|
+| As 5 skills da conta claude.ai não estão em disco | O conhecimento embarcado é o de `agents/gestor-de-trafego/conhecimento/`; o acervo da conta segue no claude.ai |
+| Conector Meta ADS com OAuth expirado | Sem leitura automática de conta: os dados entram por exportação manual |
+| Sem integração web | O agente roda no Claude Code; o dashboard mostra o card, sem botão |
+
+O levantamento abaixo é de 2026-09-15 e continua válido como mapa do que existe fora do
+repositório.
 
 ---
 
@@ -14,14 +37,14 @@ Busca feita em 2026-09-15, fora e dentro do repositório:
 
 | Onde | Resultado |
 |---|---|
-| `agents/**/agents/*.md` do repositório | nenhum agente de tráfego |
+| `agents/**/agents/*.md` do repositório | nenhum agente de tráfego — **resolvido: `agents/gestor-de-trafego/agents/gestor-de-trafego.md`** |
 | `~/.claude/agents/` | só `copywriter` e `diretor-de-operacoes` |
 | `~/.claude/skills/` e `~/.agents/skills/` | `designer-ia`, `humanizer`, `lp-*` — nenhuma de tráfego |
 | Plugins instalados (Linux e Windows) | só `revisor-de-criacao` |
 | `~/projetos/` | menções ao papel, nenhuma implementação |
 | Arquivos com nome de tráfego/ads/campanha | nenhum |
 
-**Conclusão: não existe implementação real a preservar.** Nada foi inventado no lugar.
+**Conclusão à época: não existia implementação real a preservar.** Nada foi inventado no lugar — o agente foi escrito depois, e este documento virou o registro do que ele ainda não alcança.
 
 ## O que existe de verdade, e por que não serve ainda
 
@@ -59,11 +82,11 @@ nem numa aplicação própria (ver `docs/arquitetura-web.md` §5).
 
 ---
 
-## O que falta para ele virar o sétimo agente de fato
+## O plano original — itens 1 e 4 cumpridos
 
 Quatro itens, em ordem. O primeiro sozinho já o torna acionável no Claude Code.
 
-### 1. Prompt do agente — `agents/gestor-trafego/agents/gestor-trafego.md`
+### 1. Prompt do agente — ✅ feito, em `agents/gestor-de-trafego/agents/gestor-de-trafego.md`
 
 O mesmo formato dos outros seis: frontmatter com `name`, `description` e `tools`, e o corpo
 definindo escopo, fronteiras, régua de decisão e critério de parada. Precisa responder:
@@ -79,10 +102,11 @@ definindo escopo, fronteiras, régua de decisão e critério de parada. Precisa 
 - **Regra de dado:** métrica afirmada sem leitura da conta é invenção. Sem acesso, ele
   declara a limitação em vez de estimar.
 
-**Decisão sua, e é a que trava o resto:** o Gestor apenas **recomenda e reporta**, ou
-também **executa** na conta? Recomendo começar só recomendando.
+**Decisão tomada:** começa só recomendando. Executar na conta existe como capability
+(`trafego.criacao`), mas passa pelo portão do `policy.yaml` e exige `guardrails.md`
+preenchido para aquela conta.
 
-### 2. Skills — trazer o conhecimento da conta para o repositório
+### 2. Skills — ⏳ pendente: trazer o conhecimento da conta para o repositório
 
 As cinco skills da conta claude.ai precisam virar `SKILL.md` em
 `agents/gestor-trafego/skills/`. Não dá para automatizar: elas não estão em disco. O
@@ -99,7 +123,7 @@ Sugestão de recorte, para não criar cinco skills onde bastam três:
 `google-ads-keywords-nonaka` entra como referência dentro de uma delas, ou como quarta
 skill se o volume justificar.
 
-### 3. Acesso aos dados da campanha
+### 3. Acesso aos dados da campanha — ⏳ pendente
 
 Sem isso ele opina no escuro. Três caminhos, do mais barato ao mais robusto:
 
@@ -111,19 +135,18 @@ Sem isso ele opina no escuro. Três caminhos, do mais barato ao mais robusto:
 
 Para começar, a exportação manual basta e não custa nada.
 
-### 4. Registro no roteamento
+### 4. Registro no roteamento — ✅ feito
 
-`squad.yaml`: trocar `agente: conceito` por `agente: formal` e apontar o `prompt`.
-`REGISTRY.md`: mover as capabilities `trafego.*` da seção de pendência para a tabela de
-roteamento. Feito isso, o Diretor passa a delegar para ele sem mais nenhuma mudança.
+`squad.yaml` com `agente: formal` e `prompt` apontado; `REGISTRY.md` com as capabilities
+`trafego.*` na tabela de roteamento; `gestor-de-trafego` no enum de `job.schema.json` e em
+`engine/modelo.py`. O Diretor delega sem mais nenhuma mudança.
 
 ---
 
-## O que NÃO fazer enquanto isso
+## O que continua proibido
 
-- Não marcar `ATIVADO` no painel para o Gestor de Tráfego.
-- Não afirmar que campanha foi criada, pausada, ajustada ou otimizada.
+- Não afirmar que campanha foi criada, pausada, ajustada ou otimizada sem que isso tenha
+  passado pelo portão e pela aprovação humana.
 - Não estimar CPA, CTR, ROAS ou verba sem leitura real da conta.
-- Não criar um prompt genérico de "especialista em tráfego" só para fechar o roster. O
-  valor dele está nas cinco skills que já existem na conta — sem elas, seria um sétimo card
-  bonito e vazio.
+- Não tratar as cinco skills da conta como já incorporadas: o conhecimento em disco é o
+  de `conhecimento/`, e o acervo da conta ainda é o próximo salto de qualidade dele.

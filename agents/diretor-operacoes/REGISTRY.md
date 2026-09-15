@@ -19,24 +19,28 @@ Skill, motor e conector são **ferramentas** de um agente, nunca o agente inteir
 | **legend-ia** | `video.edicao`<br>`video.motion` | `Agent(subagent_type: "legend-ia")` · skill `editar-video` · motor `apps/legend-ia/` | execução audiovisual, edição, motion, montagem |
 | **lp-builder** | `lp.arquitetura`<br>`lp.implementacao`<br>`lp.qa`<br>`lp.publicacao` | `Agent(subagent_type: "lp-builder")` · skills `lp-*` · motor `apps/lp-builder/engine/` | arquitetura da página, UX, composição, implementação, responsividade, interações |
 | **revisor-de-criacao** | `revisao.visual`<br>`revisao.textual`<br>`revisao.tecnica` | `Agent(subagent_type: "revisor-de-criacao")` · skills `revisao-*` · motor `agents/revisor-arte/ferramentas/` | julgamento de qualidade da peça: nota, status e correções |
-| **gestor-de-trafego** | `trafego.planejamento`<br>`trafego.criacao`<br>`trafego.otimizacao`<br>`trafego.analise` | **ainda não acionável** — ver abaixo | mídia paga: campanha, público, orçamento, pixel, UTM, otimização |
+| **gestor-de-trafego** | `trafego.planejamento`<br>`trafego.criacao`<br>`trafego.otimizacao`<br>`trafego.analise` | `Agent(subagent_type: "gestor-de-trafego")` · skill `gestao-de-trafego` · plugin `gestor-de-trafego@squad-legend-ai` | mídia paga: campanha, público, orçamento, pixel, UTM, otimização |
 | **humanizer** | `texto.humanizacao` | `Skill(humanizer)` | remoção de marcas de IA na prosa; sem autoridade sobre fato |
 
 Sem dono nomeado aqui — SEO, blog, e-mail marketing, atendimento, analytics, calendário
 editorial, comunidade — vai para o Diretor de Operações, que aloca. **Proibido inventar dono.**
 
-### Gestor de Tráfego — conceito definido, implementação ausente
+### Gestor de Tráfego — recomenda sempre, executa só com autorização
 
-O papel **existe no roster** e as capabilities estão reservadas. O executor **não existe**:
-não há prompt, skill em disco nem motor. Enquanto for assim:
+O papel saiu do conceito: tem prompt, skill e base de conhecimento em disco. Duas
+fronteiras continuam valendo, e são o motivo de ele ser seguro de acionar:
 
-- **não simular** planejamento, criação, acompanhamento ou otimização de campanha;
-- **não** dizer que a campanha foi subida, pausada ou otimizada;
-- declarar a lacuna ao usuário e devolver a decisão a ele.
+- **Não escreve a copy do anúncio** — isso é `copywriting.meta_ads`, do Copywriter. Ele
+  define ângulo, público e critério de sucesso; o Copywriter escreve.
+- **Não executa na conta do cliente por conta própria.** `trafego.criacao` e qualquer ação
+  sobre orçamento, publicação, ativação ou pausa é classificada `REQUER_APROVACAO` pelo
+  `policy.yaml` e só roda com aprovação registrada. Sem acesso autorizado e sem
+  `guardrails.md` preenchido para a conta, ele analisa e recomenda — não publica.
 
-O que existe hoje fora do repositório está documentado em
-[`docs/gestor-de-trafego.md`](../../docs/gestor-de-trafego.md), com o que falta para
-transformá-lo no sétimo agente de fato.
+**Métrica afirmada sem leitura da conta é invenção.** Sem dado, ele declara a limitação em
+vez de estimar. O que existe fora do repositório — as 5 skills da conta claude.ai e o
+conector Meta ADS — segue mapeado em
+[`docs/gestor-de-trafego.md`](../../docs/gestor-de-trafego.md).
 
 ## Roteamento por capability
 
@@ -50,6 +54,15 @@ transformá-lo no sétimo agente de fato.
 | editar, legendar, montar, animar vídeo | `video.edicao` | legend-ai |
 | construir, implementar, publicar página | `lp.implementacao` | lp-builder |
 | julgar a peça pronta | `revisao.visual` | revisor-de-criacao |
+| planejar mídia, estrutura de campanha, público, orçamento, KPIs | `trafego.planejamento` | gestor-de-trafego |
+| montar campanha, estrutura de conta, UTM, pixel, rascunho de subida | `trafego.criacao` | gestor-de-trafego |
+| achar o gargalo, decidir manter, pausar, testar ou escalar | `trafego.otimizacao` | gestor-de-trafego |
+| ler resultado, CPL/CPA/CAC/ROAS, relatório de performance | `trafego.analise` | gestor-de-trafego |
+| achar o gargalo da aquisição, por que o CPL/CPA subiu | `trafego.diagnostico` | gestor-de-trafego |
+| planejar mídia, estrutura de campanha, orçamento, KPIs | `trafego.planejamento` | gestor-de-trafego |
+| ler resultado, decidir manter, pausar, testar ou escalar | `trafego.analise` | gestor-de-trafego |
+| criar, publicar, pausar, ajustar campanha na plataforma | `trafego.operacao` | gestor-de-trafego |
+| relatório de performance para o cliente | `trafego.relatorio` | gestor-de-trafego |
 
 ## Regra de precedência verbal
 
@@ -72,6 +85,7 @@ argumento, claim, posicionamento ou CTA estratégico.
 | `~/<slug>-lp/` e `~/.claude/lp-builder/previews/<slug>/current/` | LP vigente: oferta, promessa, prova, CTA, destino do clique |
 | `~/.claude/lp-builder/clients/<slug>/index.json` | acervo triado — só existe se a ingestão rodou |
 | `~/.claude/projects/<projeto>/memory/` | claims verificados e claims sem lastro |
+| `$SQUAD_DATA_HOME/trafego/clients/<slug>/` | memória de mídia: guardrails, contexto de aquisição e histórico de campanha |
 
 `restrictions` e `tone.avoid` vencem sempre, inclusive contra o site do próprio cliente.
 Entregas antigas (`~/projetos/copywriter/entregas/`, `~/.claude/art-builder/jobs/`) são **rastro

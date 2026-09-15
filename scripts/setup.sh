@@ -43,8 +43,8 @@ fi
 ok "dados do Copywriter em $DATA_HOME/copywriter/"
 
 step "1/8  Agentes  ->  $CLAUDE_HOME/agents"
-# Os seis agentes com prompt próprio, do roster de squad.yaml. O Gestor de
-# Tráfego não entra: ainda não tem implementação (docs/gestor-de-trafego.md).
+# Os agentes com prompt próprio, do roster de squad.yaml. Revisor de Arte e Gestor
+# de Tráfego não entram: são plugins, instalados pelo marketplace (passo final).
 link "$CLAUDE_HOME/agents/diretor-de-operacoes.md" "$REPO/agents/diretor-operacoes/agents/diretor-de-operacoes.md"
 link "$CLAUDE_HOME/agents/copywriter.md"           "$REPO/agents/copywriter/agents/copywriter.md"
 link "$CLAUDE_HOME/agents/designer.md"             "$REPO/agents/design-ia/agents/designer.md"
@@ -147,6 +147,7 @@ cat <<'MSG'
   Rode uma vez, manualmente:
     claude plugin marketplace add acessosnonaka-cmyk/Squaud-nk
     claude plugin install revisor-de-criacao@squad-legend-ai
+    claude plugin install gestor-de-trafego@squad-legend-ai
 MSG
 
 printf '\n\033[1mSetup concluído.\033[0m Confira com: bash scripts/check.sh\n'
