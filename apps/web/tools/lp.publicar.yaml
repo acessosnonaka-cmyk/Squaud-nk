@@ -1,0 +1,63 @@
+# LP Builder — publicação de preview.
+# Motor: apps/lp-builder/engine/publish.py (inalterado).
+# O servidor embutido do motor (`publish.py serve`) NÃO é usado: ele escuta em
+# 0.0.0.0 e lista todos os clientes na raiz. Quem serve o preview é a rota
+# autenticada da aplicação.
+id: lp.publicar
+label: "LP Builder — Publicar preview"
+subtitle: "Versiona o site e deixa o preview acessível"
+capability: lp.publicacao
+concurrency_key: cpu
+timeout_s: 600
+
+engine:
+  cwd: apps/lp-builder/engine
+  interpreter: ["python3"]
+  script: publish.py
+  env:
+    HOME: "{data_home}/home"
+
+args: ["publish", "{slug}", "{site_dir}"]
+
+stage:
+  - from: site
+    to: "{job_input}/site"       # absoluto: fica no diretório do job, fora do repo
+    unpack: zip
+    bind: site_dir
+
+inputs:
+  - name: slug
+    type: text
+    label: "Identificador do cliente (slug)"
+    required: true
+    pattern: "^[a-z0-9][a-z0-9-]{1,40}$"
+    pattern_erro: >-
+      Slug inválido. Use letras minúsculas, números e hífen, de 2 a 41
+      caracteres, começando por letra ou número.
+    ajuda: "Vira o endereço do preview. Exemplo: arte-mineira."
+
+  - name: site
+    type: file
+    label: "Site em .zip"
+    accept: [".zip"]
+    required: true
+    ajuda: "O .zip precisa conter index.html na raiz."
+
+collect: []
+
+# Só depois do motor terminar bem: o slug passa a ser visível para quem publicou,
+# e apenas para essa pessoa, na rota autenticada de preview.
+on_success:
+  do: registrar_preview
+  slug_field: slug
+
+stdout_artifact:
+  path: publicacao.txt
+  kind: text
+  label: "Registro da publicação"
+  primary: true
+
+help: >-
+  Valida o pacote, copia para uma versão nova com carimbo de data, troca o
+  ponteiro `current` de forma atômica e mantém as 8 versões mais recentes para
+  rollback. A versão anterior nunca é apagada na publicação.

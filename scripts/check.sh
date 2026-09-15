@@ -70,7 +70,10 @@ file_ "$REPO/apps/legend-ia/venv/bin/python" && green "venv pronto" || yellow "v
 
 head_ "6. SQUAD NK WEB"
 file_ "$REPO/apps/web/squadnk/main.py" && green "aplicação" || red "apps/web ausente"
-file_ "$REPO/apps/web/tools/legend.editar.yaml" && green "ferramenta legend.editar" || red "declaração da ferramenta ausente"
+for t in legend.editar lp.qa lp.publicar lp.rollback; do
+  file_ "$REPO/apps/web/tools/$t.yaml" && green "ferramenta $t" || red "declaração $t.yaml ausente"
+done
+file_ "$REPO/apps/lp-builder/venv/bin/python" && green "venv do LP Builder" || yellow "venv do LP Builder ausente — rode scripts/setup.sh"
 file_ "$REPO/docker-compose.yml" && green "docker-compose.yml" || red "compose ausente"
 file_ "$REPO/apps/web/.venv/bin/python" && green "venv da web" || yellow "venv ausente — 'python3 -m venv apps/web/.venv && apps/web/.venv/bin/pip install -r apps/web/requirements.txt'"
 if [ -f "$REPO/.env" ]; then

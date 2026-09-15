@@ -1,0 +1,3 @@
+# Motor do LP Builder. O QA renderiza a página em três viewports com Chromium.
+# Depois de instalar:  venv/bin/python -m playwright install chromium
+playwright==1.62.0

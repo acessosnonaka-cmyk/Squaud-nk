@@ -261,23 +261,32 @@ python3 -c "import secrets;print(secrets.token_urlsafe(48))"   # SQUAD_WEB_SESSI
 docker compose up -d                                           # http://127.0.0.1:8000
 ```
 
-**Versão atual: v0.1 — espinha dorsal.** Login, dashboard dos seis agentes, e o **Legend IA
-integrado de ponta a ponta**: envio do vídeo, fila, processamento, status ao vivo, download e
-histórico. Os outros cinco aparecem no dashboard marcados **EM BREVE** e não têm integração —
-nenhuma é simulada.
+**Versão atual: v0.2.** Login, dashboard dos seis agentes, fila, status ao vivo e histórico.
 
-### Por que só o Legend IA
+| Componente | Estado |
+|---|---|
+| **Legend IA** | integrado — vídeo entra, legenda e CTA queimados, download |
+| **LP Builder — QA** | integrado — relatório e capturas em três viewports |
+| **LP Builder — Preview** | integrado — servido pela camada autenticada, por dono |
+| **LP Builder — Publicar / Rollback** | integrado — versionado, com rollback |
+| **LP Builder — Publicação remota** | **somente quando um servidor estiver configurado.** Sem configuração, a interface informa isso e o preview continua acessível aqui dentro |
+| **Diretor, Design IA, Revisor, Copywriter** | ainda não integrados |
+
+Nenhuma integração é simulada: um agente só aparece como **DISPONÍVEL** quando existe uma
+declaração de ferramenta para ele.
+
+### Por que esses e não os outros
 
 A [arquitetura aprovada](docs/arquitetura-web.md) parte de um fato do código: **nenhum dos
 arquivos Python do repositório chama LLM.** Toda inteligência é Markdown executada pelo Claude
 Code; todo Python é motor determinístico. Isso divide a Fase B em duas etapas:
 
 - **Etapa 1 — sem consumo de LLM.** Os motores determinísticos rodam na web sem nenhuma chamada
-  a modelo, e portanto **sem custo por token**. O Legend IA é o caso completo: transcrição é ASR
-  local (`faster-whisper`), não LLM. Entram na fila desta etapa o QA e a publicação de Landing
-  Page, a inspeção técnica de vídeo e o render do Design IA.
+  a modelo, e portanto **sem custo por token**. O Legend IA é o caso completo (transcrição é ASR
+  local, não LLM) e o LP Builder entrou em seguida: QA, publicação, preview e rollback. Falta
+  desta etapa a inspeção técnica de vídeo e o render do Design IA.
 - **Etapa 2 — runtime de inteligência.** Diretor de Operações, Copywriter, o parecer do Revisor,
-  a direção de arte e a construção da LP dependem de um modelo raciocinando. Essa etapa
+  a direção de arte e a **construção** da LP dependem de um modelo raciocinando. Essa etapa
   acrescenta um worker com o Claude Agent SDK, que carrega os `SKILL.md` e os agentes deste
   repositório sem reescrita.
 

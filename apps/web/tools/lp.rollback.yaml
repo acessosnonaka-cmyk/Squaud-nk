@@ -1,0 +1,45 @@
+# LP Builder — rollback de preview.
+# O motor já implementa rollback; aqui ele só é declarado, não reimplementado.
+id: lp.rollback
+label: "LP Builder — Rollback"
+subtitle: "Volta o preview para a versão anterior"
+capability: lp.publicacao
+concurrency_key: cpu
+timeout_s: 300
+
+engine:
+  cwd: apps/lp-builder/engine
+  interpreter: ["python3"]
+  script: publish.py
+  env:
+    HOME: "{data_home}/home"
+
+args: ["rollback", "{slug}"]
+
+inputs:
+  - name: slug
+    type: enum
+    label: "Preview"
+    options_from: previews
+    required: true
+
+  - name: versao
+    type: text
+    label: "Voltar para a versão (opcional)"
+    flag: --to
+    pattern: "^[0-9]{8}-[0-9]{6}$"
+    pattern_erro: "Formato de versão inválido. Use AAAAMMDD-HHMMSS."
+    ajuda: "Em branco, volta para a versão imediatamente anterior."
+
+collect: []
+
+stdout_artifact:
+  path: rollback.txt
+  kind: text
+  label: "Registro do rollback"
+  primary: true
+
+help: >-
+  Troca o ponteiro `current` para uma versão já publicada. Não apaga nada: as
+  versões continuam no histórico e é possível avançar de novo informando o
+  carimbo.

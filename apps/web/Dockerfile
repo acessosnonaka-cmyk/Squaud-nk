@@ -19,7 +19,14 @@ WORKDIR /app
 # Dependências antes do código: muda o código, a camada de pip continua em cache.
 COPY apps/web/requirements.txt        /tmp/req-web.txt
 COPY apps/legend-ia/requirements.txt  /tmp/req-legend.txt
-RUN pip install -r /tmp/req-web.txt -r /tmp/req-legend.txt
+COPY apps/lp-builder/requirements.txt /tmp/req-lp.txt
+RUN pip install -r /tmp/req-web.txt -r /tmp/req-legend.txt -r /tmp/req-lp.txt
+
+# Chromium do Playwright, para o QA de Landing Page. Fora do HOME do usuário,
+# num caminho fixo, para o processo do worker encontrá-lo sem depender de $HOME.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
+RUN python -m playwright install --with-deps chromium \
+    && chmod -R a+rX /opt/playwright
 
 COPY . /app
 
@@ -33,7 +40,8 @@ USER squad
 
 ENV SQUAD_REPO_ROOT=/app \
     SQUAD_DATA_HOME=/data \
-    PYTHONPATH=/app/apps/web
+    PYTHONPATH=/app/apps/web \
+    SQUAD_INTERNAL_BASE_URL=http://web:8000
 
 EXPOSE 8000
 CMD ["uvicorn", "squadnk.main:app", "--host", "0.0.0.0", "--port", "8000"]

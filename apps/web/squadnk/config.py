@@ -47,6 +47,35 @@ DEFAULT_KEY_SLOTS = 1
 
 WORKER_POLL_S = float(os.environ.get("SQUAD_WORKER_POLL_S", 1.0))
 
+# --- LP Builder ---------------------------------------------------------
+# O publish.py testa por HTTP se o preview subiu e encerra com erro se não
+# responder 200. Em vez de expor o servidor embutido do motor — que escuta em
+# 0.0.0.0 e LISTA todos os clientes na raiz — apontamos esse teste para uma rota
+# interna da própria aplicação, que só devolve 200 ou 404 e nenhum conteúdo.
+WEB_PORT = os.environ.get("SQUAD_WEB_PORT", "8000")
+INTERNAL_BASE_URL = os.environ.get("SQUAD_INTERNAL_BASE_URL",
+                                   f"http://127.0.0.1:{WEB_PORT}")
+
+
+def preview_check_token() -> str:
+    """Segredo da rota de verificação. Gerado uma vez e guardado fora do git."""
+    do_ambiente = os.environ.get("SQUAD_PREVIEW_CHECK_TOKEN", "").strip()
+    if do_ambiente:
+        return do_ambiente
+    caminho = DATA_HOME / ".preview-check-token"
+    if caminho.is_file():
+        return caminho.read_text(encoding="utf-8").strip()
+    import secrets
+    token = secrets.token_urlsafe(32)
+    DATA_HOME.mkdir(parents=True, exist_ok=True)
+    caminho.write_text(token, encoding="utf-8")
+    caminho.chmod(0o600)
+    return token
+
+
+def internal_check_base() -> str:
+    return f"{INTERNAL_BASE_URL.rstrip('/')}/_preview-check/{preview_check_token()}"
+
 
 def ensure_dirs() -> None:
     JOBS_DIR.mkdir(parents=True, exist_ok=True)

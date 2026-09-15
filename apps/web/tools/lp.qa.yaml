@@ -1,0 +1,70 @@
+# LP Builder — QA de Landing Page.
+# Motor: apps/lp-builder/engine/lp_qa.py (inalterado).
+id: lp.qa
+label: "LP Builder — QA"
+subtitle: "Auditoria automática de Landing Page"
+capability: lp.qa
+concurrency_key: chromium        # Chromium headless: um de cada vez
+timeout_s: 900
+
+engine:
+  cwd: apps/lp-builder
+  interpreter: ["venv/bin/python", "python3"]
+  script: engine/lp_qa.py
+  # Sem override de HOME aqui, de propósito: o lp_qa.py não grava em
+  # ~/.claude/lp-builder — ele só lê uma URL e escreve no --out. Trocar o HOME
+  # esconderia o site-packages do usuário e o cache de browsers do Playwright.
+
+# O alvo pode vir de duas origens; o derivador resolve qual usar.
+derive:
+  - name: alvo
+    using: preview_ou_url
+    preview_field: preview
+    url_field: url
+
+args: ["{alvo}"]
+
+inputs:
+  - name: preview
+    type: enum
+    label: "Preview já publicado"
+    options_from: previews
+    ajuda: "Escolha um preview seu, ou deixe vazio e informe uma URL abaixo."
+
+  - name: url
+    type: text
+    label: "Ou a URL da página"
+    # Barra file://, javascript: e afins já no formulário, em vez de deixar o
+    # job nascer só para morrer no worker.
+    pattern: '^https?://[^\s]+$'
+    pattern_erro: "A URL precisa começar com http:// ou https://."
+    ajuda: "Endereço http(s) acessível a partir deste servidor."
+
+  - name: out
+    type: hidden
+    value: "{job_out}"
+    flag: --out
+
+constraints:
+  - if: {}
+    require_any: [preview, url]
+    message: "Escolha um preview publicado ou informe uma URL http(s)."
+
+# O relatório legível É o entregável — não pode existir só dentro do log.
+stdout_artifact:
+  path: relatorio-qa.txt
+  kind: text
+  label: "Relatório do QA"
+  primary: true
+
+collect:
+  - glob: "*_dobra.png"
+    base: out                    # o motor já escreveu direto no diretório do job
+    kind: image
+    label: "Captura da dobra"
+
+help: >-
+  Mede o que tem número: estrutura, acessibilidade, contraste WCAG, escala
+  tipográfica e ritmo, em três viewports (390, 820 e 1440), com captura da dobra
+  em cada um. O julgamento — foco na oferta, claims sustentados, teste
+  anti-genérico — continua sendo humano, e o próprio relatório diz isso.

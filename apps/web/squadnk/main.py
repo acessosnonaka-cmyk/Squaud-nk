@@ -22,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import auth, config, db, registry, runner
+from . import auth, config, db, lpbuilder, registry, runner
 
 app = FastAPI(title="Squad NK Web", docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=str(config.APP_DIR / "static")), name="static")
@@ -38,6 +38,10 @@ templates.env.globals["mb"] = lambda b: f"{(b or 0) / 1_048_576:.1f} MB"
 def _startup() -> None:
     config.ensure_dirs()
     db.init()
+    # O motor de publicação testa por HTTP se o preview subiu. Apontamos esse
+    # teste para a rota interna desta aplicação — nunca para o servidor embutido
+    # do motor, que escuta em 0.0.0.0 e lista todos os clientes na raiz.
+    lpbuilder.garantir_conf(config.internal_check_base())
     criado = auth.bootstrap()
     if criado:
         print(f"[web] primeiro usuário criado a partir do ambiente: {criado}", flush=True)
@@ -63,7 +67,8 @@ def _redirect_login(request: Request) -> RedirectResponse:
 async def exigir_login(request: Request, call_next):
     """Nada é público exceto o login e os estáticos. Fechado por padrão."""
     caminho = request.url.path
-    if caminho.startswith("/static") or caminho in ("/login", "/healthz"):
+    if (caminho.startswith("/static") or caminho in ("/login", "/healthz")
+            or caminho.startswith("/_preview-check/")):
         return await call_next(request)
     if request.session.get("uid") is None:
         return _redirect_login(request)
@@ -125,11 +130,17 @@ def dashboard(request: Request):
     tools = registry.load_all()
     agentes = registry.load_agents()
     for agente in agentes:
-        agente["disponivel"] = bool(agente.get("tool")) and agente.get("tool") in tools
-    recentes = db.list_jobs(user["id"], limit=5)
+        # Disponível só quando a declaração da ferramenta existe de fato. Não há
+        # como marcar como pronto algo que não está integrado.
+        seus = [t for t in (agente.get("tools") or []) if t in tools]
+        agente["ferramentas"] = [tools[t] for t in seus]
+        agente["disponivel"] = bool(seus)
     return templates.TemplateResponse(
         request, "dashboard.html",
-        {"user": user, "agentes": agentes, "recentes": recentes},
+        {"user": user, "agentes": agentes,
+         "recentes": db.list_jobs(user["id"], limit=5),
+         "previews": db.list_previews(user["id"]),
+         "publicacao": lpbuilder.publicacao_remota()},
     )
 
 
@@ -139,10 +150,14 @@ def tool_form(request: Request, tool_id: str, erro: str | None = None):
         tool = registry.get(tool_id)
     except registry.SpecError:
         return RedirectResponse("/", status_code=303)
+    user = current_user(request)
+    opcoes = {c["name"]: registry.opcoes_de(c, user["id"])
+              for c in tool.inputs if c["type"] == "enum"}
     return templates.TemplateResponse(
         request, "tool_form.html",
-        {"user": current_user(request), "tool": tool,
-         "erro": erro, "max_mb": config.MAX_UPLOAD_MB},
+        {"user": user, "tool": tool, "erro": erro, "opcoes": opcoes,
+         "max_mb": config.MAX_UPLOAD_MB,
+         "publicacao": lpbuilder.publicacao_remota() if tool.id.startswith("lp.") else None},
     )
 
 
@@ -198,12 +213,15 @@ async def tool_submit(request: Request, tool_id: str):
         return templates.TemplateResponse(
             request, "tool_form.html",
             {"user": user, "tool": tool, "erro": mensagem,
-             "max_mb": config.MAX_UPLOAD_MB},
+             "max_mb": config.MAX_UPLOAD_MB,
+             "opcoes": {c["name"]: registry.opcoes_de(c, user["id"])
+                        for c in tool.inputs if c["type"] == "enum"},
+             "publicacao": lpbuilder.publicacao_remota() if tool.id.startswith("lp.") else None},
             status_code=400,
         )
 
     try:
-        params = registry.clean_params(tool, form)
+        params = registry.clean_params(tool, form, user_id=user['id'])
     except registry.SpecError as exc:
         return falhou(str(exc))
 
@@ -331,6 +349,63 @@ def download(request: Request, artifact_id: int):
 
     return FileResponse(caminho, filename=caminho.name,
                         media_type="application/octet-stream")
+
+
+@app.get("/_preview-check/{token}/{slug}/")
+@app.get("/_preview-check/{token}/{slug}")
+def preview_check(token: str, slug: str):
+    """Sonda de liveness para o motor de publicação. Não serve conteúdo.
+
+    Responde 200 quando o slug tem um index.html publicado e 404 caso contrário.
+    Fica fora do login porque quem chama é um subprocesso, não uma pessoa — por
+    isso o caminho carrega um segredo e a resposta é vazia. Nenhum arquivo, nenhuma
+    listagem, nada que sirva para enumerar clientes.
+    """
+    import hmac
+    if not hmac.compare_digest(token, config.preview_check_token()):
+        return PlainTextResponse("", status_code=404)
+    alvo = lpbuilder.resolver_arquivo(slug, "index.html")
+    return PlainTextResponse("", status_code=200 if alvo else 404)
+
+
+def _preview_autorizado(request: Request, slug: str) -> bool:
+    """Um preview é de quem o publicou. Ninguém mais o enxerga."""
+    registro = db.get_preview(slug)
+    user = current_user(request)
+    return bool(registro and user and registro["owner_user_id"] == user["id"])
+
+
+@app.get("/preview/{slug}/{caminho:path}")
+@app.get("/preview/{slug}/")
+def preview(request: Request, slug: str, caminho: str = ""):
+    """Serve o preview pela camada autenticada.
+
+    Substitui por completo o `publish.py serve`, que escuta em 0.0.0.0 e devolve
+    a lista de todos os clientes na raiz. Aqui não existe diretório navegável:
+    cada arquivo é resolvido com containment e tipo permitido, e só para o dono.
+    """
+    if not _preview_autorizado(request, slug):
+        return PlainTextResponse("não encontrado", status_code=404)
+    alvo = lpbuilder.resolver_arquivo(slug, caminho)
+    if alvo is None:
+        return PlainTextResponse("não encontrado", status_code=404)
+    return FileResponse(alvo, media_type=lpbuilder.tipo_de(alvo),
+                        headers={"X-Content-Type-Options": "nosniff",
+                                 "Cache-Control": "no-store"})
+
+
+@app.get("/previews", response_class=HTMLResponse)
+def previews(request: Request):
+    user = current_user(request)
+    linhas = []
+    for registro in db.list_previews(user["id"]):
+        estado = lpbuilder.versoes(registro["slug"])
+        linhas.append({"slug": registro["slug"], "atualizado": registro["updated_at"],
+                       "atual": estado["atual"], "total": len(estado["versoes"])})
+    return templates.TemplateResponse(
+        request, "previews.html",
+        {"user": user, "previews": linhas, "publicacao": lpbuilder.publicacao_remota()},
+    )
 
 
 @app.get("/historico", response_class=HTMLResponse)

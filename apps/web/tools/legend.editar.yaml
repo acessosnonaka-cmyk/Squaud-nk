@@ -17,6 +17,9 @@ engine:
 # resolve_video_path() do motor recusa arquivo fora de apps/legend-ia/.
 # Por isso a entrada é copiada para lá, carimbada com o job_id — o que também
 # elimina a colisão de `entrega/<stem>_final.mp4` entre dois jobs homônimos.
+# Posicionais explícitos, na ordem que o motor espera.
+args: ["{video_arg}"]
+
 stage:
   - from: video
     to: "entrada de vídeo/{job_id}-{filename}"

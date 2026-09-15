@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import dataclasses
 import pathlib
+import re
 
 import yaml
 
@@ -33,10 +34,15 @@ class Tool:
     cwd: str
     interpreter: list
     script: str
+    env: dict
+    args: list
+    derive: list
     stage: list
     inputs: list
     collect: list
     constraints: list
+    stdout_artifact: dict | None
+    on_success: dict | None
     help: str
 
     @property
@@ -58,10 +64,15 @@ def _load_file(path: pathlib.Path) -> Tool:
             cwd=engine["cwd"],
             interpreter=list(engine.get("interpreter") or ["python3"]),
             script=engine["script"],
+            env=dict(engine.get("env") or {}),
+            args=list(raw.get("args") or []),
+            derive=list(raw.get("derive") or []),
             stage=list(raw.get("stage") or []),
             inputs=list(raw.get("inputs") or []),
             collect=list(raw.get("collect") or []),
             constraints=list(raw.get("constraints") or []),
+            stdout_artifact=raw.get("stdout_artifact") or None,
+            on_success=raw.get("on_success") or None,
             help=raw.get("help", ""),
         )
     except KeyError as exc:
@@ -84,6 +95,22 @@ def get(tool_id: str) -> Tool:
     return tool
 
 
+def opcoes_de(spec: dict, user_id: int | None) -> list:
+    """Opções de um enum que não são fixas no YAML.
+
+    Fonte declarada, nunca código arbitrário: o YAML diz `options_from: previews`
+    e aqui existe um provedor com esse nome. Nome desconhecido devolve lista vazia
+    em vez de explodir.
+    """
+    fonte = spec.get("options_from")
+    if not fonte:
+        return list(spec.get("options") or [])
+    if fonte == "previews" and user_id is not None:
+        from . import db
+        return [linha["slug"] for linha in db.list_previews(user_id)]
+    return []
+
+
 def load_agents() -> list:
     """Cards do dashboard. Status vem do YAML — nenhuma integração é inventada."""
     if not config.AGENTS_FILE.is_file():
@@ -98,13 +125,18 @@ def _as_bool(value) -> bool:
     return str(value).lower() in ("1", "true", "on", "yes", "sim")
 
 
-def clean_params(tool: Tool, form: dict) -> dict:
+def clean_params(tool: Tool, form: dict, user_id: int | None = None) -> dict:
     """Valida o formulário contra a declaração. Levanta SpecError com texto legível."""
     out = {}
     for spec in tool.inputs:
         name, kind = spec["name"], spec["type"]
         if kind == "file":
             continue  # tratado no upload
+        if kind == "hidden":
+            # Valor fixo da declaração, não do formulário. Resolvido com o
+            # contexto do job na hora de montar o comando.
+            out[name] = spec.get("value", "")
+            continue
         # Checkbox desmarcada não é enviada pelo navegador. O formulário manda um
         # campo oculto com "0" antes dela, então o valor que vale é o ÚLTIMO —
         # sem isso, "sem legenda" nunca chegaria ao motor.
@@ -117,7 +149,8 @@ def clean_params(tool: Tool, form: dict) -> dict:
             out[name] = _as_bool(raw) if raw is not None else bool(spec.get("default", False))
         elif kind == "enum":
             value = (raw or spec.get("default") or "").strip()
-            if value and value not in spec["options"]:
+            permitidos = opcoes_de(spec, user_id)
+            if value and value not in permitidos:
                 raise SpecError(f"{spec.get('label', name)}: valor inválido.")
             out[name] = value
         elif kind == "lines":
@@ -134,6 +167,10 @@ def clean_params(tool: Tool, form: dict) -> dict:
                     raise SpecError(f"{spec.get('label', name)}: informe um número.") from exc
         else:  # text
             out[name] = (raw or "").strip()
+        padrao = spec.get("pattern")
+        if padrao and out.get(name) and not re.match(padrao, str(out[name])):
+            raise SpecError(spec.get("pattern_erro")
+                            or f"{spec.get('label', name)}: formato inválido.")
         if spec.get("required") and not out.get(name):
             raise SpecError(f"{spec.get('label', name)}: campo obrigatório.")
     _check_constraints(tool, out)
@@ -148,6 +185,41 @@ def _check_constraints(tool: Tool, params: dict) -> None:
         alvos = rule.get("require_any") or []
         if alvos and not any(params.get(a) for a in alvos):
             raise SpecError(rule.get("message", "Combinação de campos inválida."))
+
+
+# ------------------------------------------------------------ derivação
+
+def _derive_preview_ou_url(params: dict, spec: dict, ctx: dict) -> str:
+    """Um alvo de QA a partir de duas origens possíveis.
+
+    O motor aceita qualquer URL, inclusive `file://`. Um preview já publicado vira
+    o caminho real do `index.html` que o `current` aponta; uma URL digitada vai
+    como está, desde que seja http(s). Nada disso vira shell: o resultado é um
+    argumento de lista.
+    """
+    from . import lpbuilder
+    slug = (params.get(spec.get("preview_field", "preview")) or "").strip()
+    if slug:
+        alvo = lpbuilder.resolver_arquivo(slug, "index.html")
+        if alvo is None:
+            raise SpecError(f"O preview '{slug}' não tem um index.html publicado.")
+        return alvo.as_uri()
+    url = (params.get(spec.get("url_field", "url")) or "").strip()
+    if url.startswith(("http://", "https://")):
+        return url
+    raise SpecError("Informe uma URL http(s) ou escolha um preview já publicado.")
+
+
+DERIVADORES = {"preview_ou_url": _derive_preview_ou_url}
+
+
+def aplicar_derive(tool: Tool, params: dict, ctx: dict) -> dict:
+    for spec in tool.derive:
+        fn = DERIVADORES.get(spec.get("using"))
+        if fn is None:
+            raise SpecError(f"{tool.id}: derivador desconhecido: {spec.get('using')!r}")
+        ctx[spec["name"]] = fn(params, spec, ctx)
+    return ctx
 
 
 # ------------------------------------------------------------ linha de comando
@@ -172,16 +244,41 @@ def resolve_interpreter(tool: Tool) -> str:
     )
 
 
-def build_argv(tool: Tool, params: dict, bindings: dict) -> list:
-    """Monta o argv a partir da declaração. Nenhuma string é concatenada em shell:
-    a lista vai direto para subprocess, então não há injeção possível."""
+def _fmt(valor, ctx: dict) -> str:
+    """Substitui {job_id}, {job_out}, {alvo}... em um valor declarado no YAML.
+
+    Só chaves presentes no contexto são substituídas; chave ausente vira erro de
+    declaração, não string vazia silenciosa.
+    """
+    texto = str(valor)
+    if "{" not in texto:
+        return texto
+    try:
+        return texto.format(**ctx)
+    except KeyError as exc:
+        raise SpecError(f"placeholder desconhecido na declaração: {exc}") from exc
+
+
+def build_argv(tool: Tool, params: dict, bindings: dict, ctx: dict | None = None) -> list:
+    """Monta o argv a partir da declaração.
+
+    Os posicionais são explícitos em `args:` — um por item, na ordem em que o motor
+    os espera. Cada item pode citar um parâmetro do formulário, um valor estagiado
+    ou um derivado. Nada é concatenado em shell: a lista vai direto para subprocess,
+    então nenhuma entrada do usuário pode virar comando.
+    """
+    ctx = {**(ctx or {}), **params, **bindings}
     argv = [resolve_interpreter(tool), tool.script]
-    for key, value in bindings.items():
-        argv.append(str(value))
+    argv += [_fmt(a, ctx) for a in tool.args]
 
     for spec in tool.inputs:
         name, kind = spec["name"], spec["type"]
         if kind == "file":
+            continue
+        # Campo sem `flag` não vira opção: ele é consumido como posicional pelo
+        # `args:`, ou existe só para alimentar um derivador. Emitir aqui geraria
+        # argumento solto no meio da linha de comando.
+        if not any(k in spec for k in ("flag", "flag_true", "flag_false")):
             continue
         value = params.get(name)
         if kind == "bool":
@@ -194,8 +291,17 @@ def build_argv(tool: Tool, params: dict, bindings: dict) -> list:
         elif value not in (None, ""):
             if spec.get("depends_on") and not params.get(spec["depends_on"]):
                 continue
-            argv += [spec["flag"], str(value)]
+            argv += [spec["flag"], _fmt(value, ctx)]
     return argv
+
+
+def build_env(tool: Tool, ctx: dict) -> dict:
+    """Variáveis extras para o processo do motor.
+
+    É por aqui que o LP Builder recebe HOME=$SQUAD_DATA_HOME/home e passa a gravar
+    fora do repositório, sem uma linha de mudança no motor.
+    """
+    return {k: _fmt(v, ctx) for k, v in tool.env.items()}
 
 
 def kind_for(path: pathlib.Path) -> str:

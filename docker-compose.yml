@@ -16,6 +16,11 @@ x-comum: &comum
   environment:
     SQUAD_DATA_HOME: /data
     SQUAD_REPO_ROOT: /app
+    # O motor de publicação testa o preview por HTTP. Dentro da rede do Compose,
+    # o worker alcança o web por este nome. Nenhuma porta de preview é publicada:
+    # o `publish.py serve` não é usado, justamente porque escuta em 0.0.0.0 e
+    # lista todos os clientes na raiz.
+    SQUAD_INTERNAL_BASE_URL: http://web:8000
   restart: unless-stopped
 
 services:

@@ -5,24 +5,34 @@
 <h1>{{ tool.label }}</h1>
 <p class="sub">{{ tool.subtitle }}</p>
 {% if tool.help %}<p class="ajuda-topo">{{ tool.help }}</p>{% endif %}
+{% if publicacao %}
+<div class="aviso {{ 'ok' if publicacao.configurada else 'espera' }}">
+  <strong>{{ publicacao.resumo }}</strong>
+  <p>{{ publicacao.detalhe }}</p>
+</div>
+{% endif %}
 {% if erro %}<p class="erro">{{ erro }}</p>{% endif %}
 
 <form method="post" action="/tools/{{ tool.id }}" enctype="multipart/form-data" class="formulario">
   {% for campo in tool.inputs %}
-    {% if campo.type == "file" %}
+    {% if campo.type == "hidden" %}{# fixo na declaração #}
+    {% elif campo.type == "file" %}
       <label>{{ campo.label }} <span class="req">obrigatório</span>
         <input type="file" name="{{ campo.name }}" required
                accept="{{ campo.accept | join(',') }}">
         <small>Formatos: {{ campo.accept | join(', ') }} · até {{ max_mb }} MB</small>
       </label>
     {% elif campo.type == "enum" %}
+      {% set lista = opcoes.get(campo.name, campo.options or []) %}
       <label>{{ campo.label }}
         <select name="{{ campo.name }}">
-          {% for o in campo.options %}
+          {% if not campo.required %}<option value="">—</option>{% endif %}
+          {% for o in lista %}
           <option value="{{ o }}" {% if o == campo.default %}selected{% endif %}>{{ o }}</option>
           {% endfor %}
         </select>
-        {% if campo.ajuda %}<small>{{ campo.ajuda }}</small>{% endif %}
+        {% if not lista %}<small>Nenhuma opção disponível ainda.</small>
+        {% elif campo.ajuda %}<small>{{ campo.ajuda }}</small>{% endif %}
       </label>
     {% elif campo.type == "bool" %}
       {# O oculto garante que o campo sempre chegue; a checkbox, quando marcada,

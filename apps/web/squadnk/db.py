@@ -55,6 +55,16 @@ CREATE TABLE IF NOT EXISTS artifacts (
     is_primary INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_artifacts_job ON artifacts(job_id);
+
+-- Previews de Landing Page. O motor guarda os arquivos; esta tabela guarda
+-- QUEM pode vê-los. Sem ela, qualquer pessoa logada veria a carteira inteira.
+CREATE TABLE IF NOT EXISTS previews (
+    slug          TEXT PRIMARY KEY,
+    owner_user_id INTEGER NOT NULL REFERENCES users(id),
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL,
+    last_job_id   TEXT
+);
 """
 
 RUNNABLE = ("queued",)
@@ -210,3 +220,31 @@ def get_artifact(artifact_id: int):
             " JOIN jobs j ON j.id = a.job_id WHERE a.id=?",
             (artifact_id,),
         ).fetchone()
+
+
+# ----------------------------------------------------------------- previews
+
+def upsert_preview(slug: str, user_id: int, job_id: str) -> None:
+    """Registra a dona do slug. O primeiro a publicar continua sendo o dono:
+    um segundo usuário publicando o mesmo slug não herda o acesso."""
+    with cursor() as conn:
+        conn.execute(
+            "INSERT INTO previews (slug, owner_user_id, created_at, updated_at, last_job_id)"
+            " VALUES (?,?,?,?,?)"
+            " ON CONFLICT(slug) DO UPDATE SET updated_at=excluded.updated_at,"
+            " last_job_id=excluded.last_job_id",
+            (slug, user_id, now(), now(), job_id),
+        )
+
+
+def get_preview(slug: str):
+    with cursor() as conn:
+        return conn.execute("SELECT * FROM previews WHERE slug=?", (slug,)).fetchone()
+
+
+def list_previews(user_id: int):
+    with cursor() as conn:
+        return conn.execute(
+            "SELECT * FROM previews WHERE owner_user_id=? ORDER BY updated_at DESC",
+            (user_id,),
+        ).fetchall()

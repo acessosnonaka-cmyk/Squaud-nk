@@ -16,13 +16,23 @@
     <p class="cap">{{ a.capability }}</p>
     <p class="resumo">{{ a.resumo }}</p>
     {% if a.disponivel %}
-      <a class="principal" href="/tools/{{ a.tool }}">Abrir</a>
+      <div class="acoes">
+        {% for f in a.ferramentas %}
+          <a class="principal" href="/tools/{{ f.id }}">{{ f.subtitle or f.label }}</a>
+        {% endfor %}
+      </div>
     {% else %}
       <p class="nota">{{ a.nota }}</p>
     {% endif %}
   </article>
   {% endfor %}
 </div>
+
+{% if previews %}
+<h2 class="secao">Previews publicados</h2>
+<p class="sub">{{ publicacao.resumo }}
+  <a href="/previews">ver todos ({{ previews | length }})</a></p>
+{% endif %}
 
 {% if recentes %}
 <h2 class="secao">Últimos jobs</h2>

@@ -22,6 +22,8 @@
       <video controls preload="metadata" src="/artifacts/{{ a['id'] }}"></video>
     {% elif a["kind"] == "image" %}
       <img src="/artifacts/{{ a['id'] }}" alt="{{ a['label'] }}">
+    {% elif a["kind"] in ("text", "markdown", "json") %}
+      <pre class="relatorio" data-src="/artifacts/{{ a['id'] }}">carregando…</pre>
     {% endif %}
     <p><a class="principal" href="/artifacts/{{ a['id'] }}" download>
       Baixar {{ a["label"] }} ({{ mb(a["bytes"]) }})</a></p>
@@ -34,6 +36,12 @@
 
 <script>
 (function () {
+  // Relatórios de texto aparecem na própria página: são o entregável, não anexo.
+  document.querySelectorAll("pre.relatorio").forEach(el => {
+    fetch(el.dataset.src).then(r => r.text()).then(t => { el.textContent = t; })
+      .catch(() => { el.textContent = "(não foi possível carregar o relatório)"; });
+  });
+
   const estado = document.getElementById("estado");
   const log = document.getElementById("log");
   const terminais = ["done", "failed", "canceled"];

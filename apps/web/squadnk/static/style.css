@@ -102,3 +102,16 @@ video,img{max-width:100%;border-radius:var(--raio);border:1px solid var(--linha)
   .topo{gap:.8rem}
   .tabela th:nth-child(5),.tabela td:nth-child(5){display:none}
 }
+
+/* v0.2 — LP Builder */
+.acoes{display:flex;flex-direction:column;gap:.4rem;align-items:flex-start}
+.acoes a.principal{font-size:.82rem;padding:.4rem .8rem}
+.aviso{border:1px solid var(--linha);border-radius:var(--raio);padding:.8rem 1rem;
+  margin:0 0 1.4rem;background:var(--caixa)}
+.aviso.ok{border-left:3px solid var(--ok)}
+.aviso.espera{border-left:3px solid var(--espera);background:#fbf8ef}
+.aviso p{margin:.3rem 0 0;color:var(--fraco);font-size:.88rem}
+.relatorio{background:#f7f7f5;color:var(--tinta);border:1px solid var(--linha);
+  padding:1rem;border-radius:var(--raio);max-height:460px;overflow:auto;
+  font-family:ui-monospace,Menlo,monospace;font-size:.78rem;line-height:1.5;
+  white-space:pre-wrap;word-break:break-word}

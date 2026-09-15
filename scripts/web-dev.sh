@@ -74,8 +74,14 @@ stop() {
   local orfao
   orfao="$(ss -lptn "sport = :$PORTA" 2>/dev/null | grep -oP 'pid=\K[0-9]+' | head -1)"
   if [ -n "$orfao" ]; then
-    kill "$orfao" 2>/dev/null && warn "processo órfão na porta $PORTA encerrado (pid $orfao)"
+    kill "$orfao" 2>/dev/null && warn "web órfão na porta $PORTA encerrado (pid $orfao)"
   fi
+  # Worker órfão não segura porta nenhuma, então é procurado pelo argumento do
+  # módulo. Um worker velho sobrevivendo ao stop roda código desatualizado e
+  # dá erro que não existe mais no fonte.
+  for velho in $(ps -eo pid,args | grep -F -- "-m squadnk.worker" | grep -v grep | awk '{print $1}'); do
+    kill "$velho" 2>/dev/null && warn "worker órfão encerrado (pid $velho)"
+  done
 }
 
 status() {

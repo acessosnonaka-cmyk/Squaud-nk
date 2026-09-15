@@ -90,6 +90,17 @@ else
 fi
 mkdir -p "$REPO/apps/legend-ia/entrada de vídeo" "$REPO/apps/legend-ia/entrega"
 
+step "7b/8  Motor do LP Builder (venv + Playwright)"
+if [ -x "$REPO/apps/lp-builder/venv/bin/python" ]; then
+  ok "venv do LP Builder já existe"
+elif python3 -m venv "$REPO/apps/lp-builder/venv" >/dev/null 2>&1; then
+  "$REPO/apps/lp-builder/venv/bin/pip" install -q -r "$REPO/apps/lp-builder/requirements.txt" \
+    && "$REPO/apps/lp-builder/venv/bin/python" -m playwright install chromium >/dev/null 2>&1 \
+    && ok "playwright + chromium instalados" || warn "instale manualmente: apps/lp-builder/venv/bin/pip install -r apps/lp-builder/requirements.txt"
+else
+  warn "python3-venv ausente — 'sudo apt install python3-venv'"
+fi
+
 step "7/8  Playwright (Design IA e LP Builder: render, QA e screenshots)"
 if python3 -c "import playwright" 2>/dev/null; then
   ok "playwright presente"

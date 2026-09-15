@@ -6,35 +6,35 @@ agents:
   - nome: "Diretor de Operações"
     capability: "orquestração"
     resumo: "Entende a demanda, roteia por capability e monta os jobs dos especialistas."
-    tool: null
+    tools: []
     nota: "Precisa de runtime de inteligência (Etapa 2)."
 
   - nome: "LP Builder"
     capability: "lp.arquitetura · lp.qa · lp.publicacao"
-    resumo: "Constrói, audita e publica Landing Page com preview versionado."
-    tool: null
-    nota: "Os motores de QA e publicação já são determinísticos — próximos da fila."
+    resumo: "Audita, publica e versiona Landing Page, com preview autenticado."
+    tools: [lp.qa, lp.publicar, lp.rollback]
+    nota: "Construir a página exige a Etapa 2; QA, publicação e rollback não."
 
   - nome: "Design IA"
     capability: "design.peca_grafica"
     resumo: "Direção de arte e peça gráfica renderizada, revisada antes de entregar."
-    tool: null
+    tools: []
     nota: "O render é determinístico; a direção de arte precisa da Etapa 2."
 
   - nome: "Revisor de Arte"
     capability: "revisao.visual"
     resumo: "Compara o que foi pedido com o que foi entregue e devolve parecer."
-    tool: null
+    tools: []
     nota: "A medição técnica de vídeo é determinística; o parecer precisa da Etapa 2."
 
   - nome: "Legend IA"
     capability: "video.edicao"
     resumo: "Transcreve o áudio, queima legendas, headline e CTA no vídeo."
-    tool: "legend.editar"
+    tools: [legend.editar]
     nota: null
 
   - nome: "Copywriter"
     capability: "copywriting.*"
     resumo: "Roteiro, social, Meta Ads e copy de Landing Page."
-    tool: null
+    tools: []
     nota: "Prompt puro — depende inteiramente da Etapa 2."
