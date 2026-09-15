@@ -6,8 +6,29 @@ claims, autocritica) continua sendo do agente — ver skill lp-qa.
 
   lp_qa.py <url> [--out DIR]
 """
-import argparse, asyncio, json, os, re, sys
+import argparse, asyncio, json, os, pathlib, re, sys
 from playwright.async_api import async_playwright
+
+
+def _libs_chromium() -> None:
+    """Chromium headless precisa de libnss3/libnspr4, que faltam em muita imagem enxuta
+    de Debian/Ubuntu (WSL incluso). Quando o sistema nao as tem, scripts/chromium-libs.sh
+    deixa uma copia no repositorio; aqui ela e injetada via LD_LIBRARY_PATH antes de o
+    browser subir. Nao exige root e nao altera o sistema. Com as libs instaladas, este
+    caminho extra e inofensivo."""
+    aqui = pathlib.Path(__file__).resolve()
+    candidatos = [aqui.parent / "runtime" / "lib"]
+    if len(aqui.parents) > 3:
+        candidatos.append(aqui.parents[3] / "shared" / "runtime" / "lib")
+    candidatos.append(pathlib.Path.home() / ".claude" / "art-builder" / "runtime" / "lib")
+    for d in candidatos:
+        if (d / "libnspr4.so").exists():
+            anterior = os.environ.get("LD_LIBRARY_PATH", "")
+            os.environ["LD_LIBRARY_PATH"] = f"{d}:{anterior}" if anterior else str(d)
+            return
+
+
+_libs_chromium()
 
 VIEWS = [('mobile', 390, 844), ('tablet', 820, 1180), ('desktop', 1440, 900)]
 

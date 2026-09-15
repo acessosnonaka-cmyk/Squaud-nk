@@ -16,7 +16,8 @@
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LIBDIR="$REPO/agents/design-ia/engine/runtime/lib"
+LIBDIR="$REPO/shared/runtime/lib"
+ENGINE_LINK="$REPO/agents/design-ia/engine/runtime/lib"
 PKGS=(libnss3 libnspr4)
 
 ok()   { printf '  \033[32m✓\033[0m %s\n' "$1"; }
@@ -25,8 +26,16 @@ warn() { printf '  \033[33m!\033[0m %s\n' "$1"; }
 if ldconfig -p 2>/dev/null | grep -q libnspr4; then
   ok "libnss3/libnspr4 já estão no sistema"; exit 0
 fi
+ligar_engine() {
+  # render.py procura as libs em ROOT/runtime/lib. ROOT e o proprio engine/, entao o
+  # engine aponta para a copia compartilhada em vez de ter a sua.
+  mkdir -p "$(dirname "$ENGINE_LINK")"
+  [ -L "$ENGINE_LINK" ] && rm -f "$ENGINE_LINK"
+  [ -e "$ENGINE_LINK" ] || ln -s "$LIBDIR" "$ENGINE_LINK"
+}
+
 if [ -f "$LIBDIR/libnspr4.so" ]; then
-  ok "libs já extraídas em engine/runtime/lib"; exit 0
+  ligar_engine; ok "libs já extraídas em shared/runtime/lib"; exit 0
 fi
 
 if sudo -n true 2>/dev/null; then
@@ -49,7 +58,8 @@ for d in "$TMP"/*.deb; do dpkg-deb -x "$d" "$TMP/ex"; done
 find "$TMP/ex" -name '*.so*' -o -name '*.chk' | while read -r f; do cp -f "$f" "$LIBDIR/"; done
 
 if [ -f "$LIBDIR/libnspr4.so" ]; then
-  ok "libs extraídas em engine/runtime/lib ($(ls "$LIBDIR" | wc -l) arquivos, sem root)"
+  ligar_engine
+  ok "libs extraídas em shared/runtime/lib ($(ls "$LIBDIR" | wc -l) arquivos, sem root)"
 else
   warn "extração falhou — instale libnss3 e libnspr4 manualmente"; exit 1
 fi

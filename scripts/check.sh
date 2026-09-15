@@ -48,7 +48,7 @@ done
 [ -d "$REPO/agents/design-ia/engine/fonts/pool" ] && green "pool de fontes ($(ls "$REPO/agents/design-ia/engine/fonts/pool" | wc -l))" || red "fontes ausentes"
 file_ "$REPO/agents/design-ia/skills/designer-ia/SKILL.md" && green "skill designer-ia" || red "skill ausente"
 python3 -c "import playwright" 2>/dev/null && green "playwright (render)" || yellow "playwright ausente — render não roda"
-if ldconfig -p 2>/dev/null | grep -q libnspr4 || [ -f "$REPO/agents/design-ia/engine/runtime/lib/libnspr4.so" ]; then
+if ldconfig -p 2>/dev/null | grep -q libnspr4 || [ -f "$REPO/shared/runtime/lib/libnspr4.so" ]; then
   green "libs do Chromium (libnss3/libnspr4)"
 else
   red "libs do Chromium ausentes — render falha. Rode: bash scripts/chromium-libs.sh"
