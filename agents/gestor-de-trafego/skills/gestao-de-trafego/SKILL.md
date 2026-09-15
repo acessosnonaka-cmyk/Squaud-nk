@@ -143,3 +143,25 @@ paralelo de demanda.
   público e critério de sucesso; ele escreve.
 - **Dado insuficiente é uma resposta válida** — mas sempre acompanhada do que sabemos, do
   que falta, de como obter e da decisão temporária mais segura.
+
+## Entregável visual — obrigatório em toda análise
+
+Fluxo C (analisar/otimizar) e Fluxo G (reportar) **não terminam no relatório**: terminam em
+relatório executivo **+** peça visual. Dashboard quando houver volume para explorar;
+infográfico quando a análise for fechada e o objetivo for comunicar diagnóstico, evolução,
+gargalo e decisão. A escolha é sua, e não se pergunta ao gestor.
+
+Monte pelo `$BASE/modelos/dashboard-executivo.md`, que traz os blocos, o critério de escolha
+e o padrão da peça. Três regras não se negociam:
+
+- **FATO, CÁLCULO, HIPÓTESE e CONCLUSÃO seguem separados e rotulados na peça.** Hipótese com
+  cara de diagnóstico confirmado reprova a entrega.
+- **Nada de métrica inventada para fechar gráfico.** O que a conta não entregou sai da peça
+  ou aparece como ausência declarada — inclusive ROAS, que só entra quando for realmente
+  calculável.
+- **Ressalva que muda a leitura vai na peça**, não só no relatório: janela de atribuição
+  aberta, limite de privacidade, período incompleto, conta sem tracking.
+
+As duas peças voltam juntas nos `artefatos` do retorno. Análise com um artefato só está
+incompleta.
+

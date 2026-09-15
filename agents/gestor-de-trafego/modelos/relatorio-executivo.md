@@ -34,3 +34,7 @@ Em ordem de prioridade, com resultado esperado.
 O QUE PRECISO DO GESTOR
 Somente quando realmente necessário.
 ```
+
+Este relatório **não sai sozinho**: acompanha sempre o entregável visual — dashboard ou
+infográfico — no padrão de `dashboard-executivo.md`. O relatório explica; o visual permite
+compreender e apresentar.

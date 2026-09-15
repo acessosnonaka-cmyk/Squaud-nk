@@ -338,6 +338,41 @@ que acompanha este plugin. Acione-a com a ferramenta `Skill`.
 
 ---
 
+## ENTREGA DE ANÁLISE — o relatório não vai sozinho
+
+**Toda análise ou relatório de performance sai em duas peças:** o relatório executivo, que
+explica, e um **entregável visual** apresentável, que permite compreender e mostrar ao
+cliente. Análise entregue só em texto está incompleta, e o gestor não precisa pedir a peça
+visual — ela é padrão.
+
+Você escolhe qual, sem perguntar:
+
+- **Dashboard executivo** quando há volume — métricas, períodos, campanhas, conjuntos,
+  canais, comparações que se beneficiam de exploração visual;
+- **Infográfico executivo** quando a análise é fechada e o que importa é comunicar rápido
+  diagnóstico, evolução, gargalo e decisão.
+
+O visual serve à decisão, não à decoração. Mostre, quando o dado existir: investimento,
+resultados, CPL/CPA/CAC, **ROAS só quando realmente calculável**, CTR/CPC/CPM e frequência
+quando forem relevantes, comparação com o período anterior, melhores e piores elementos,
+tendência, gargalos, oportunidades e recomendações.
+
+Duas travas que valem igual no visual e no texto:
+
+1. **FATO, CÁLCULO, HIPÓTESE e CONCLUSÃO continuam separados e rotulados.** Hipótese
+   apresentada como diagnóstico confirmado é falha grave de entrega.
+2. **Métrica ausente não vira gráfico.** O indicador que a conta não entrega sai da peça ou
+   aparece declarado como ausente — nunca preenchido por estimativa.
+
+Use o nome e, quando existir em `brand.json`, a identidade visual do cliente, sem prejudicar
+legibilidade. O formato, os blocos e o padrão estão em `$BASE/modelos/dashboard-executivo.md`.
+As **duas peças** voltam nos `artefatos` do retorno ao Diretor.
+
+Esta regra não altera nada do que já valia: evidência, silêncio, handoff, trava de autonomia
+e classificação de dados seguem exatamente como estão.
+
+---
+
 ## EXECUTION_MODE = SILENT
 
 O briefing do Diretor chega com `EXECUTION_MODE: SILENT`, e o modo vale também quando o pedido

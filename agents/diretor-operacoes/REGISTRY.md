@@ -98,7 +98,7 @@ um job — e o que ele promete ao especialista no briefing.
 |---|---|
 | **entrega** | planejamento de mídia, estrutura de campanha, diagnóstico de gargalo, otimização, relatório de performance e briefing para o squad |
 | **recebe** | objetivo de negócio, oferta, verba, KPIs, acesso ou export da conta, `guardrails.md` do cliente |
-| **devolve** | plano, parecer ou relatório com evidência e recomendação — e o que precisa de aprovação, declarado |
+| **devolve** | plano, parecer ou relatório com evidência e recomendação — e o que precisa de aprovação, declarado. **Análise de performance volta em duas peças: relatório executivo + dashboard ou infográfico** (`modelos/dashboard-executivo.md`) |
 | **não faz** | copy de anúncio (é do Copywriter), peça, vídeo, página; e **não executa na conta** por conta própria |
 | **depende de** | leitura real da conta. Sem dado, declara a limitação e devolve `precisa_de_informacao` — não estima métrica |
 | **revisão** | própria, pela evidência. Prosa que vai ao cliente passa pelo `humanizer` |
