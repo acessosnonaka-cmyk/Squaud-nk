@@ -30,11 +30,9 @@ link() {
 step "1/7  Agentes  ->  $CLAUDE_HOME/agents"
 link "$CLAUDE_HOME/agents/copywriter.md"           "$REPO/agents/copywriter/agents/copywriter.md"
 link "$CLAUDE_HOME/agents/diretor-de-operacoes.md" "$REPO/agents/diretor-operacoes/agents/diretor-de-operacoes.md"
-link "$CLAUDE_HOME/agents/gestor-de-trafego.md"    "$REPO/agents/gestor-de-trafego/agents/gestor-de-trafego.md"
 
 step "2/7  Skills  ->  $CLAUDE_HOME/skills"
 link "$CLAUDE_HOME/skills/designer-ia"      "$REPO/agents/design-ia/skills/designer-ia"
-link "$CLAUDE_HOME/skills/gestao-de-trafego" "$REPO/agents/gestor-de-trafego/skills/gestao-de-trafego"
 for s in lp-ingestao lp-design-review lp-qa lp-publicar; do
   link "$CLAUDE_HOME/skills/$s" "$REPO/apps/lp-builder/skills/$s"
 done

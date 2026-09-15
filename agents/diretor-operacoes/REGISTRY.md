@@ -11,7 +11,7 @@ Fonte única de quem faz o quê. O roteamento é **por capability**, nunca por n
 | **legend-ai** | `video.edicao`<br>`video.motion` | pipeline `~/video-editor/` (`Skill(editar-video)` no projeto) | execução audiovisual, edição, motion, montagem |
 | **lp-builder** | `lp.arquitetura`<br>`lp.implementacao`<br>`lp.qa`<br>`lp.publicacao` | `Skill(lp-ingestao)` · `Skill(lp-design-review)` · `Skill(lp-qa)` · `Skill(lp-publicar)` · motor `~/.claude/lp-builder/` | arquitetura da página, UX, composição, implementação, responsividade, interações |
 | **revisor-de-criacao** | `revisao.visual` | `Agent` lendo a BASE que `python3 ~/.claude/art-builder/revisor.py locate` devolve | julgamento de qualidade **visual** da peça |
-| **gestor-de-trafego** | `trafego.diagnostico`<br>`trafego.planejamento`<br>`trafego.analise`<br>`trafego.operacao`<br>`trafego.relatorio` | `Agent(subagent_type: "gestor-de-trafego")` · plugin `gestor-de-trafego@squad-legend-ai` | midia paga, aquisicao, orcamento, estrutura de campanha, leitura de metricas, diagnostico do gargalo de aquisicao |
+| **gestor-de-trafego** | `trafego.diagnostico`<br>`trafego.planejamento`<br>`trafego.analise`<br>`trafego.operacao`<br>`trafego.relatorio` | `Agent(subagent_type: "gestor-de-trafego")` · plugin `gestor-de-trafego@squad-legend-ai` | mídia paga, aquisição, orçamento, estrutura de campanha, leitura de métricas, diagnóstico do gargalo de aquisição |
 | **humanizer** | `texto.humanizacao` | `Skill(humanizer)` | remoção de marcas de IA na prosa; sem autoridade sobre fato |
 
 Sem dono nomeado aqui — SEO, blog, e-mail marketing, atendimento, analytics, calendário
