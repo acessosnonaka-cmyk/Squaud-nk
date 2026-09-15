@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "agent": "copywriter",
+  "version": "1.0.0",
+  "squad": "Legend AI",
+  "master_prompt": "~/projetos/copywriter/agents/copywriter.md",
+  "capabilities": [
+    {
+      "id": "copywriting.script",
+      "label": "Roteiro",
+      "entrega": "roteiro para ser falado: gancho, retencao, progressao, fala, texto na tela, cena/B-roll, payoff, CTA",
+      "skill": "skills/short-form-video-script",
+      "executa_video": false,
+      "handoff": "Legend AI",
+      "handoff_formato": "tabela de tres trilhas: TEMPO | CENA/B-ROLL | FALA | TEXTO NA TELA"
+    },
+    {
+      "id": "copywriting.social",
+      "label": "Social media",
+      "entrega": "copy/legenda de postagem que complementa o visual, com uma funcao definida e um CTA",
+      "skill": "skills/caption-writer",
+      "publica": false,
+      "handoff": "Designer IA (arte) / usuario (publicacao)"
+    },
+    {
+      "id": "copywriting.meta_ads",
+      "label": "Meta Ads",
+      "entrega": "primary text, headline, description, copy do criativo, CTA, variacoes de angulo",
+      "skill": null,
+      "construida_por": [
+        "master prompt",
+        "skills/copywriting",
+        "client source of truth",
+        "conhecimento do canal",
+        "regras de claims"
+      ],
+      "configura_campanha": false,
+      "handoff": "Gestor de Trafego (futuro)"
+    },
+    {
+      "id": "copywriting.landing_page",
+      "label": "Landing page",
+      "entrega": "copy de LP com um objetivo de conversao, estrutura compacta, progressao persuasiva",
+      "skill": "skills/landing-page-copy",
+      "implementa_pagina": false,
+      "handoff": "LP Builder"
+    }
+  ],
+  "fora_de_escopo": [
+    "seo",
+    "blog",
+    "email marketing",
+    "gestao de trafego",
+    "estrategia de midia",
+    "design",
+    "programacao",
+    "edicao de video",
+    "motion",
+    "publicacao",
+    "agendamento",
+    "automacao",
+    "atendimento",
+    "analytics",
+    "calendario editorial",
+    "gestao de comunidade",
+    "desenvolvimento de landing page",
+    "cro tecnico"
+  ],
+  "rota_fora_de_escopo": "Diretor de Operacoes",
+  "skill_global_usada": [
+    "humanizer"
+  ],
+  "source_of_truth": {
+    "primaria": "~/.claude/art-builder/clients/<slug>/brand.json",
+    "complementos": [
+      "~/<slug>-lp/",
+      "~/.claude/lp-builder/previews/<slug>/current/",
+      "~/.claude/lp-builder/clients/<slug>/index.json (so existe se a ingestao ja rodou)",
+      "~/.claude/art-builder/jobs/*<slug>*/handoff.v*.md",
+      "~/.claude/projects/<projeto>/memory/"
+    ],
+    "cria_base_paralela": false
+  }
+}
