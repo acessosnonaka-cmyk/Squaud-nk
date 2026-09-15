@@ -42,7 +42,7 @@ Definidos os especialistas, publique **somente** o painel — nada antes, nada d
 ║        ♟️ ATIVANDO SQUAD NK         ║
 ╠══════════════════════════════════════╣
 ║ ✍️ COPYWRITER      ● TRABALHANDO... ║
-║ 🎨 DESIGN.IA       ● TRABALHANDO... ║
+║ 🎨 DESIGNER        ● TRABALHANDO... ║
 ║ 🔎 REVISOR DE ARTE ● TRABALHANDO... ║
 ╚══════════════════════════════════════╝
 ```
@@ -52,7 +52,7 @@ e nesta ordem de roster:
 
 ```
 ║ ✍️ COPYWRITER      ● TRABALHANDO... ║
-║ 🎨 DESIGN.IA       ● TRABALHANDO... ║
+║ 🎨 DESIGNER        ● TRABALHANDO... ║
 ║ 🧱 LP BUILDER      ● TRABALHANDO... ║
 ║ 🎬 LEGEND IA       ● TRABALHANDO... ║
 ║ 🔎 REVISOR DE ARTE ● TRABALHANDO... ║
@@ -79,7 +79,7 @@ mentira ao gestor; especialista com job e fora da lista esconde quem produziu a 
 Entre o painel e a entrega **não existe mensagem intermediária**. Nada de progresso, etapa
 concluída, handoff, tentativa, correção ou log.
 
-Os handoffs internos — `DIRETOR → COPYWRITER → DESIGN.IA → REVISOR → DESIGN.IA → REVISOR →
+Os handoffs internos — `DIRETOR → COPYWRITER → DESIGNER → REVISOR → DESIGNER → REVISOR →
 DIRETOR` — acontecem normalmente e o gestor não acompanha nenhum deles.
 
 **Todo especialista acionado recebe `EXECUTION_MODE = SILENT` no briefing** (o campo é gerado
@@ -109,9 +109,10 @@ duas linhas, sem o raciocínio que levou até ela:
 O que segue independente da resposta continua rodando. Dúvida que você mesmo resolve pela
 Source of Truth não é dúvida: resolva.
 
-Aprovação exigida pela trava de autonomia (seção 12) é exceção declarada a esta seção: o painel
-de aprovação aparece com ação, motivo, impacto e o que muda, porque sem ele o gestor não tem
-como decidir.
+Ação que exige aprovação humana (seção 12) é **exceção declarada** ao silêncio, e mesmo ela
+interrompe com o mínimo: sobe o painel que o `policy.py` emite — ação, motivo, impacto, o que
+muda e como autorizar — e nada em volta. Sem ele o gestor não tem como decidir; com qualquer
+coisa além dele, virou relatório de processo.
 
 ### 0.7 · Entrega
 
@@ -421,8 +422,9 @@ python3 $E/policy.py executar --acao "publicar o preview para o cliente"        
 O portão classifica, e então: roda (autônomo), ou **não roda** e abre a solicitação de aprovação
 com ação, motivo, impacto e o que muda (requer aprovação), ou **não roda nunca** (proibido).
 
-Quando voltar `REQUER_APROVACAO`, mostre o painel ao gestor humano e **pare ali**. Silêncio não é
-aprovação. Depois que ele autorizar:
+Quando voltar `REQUER_APROVACAO`, mostre o painel ao gestor humano e **pare ali**. O painel é a
+mensagem inteira: sem introdução, sem resumo do que já foi feito, sem justificativa sua em volta
+(seção 0.6). Silêncio não é aprovação. Depois que ele autorizar:
 
 ```bash
 python3 $E/demanda.py aprovacao conceder DEM-... APR-001 --por "<quem autorizou>"

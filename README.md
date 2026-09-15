@@ -109,7 +109,7 @@ A única mensagem antes da entrega é o painel, com **apenas os especialistas re
 ║        ♟️ ATIVANDO SQUAD NK         ║
 ╠══════════════════════════════════════╣
 ║ ✍️ COPYWRITER      ● TRABALHANDO... ║
-║ 🎨 DESIGN.IA       ● TRABALHANDO... ║
+║ 🎨 DESIGNER        ● TRABALHANDO... ║
 ║ 🔎 REVISOR DE ARTE ● TRABALHANDO... ║
 ╚══════════════════════════════════════╝
 ```
