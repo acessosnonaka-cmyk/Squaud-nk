@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "revisor-de-criacao",
-      "source": "./",
+      "source": "./agents/revisor-arte",
       "description": "Revisor de Criação — controle de qualidade de criativos, landing pages e vídeos."
     }
   ]

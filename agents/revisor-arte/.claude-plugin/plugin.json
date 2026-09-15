@@ -1,0 +1,17 @@
+{
+  "name": "revisor-de-criacao",
+  "version": "2.0.0",
+  "description": "Camada de controle de qualidade do Squad de Criação. Revisa criativos, landing pages e vídeos antes da aprovação final: ortografia, qualidade visual e qualidade técnica. Aceita link do Google Drive e devolve parecer com estrelas, status e correções.",
+  "author": {
+    "name": "Squad Legend AI"
+  },
+  "keywords": [
+    "revisao",
+    "criativos",
+    "design",
+    "qualidade",
+    "anuncios",
+    "social-midia",
+    "google-drive"
+  ]
+}
