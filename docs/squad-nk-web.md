@@ -13,10 +13,14 @@ sem Git, sem Claude Code.
 | **LP Builder — Preview** | ✅ integrado — servido pela camada autenticada |
 | **LP Builder — Publicar / Rollback** | ✅ integrado — versionado, com rollback |
 | **LP Builder — Publicação remota** | ⚙️ disponível **somente** quando um servidor estiver configurado em `publish.conf.json`. Sem isso, a interface diz exatamente isso e o preview continua acessível aqui dentro |
-| **Diretor, Design IA, Revisor, Copywriter** | ⛔ ainda não integrados — dependem da Etapa 2 |
+| **Diretor, Copywriter, Designer, Revisor de Arte** | ⛔ agentes ainda não integrados à web — dependem da Etapa 2 |
+| **Gestor de Tráfego** | ⛔ conceito definido, **implementação ausente** (`docs/gestor-de-trafego.md`) |
 
-Nenhuma integração é simulada: um agente só aparece como *DISPONÍVEL* quando existe
-uma declaração de ferramenta para ele.
+O dashboard mostra os **sete agentes** do roster oficial (`squad.yaml`), com três estados:
+`INTEGRADO`, `PARCIALMENTE INTEGRADO` e `AGENTE AINDA NÃO INTEGRADO À WEB`. Cada card diz
+quantas skills e quais motores o agente tem — **nunca uma skill ou um motor no lugar do
+agente**. Nenhuma integração é simulada: os botões só existem quando há declaração de
+ferramenta de verdade.
 
 ---
 
@@ -118,9 +122,10 @@ Placeholders disponíveis: `{job_id}`, `{job_out}`, `{job_input}`, `{workdir}`,
 `{data_home}`, mais qualquer parâmetro do formulário e qualquer valor estagiado
 ou derivado.
 
-Para o card aparecer no dashboard, acrescente a entrada em `apps/web/agents.yaml`. Um
-agente só é mostrado como **DISPONÍVEL** quando o YAML de ferramenta existe de fato: não
-há como marcar disponível algo que não está integrado.
+Para ligar a ferramenta a um agente, acrescente o id dela em `ferramentas_web` no
+[`squad.yaml`](../squad.yaml) da raiz — o roster oficial, lido também pela documentação e
+pelo Diretor de Operações. **Não existe lista paralela de agentes na aplicação.** Um botão
+só aparece quando o YAML da ferramenta existe de fato.
 
 ---
 

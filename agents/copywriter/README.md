@@ -1,4 +1,4 @@
-# COPYWRITER — Squad Legend AI
+# COPYWRITER — Squad NK
 
 Especialista estreito em escrita. Faz quatro coisas e recusa o resto.
 

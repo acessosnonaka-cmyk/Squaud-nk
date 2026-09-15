@@ -21,7 +21,9 @@ DB_PATH = DATA_HOME / "db.sqlite"
 
 APP_DIR = pathlib.Path(__file__).resolve().parent
 TOOLS_DIR = APP_DIR.parent / "tools"
-AGENTS_FILE = APP_DIR.parent / "agents.yaml"
+# Roster oficial: um arquivo só, na raiz do repositório. Documentação,
+# Diretor de Operações e dashboard leem daqui — nenhuma lista paralela.
+ROSTER_FILE = REPO_ROOT / "squad.yaml"
 
 # Sessão. Sem valor padrão em produção: o app recusa subir sem isso definido.
 SESSION_SECRET = os.environ.get("SQUAD_WEB_SESSION_SECRET", "")

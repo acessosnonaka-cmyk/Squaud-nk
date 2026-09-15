@@ -111,12 +111,44 @@ def opcoes_de(spec: dict, user_id: int | None) -> list:
     return []
 
 
+# Como cada estado do roster aparece no dashboard. O vocabulário é o do
+# squad.yaml; aqui só vira rótulo.
+ESTADO_WEB = {
+    "integrado": ("INTEGRADO", "ok"),
+    "parcial": ("PARCIALMENTE INTEGRADO", "parcial"),
+    "nao_integrado": ("AGENTE AINDA NÃO INTEGRADO À WEB", "espera"),
+}
+
+
 def load_agents() -> list:
-    """Cards do dashboard. Status vem do YAML — nenhuma integração é inventada."""
-    if not config.AGENTS_FILE.is_file():
+    """Os sete agentes do roster oficial, do squad.yaml na raiz do repositório.
+
+    O dashboard mostra o AGENTE, nunca a skill ou o motor no lugar dele. Um agente
+    aparece com ferramentas só quando a declaração correspondente existe de fato —
+    nenhuma integração é inventada.
+    """
+    if not config.ROSTER_FILE.is_file():
         return []
-    data = yaml.safe_load(config.AGENTS_FILE.read_text(encoding="utf-8")) or {}
-    return list(data.get("agents") or [])
+    data = yaml.safe_load(config.ROSTER_FILE.read_text(encoding="utf-8")) or {}
+    ferramentas = load_all()
+
+    saida = []
+    for bruto in (data.get("agentes") or []):
+        estado = bruto.get("web", "nao_integrado")
+        rotulo, classe = ESTADO_WEB.get(estado, ESTADO_WEB["nao_integrado"])
+        ids = [t for t in (bruto.get("ferramentas_web") or []) if t in ferramentas]
+        saida.append({
+            **bruto,
+            "rotulo_web": rotulo,
+            "classe_web": classe,
+            # Só é operável se existir ferramenta declarada de verdade.
+            "operavel": bool(ids),
+            "ferramentas": [ferramentas[t] for t in ids],
+            "conceito": bruto.get("agente") == "conceito",
+            "n_skills": len(bruto.get("skills") or []),
+            "n_motores": len(bruto.get("motores") or []),
+        })
+    return saida
 
 
 # ------------------------------------------------------------ validação

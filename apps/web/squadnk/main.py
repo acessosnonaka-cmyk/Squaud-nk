@@ -127,14 +127,7 @@ def logout(request: Request):
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request):
     user = current_user(request)
-    tools = registry.load_all()
     agentes = registry.load_agents()
-    for agente in agentes:
-        # Disponível só quando a declaração da ferramenta existe de fato. Não há
-        # como marcar como pronto algo que não está integrado.
-        seus = [t for t in (agente.get("tools") or []) if t in tools]
-        agente["ferramentas"] = [tools[t] for t in seus]
-        agente["disponivel"] = bool(seus)
     return templates.TemplateResponse(
         request, "dashboard.html",
         {"user": user, "agentes": agentes,

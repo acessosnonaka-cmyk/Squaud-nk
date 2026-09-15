@@ -28,8 +28,14 @@ link() {
 }
 
 step "1/8  Agentes  ->  $CLAUDE_HOME/agents"
-link "$CLAUDE_HOME/agents/copywriter.md"           "$REPO/agents/copywriter/agents/copywriter.md"
+# Os seis agentes com prompt próprio, do roster de squad.yaml. O Gestor de
+# Tráfego não entra: ainda não tem implementação (docs/gestor-de-trafego.md).
 link "$CLAUDE_HOME/agents/diretor-de-operacoes.md" "$REPO/agents/diretor-operacoes/agents/diretor-de-operacoes.md"
+link "$CLAUDE_HOME/agents/copywriter.md"           "$REPO/agents/copywriter/agents/copywriter.md"
+link "$CLAUDE_HOME/agents/designer.md"             "$REPO/agents/design-ia/agents/designer.md"
+link "$CLAUDE_HOME/agents/lp-builder.md"           "$REPO/apps/lp-builder/agents/lp-builder.md"
+link "$CLAUDE_HOME/agents/legend-ia.md"            "$REPO/apps/legend-ia/agents/legend-ia.md"
+link "$CLAUDE_HOME/agents/revisor-de-criacao.md"   "$REPO/agents/revisor-arte/agents/revisor-de-criacao.md"
 
 step "2/8  Skills  ->  $CLAUDE_HOME/skills"
 link "$CLAUDE_HOME/skills/designer-ia"      "$REPO/agents/design-ia/skills/designer-ia"

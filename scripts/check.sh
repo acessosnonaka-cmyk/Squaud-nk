@@ -17,6 +17,21 @@ head_() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 have()  { command -v "$1" >/dev/null 2>&1; }
 file_()  { [ -f "$1" ]; }
 
+head_ "Roster oficial (squad.yaml)"
+if file_ "$REPO/squad.yaml"; then
+  n=$(grep -cE '^  - id: ' "$REPO/squad.yaml")
+  [ "$n" -eq 7 ] && green "7 agentes declarados" || red "squad.yaml tem $n agentes; o roster oficial são 7"
+  faltando=0
+  for f in $(grep -E '^    prompt: [^n]' "$REPO/squad.yaml" | awk '{print $2}'); do
+    file_ "$REPO/$f" || { red "prompt ausente: $f"; faltando=1; }
+  done
+  [ "$faltando" -eq 0 ] && green "todos os prompts declarados existem"
+  grep -q 'agente: conceito' "$REPO/squad.yaml" \
+    && yellow "há agente sem implementação — ver docs/gestor-de-trafego.md"
+else
+  red "squad.yaml ausente — o roster oficial não existe"
+fi
+
 head_ "Ferramentas de base"
 have git     && green "git"     || red "git ausente"
 have python3 && green "python3 $(python3 -V 2>&1 | cut -d' ' -f2)" || red "python3 ausente"
@@ -38,7 +53,12 @@ python3 -c "import playwright" 2>/dev/null && green "playwright (QA/screenshot)"
 head_ "2. DIRETOR DE OPERAÇÕES"
 file_ "$REPO/agents/diretor-operacoes/agents/diretor-de-operacoes.md" && green "agente" || red "agente ausente"
 file_ "$REPO/agents/diretor-operacoes/REGISTRY.md" && green "REGISTRY.md" || red "REGISTRY.md ausente"
-[ -L "$CLAUDE_HOME/agents/diretor-de-operacoes.md" ] && green "registrado no Claude Code" || yellow "rode scripts/setup.sh"
+ligados=0
+for a in diretor-de-operacoes copywriter designer lp-builder legend-ia revisor-de-criacao; do
+  [ -L "$CLAUDE_HOME/agents/$a.md" ] && ligados=$((ligados+1))
+done
+[ "$ligados" -eq 6 ] && green "6 agentes registrados no Claude Code" \
+  || yellow "$ligados/6 agentes registrados — rode scripts/setup.sh"
 
 head_ "3. DESIGN IA"
 for f in render.py brand.py job.py artdirection.py revisor.py validate.py autofix.py assets.py selfcheck.py formats.json; do

@@ -1,0 +1,170 @@
+# ---------------------------------------------------------------
+# ROSTER OFICIAL DO SQUAD NK — fonte única da verdade.
+#
+# Quem lê este arquivo: a documentação, o Diretor de Operações e o dashboard do
+# Squad NK Web. Roster novo ou status alterado muda AQUI, e chega nos três.
+#
+# Vocabulário, para não confundir camadas:
+#   agente   — funcionário digital que raciocina e decide. Tem prompt próprio.
+#   skill    — conhecimento que um agente carrega para fazer bem uma coisa.
+#   motor    — executor determinístico que um agente aciona. Não decide nada.
+#   conector — integração externa (MCP/plugin) que um agente usa.
+#
+# Um agente não deixa de ser agente por estar implementado hoje só como skill ou
+# motor: isso é estado da representação técnica, não da arquitetura.
+# ---------------------------------------------------------------
+versao: 1
+atualizado_em: "2026-09-15"
+
+estrutura: "1 orquestrador + 6 especialistas = 7 agentes"
+
+# Estados possíveis em `web`:
+#   integrado             — dá para usar pelo navegador, de ponta a ponta
+#   parcial               — parte das capacidades está na web
+#   nao_integrado         — o agente existe, mas ainda não tem interface web
+# Estados possíveis em `agente`:
+#   formal                — tem prompt próprio, invocável como agente
+#   conceito              — papel definido, implementação ausente
+
+agentes:
+  - id: diretor-operacoes
+    nome: "Diretor de Operações"
+    papel: orquestrador
+    emoji: "♟️"
+    agente: formal
+    prompt: agents/diretor-operacoes/agents/diretor-de-operacoes.md
+    capabilities: [orquestracao, estrategia, pesquisa, roteamento]
+    skills: []
+    motores: []
+    conectores: []
+    web: nao_integrado
+    resumo: >-
+      Porta única do Squad. Entende a demanda, faz pesquisa e estratégia, monta o
+      briefing mestre, escolhe os especialistas, delega e confere a entrega.
+    nota_web: "Orquestrar pela web depende do runtime de inteligência (Etapa 2)."
+
+  - id: copywriter
+    nome: "Copywriter"
+    papel: especialista
+    emoji: "✍️"
+    agente: formal
+    prompt: agents/copywriter/agents/copywriter.md
+    capabilities: [copywriting.script, copywriting.social, copywriting.meta_ads, copywriting.landing_page]
+    skills:
+      - agents/copywriter/skills/copywriting
+      - agents/copywriter/skills/caption-writer
+      - agents/copywriter/skills/short-form-video-script
+      - agents/copywriter/skills/landing-page-copy
+    motores: []
+    conectores: []
+    web: nao_integrado
+    resumo: "Roteiro de vídeo, copy de social, Meta Ads e Landing Page. A copy nasce aqui."
+    nota_web: "Prompt puro: depende inteiramente da Etapa 2."
+
+  - id: designer
+    nome: "Designer"
+    papel: especialista
+    emoji: "🎨"
+    agente: formal
+    prompt: agents/design-ia/agents/designer.md
+    capabilities: [design.peca_grafica, design.direcao_de_arte]
+    skills:
+      - agents/design-ia/skills/designer-ia
+    motores:
+      - agents/design-ia/engine        # art-builder: direção de arte, render, validação, autofix
+    conectores: []
+    web: nao_integrado
+    resumo: >-
+      Direção de arte e peça gráfica para anúncio e campanha, renderizada e
+      submetida ao Revisor antes de entregar.
+    nota_web: >-
+      O motor (render, validate, selfcheck, autofix) é determinístico e pode
+      entrar na web; escrever a direção de arte exige a Etapa 2.
+
+  - id: lp-builder
+    nome: "LP Builder"
+    papel: especialista
+    emoji: "🧱"
+    agente: formal
+    prompt: apps/lp-builder/agents/lp-builder.md
+    capabilities: [lp.arquitetura, lp.implementacao, lp.qa, lp.publicacao]
+    skills:
+      - apps/lp-builder/skills/lp-ingestao
+      - apps/lp-builder/skills/lp-design-review
+      - apps/lp-builder/skills/lp-qa
+      - apps/lp-builder/skills/lp-publicar
+    motores:
+      - apps/lp-builder/engine         # drive_ingest, lp_qa, publish
+    conectores:
+      - "claude.ai Google Drive"       # ingestão de acervo; não existe fora do claude.ai
+    web: parcial
+    ferramentas_web: [lp.qa, lp.publicar, lp.rollback]
+    resumo: "Landing page completa: estrutura, UX, CRO, implementação, QA e publicação."
+    nota_web: >-
+      QA, publicação, preview autenticado e rollback estão na web. Construir a
+      página exige a Etapa 2.
+
+  - id: legend-ia
+    nome: "Legend IA"
+    papel: especialista
+    emoji: "🎬"
+    agente: formal
+    prompt: apps/legend-ia/agents/legend-ia.md
+    capabilities: [video.edicao, video.motion]
+    skills:
+      - apps/legend-ia/skills/editar-video
+    motores:
+      - apps/legend-ia                 # process_video.py + FFmpeg + faster-whisper
+    conectores: []
+    web: integrado
+    ferramentas_web: [legend.editar]
+    resumo: >-
+      Vídeo: transcreve o áudio, revisa a transcrição e queima legenda, headline
+      e CTA. O arquivo original nunca é alterado.
+    nota_web: "Único agente cujo trabalho é 100% determinístico — não precisa de LLM para executar."
+
+  - id: revisor-arte
+    nome: "Revisor de Arte"
+    papel: especialista
+    emoji: "🔎"
+    agente: formal
+    prompt: agents/revisor-arte/agents/revisor-de-criacao.md
+    capabilities: [revisao.visual, revisao.textual, revisao.tecnica]
+    skills:
+      - agents/revisor-arte/skills/revisao-visual-criativos
+      - agents/revisor-arte/skills/revisao-textual-criativos
+      - agents/revisor-arte/skills/revisao-tecnica-criativos
+      - agents/revisor-arte/skills/revisao-anuncios-criativos
+    motores:
+      - agents/revisor-arte/ferramentas   # inspecionar-video.sh, drive-baixar.sh
+    conectores:
+      - "claude.ai Google Drive"       # recebe material por link; não existe fora do claude.ai
+    web: nao_integrado
+    resumo: >-
+      Controle de qualidade: compara o que foi pedido com o que foi entregue e
+      devolve parecer com nota, status e correções. Nunca edita o que revisa.
+    nota_web: >-
+      A inspeção técnica de vídeo é determinística e pode entrar na web; o
+      parecer exige a Etapa 2.
+
+  - id: gestor-trafego
+    nome: "Gestor de Tráfego"
+    papel: especialista
+    emoji: "📈"
+    agente: conceito          # papel definido, implementação ausente
+    prompt: null
+    capabilities: [trafego.planejamento, trafego.criacao, trafego.otimizacao, trafego.analise]
+    skills: []
+    motores: []
+    conectores:
+      - "claude.ai Meta ADS"   # conector existe na conta; token OAuth expirado em 2026-09-02
+    web: nao_integrado
+    resumo: >-
+      Mídia paga em Meta e Google: planejamento, criação, acompanhamento e
+      otimização de campanha; mapeamento de gargalos e insights ao gestor humano.
+    nota_web: "Sem implementação. Ver docs/gestor-de-trafego.md antes de acionar."
+    pendencia: >-
+      CONCEITO DEFINIDO, IMPLEMENTAÇÃO AUSENTE. Não existe prompt, skill em disco
+      nem motor. O conhecimento existe na conta claude.ai (5 skills) e há um
+      conector Meta ADS, mas nada disso é invocável pelo Claude Code nem
+      versionável neste repositório.

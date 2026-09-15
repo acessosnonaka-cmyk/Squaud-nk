@@ -115,3 +115,14 @@ video,img{max-width:100%;border-radius:var(--raio);border:1px solid var(--linha)
   padding:1rem;border-radius:var(--raio);max-height:460px;overflow:auto;
   font-family:ui-monospace,Menlo,monospace;font-size:.78rem;line-height:1.5;
   white-space:pre-wrap;word-break:break-word}
+
+/* Roster: o card mostra o AGENTE; skill e motor são camadas dele. */
+.card .papel{margin:0;font-size:.72rem;color:var(--fraco);text-transform:uppercase;
+  letter-spacing:.08em}
+.card .camadas{display:flex;flex-wrap:wrap;gap:.3rem;margin:.2rem 0 0}
+.tag{font-size:.66rem;padding:.12rem .45rem;border-radius:4px;background:#eef0f3;
+  color:var(--fraco);border:1px solid var(--linha)}
+.tag.conceito{background:#f4efdf;color:var(--espera);border-color:#e6d9b4}
+.selo.parcial{background:#e7eefc;color:var(--acento)}
+.nota.pendencia{color:var(--espera);font-style:normal;font-size:.76rem;
+  border-top:1px dashed var(--linha);padding-top:.5rem}

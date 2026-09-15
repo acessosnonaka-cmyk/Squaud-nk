@@ -1,7 +1,28 @@
 # SQUAD NK
 
-Repositório central do Squad Legend AI: cinco componentes de IA usados na operação da Nonaka ADS,
-mais o Copywriter. Fonte da verdade do código e da configuração — o que não está aqui não existe.
+Repositório central do **Squad NK**: **1 orquestrador + 6 especialistas = 7 agentes**, usados na
+operação da Nonaka ADS. Fonte da verdade do código e da configuração — o que não está aqui não
+existe.
+
+O roster oficial é [`squad.yaml`](squad.yaml): legível por máquina, lido pela documentação, pelo
+Diretor de Operações e pelo dashboard do Squad NK Web. Os três reconhecem a mesma arquitetura.
+
+| | Agente | Papel | Representação | Web |
+|---|---|---|---|---|
+| ♟️ | **Diretor de Operações** | orquestrador | prompt | não integrado |
+| ✍️ | **Copywriter** | especialista | prompt + 4 skills | não integrado |
+| 🎨 | **Designer** | especialista | prompt + skill + motor | não integrado |
+| 🧱 | **LP Builder** | especialista | prompt + 4 skills + motor | parcial |
+| 🎬 | **Legend IA** | especialista | prompt + skill + motor | **integrado** |
+| 🔎 | **Revisor de Arte** | especialista | prompt + 4 skills + motor | não integrado |
+| 📈 | **Gestor de Tráfego** | especialista | **conceito — sem implementação** | não integrado |
+
+**Agente ≠ skill ≠ motor ≠ conector.** Um agente raciocina e decide; skill é conhecimento que ele
+carrega; motor é executor determinístico que ele aciona; conector é integração externa que ele usa.
+Estar implementado hoje como skill ou motor não faz de ninguém menos agente.
+
+O Gestor de Tráfego tem papel definido e **nenhuma implementação** — ver
+[`docs/gestor-de-trafego.md`](docs/gestor-de-trafego.md). Nada de campanha é simulado.
 
 ---
 

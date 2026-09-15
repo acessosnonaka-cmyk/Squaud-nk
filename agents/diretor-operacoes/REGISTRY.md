@@ -1,23 +1,42 @@
-# Registro do Squad Legend AI
+# Registro do Squad NK
 
-Fonte única de quem faz o quê. O roteamento é **por capability**, nunca por nome do agente.
+Quem faz o quê. O roteamento é **por capability**, nunca por nome do agente.
+
+> **Roster oficial e legível por máquina: [`squad.yaml`](../../squad.yaml) na raiz.**
+> Ele é a fonte única — documentação, Diretor e dashboard da web leem de lá. Este
+> arquivo é a régua de roteamento em prosa; agente novo ou status alterado muda no
+> `squad.yaml` primeiro.
+
+**Estrutura: 1 orquestrador + 6 especialistas = 7 agentes.** Cada um tem prompt próprio.
+Skill, motor e conector são **ferramentas** de um agente, nunca o agente inteiro.
 
 ## Agentes e capabilities
 
 | Agente | Capabilities | Como acionar | Autoridade primária |
 |---|---|---|---|
 | **copywriter** | `copywriting.script`<br>`copywriting.social`<br>`copywriting.meta_ads`<br>`copywriting.landing_page` | `Agent(subagent_type: "copywriter")` · base `~/projetos/copywriter/` | copy, mensagem, promessa verbal, headline, argumento, CTA, narrativa verbal, roteiro |
-| **designer-ia** | `design.peca_grafica`<br>`design.direcao_de_arte` | `Skill(designer-ia)` · motor `~/.claude/art-builder/` | direção visual, composição, tipografia, layout, peça gráfica |
-| **legend-ai** | `video.edicao`<br>`video.motion` | pipeline `~/video-editor/` (`Skill(editar-video)` no projeto) | execução audiovisual, edição, motion, montagem |
-| **lp-builder** | `lp.arquitetura`<br>`lp.implementacao`<br>`lp.qa`<br>`lp.publicacao` | `Skill(lp-ingestao)` · `Skill(lp-design-review)` · `Skill(lp-qa)` · `Skill(lp-publicar)` · motor `~/.claude/lp-builder/` | arquitetura da página, UX, composição, implementação, responsividade, interações |
-| **revisor-de-criacao** | `revisao.visual` | `Agent` lendo a BASE que `python3 ~/.claude/art-builder/revisor.py locate` devolve | julgamento de qualidade **visual** da peça |
+| **designer** | `design.peca_grafica`<br>`design.direcao_de_arte` | `Agent(subagent_type: "designer")` · skill `designer-ia` · motor `agents/design-ia/engine/` | direção visual, composição, tipografia, layout, peça gráfica |
+| **legend-ia** | `video.edicao`<br>`video.motion` | `Agent(subagent_type: "legend-ia")` · skill `editar-video` · motor `apps/legend-ia/` | execução audiovisual, edição, motion, montagem |
+| **lp-builder** | `lp.arquitetura`<br>`lp.implementacao`<br>`lp.qa`<br>`lp.publicacao` | `Agent(subagent_type: "lp-builder")` · skills `lp-*` · motor `apps/lp-builder/engine/` | arquitetura da página, UX, composição, implementação, responsividade, interações |
+| **revisor-de-criacao** | `revisao.visual`<br>`revisao.textual`<br>`revisao.tecnica` | `Agent(subagent_type: "revisor-de-criacao")` · skills `revisao-*` · motor `agents/revisor-arte/ferramentas/` | julgamento de qualidade da peça: nota, status e correções |
+| **gestor-de-trafego** | `trafego.planejamento`<br>`trafego.criacao`<br>`trafego.otimizacao`<br>`trafego.analise` | **ainda não acionável** — ver abaixo | mídia paga: campanha, público, orçamento, pixel, UTM, otimização |
 | **humanizer** | `texto.humanizacao` | `Skill(humanizer)` | remoção de marcas de IA na prosa; sem autoridade sobre fato |
 
 Sem dono nomeado aqui — SEO, blog, e-mail marketing, atendimento, analytics, calendário
 editorial, comunidade — vai para o Diretor de Operações, que aloca. **Proibido inventar dono.**
 
-**Gestor de Tráfego não existe.** Campanha, orçamento, conjunto, segmentação e publicação não
-têm executor no squad. Não simular, não implementar, não inventar capability. É a etapa seguinte.
+### Gestor de Tráfego — conceito definido, implementação ausente
+
+O papel **existe no roster** e as capabilities estão reservadas. O executor **não existe**:
+não há prompt, skill em disco nem motor. Enquanto for assim:
+
+- **não simular** planejamento, criação, acompanhamento ou otimização de campanha;
+- **não** dizer que a campanha foi subida, pausada ou otimizada;
+- declarar a lacuna ao usuário e devolver a decisão a ele.
+
+O que existe hoje fora do repositório está documentado em
+[`docs/gestor-de-trafego.md`](../../docs/gestor-de-trafego.md), com o que falta para
+transformá-lo no sétimo agente de fato.
 
 ## Roteamento por capability
 
