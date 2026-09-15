@@ -6,7 +6,10 @@
 # não roda sem aprovação registrada, e PROIBIDO não roda nunca.
 #
 # Como a classificação funciona: cada regra tem padrões (expressões regulares,
-# sem acento e em minúsculas). Vence a classe mais restritiva que casar —
+# sem acento e em minúsculas). O texto é normalizado por policy.normalizar()
+# antes de casar, e ela passa tudo para minúsculas: padrão com letra MAIÚSCULA
+# nunca casa com nada. Escreva `-x (post|put|delete)`, nunca `-X (POST|...)`.
+# tests/test_policy.py falha se alguma letra maiúscula voltar a aparecer. Vence a classe mais restritiva que casar —
 # PROIBIDO > REQUER_APROVACAO > AUTONOMO. Ação que não casa com nada cai no
 # padrao_desconhecido abaixo.
 # ---------------------------------------------------------------
@@ -57,7 +60,7 @@ classes:
           # forma de shell das mesmas ações, para o hook reconhecer o comando cru
           - "\\bmkfs\\b|\\bdd if=/dev/"
           - "git reset --hard"
-          - "chmod -R 777 /"
+          - "chmod -r 777 /"
       - id: fora-da-permissao
         motivo: "Dado de cliente só se acessa dentro do escopo da demanda."
         padroes:
@@ -92,7 +95,7 @@ classes:
           - "rsync .*@"
           - "\\bscp\\b .*@"
           - "npm publish|docker push|gh release create"
-          - "curl .*(-X (POST|PUT|DELETE)|--upload-file)"
+          - "curl .*(-x (post|put|delete)|--upload-file)"
       - id: comunicacao-externa
         motivo: "Mensagem enviada não volta atrás."
         impacto: "O cliente recebe a comunicação."

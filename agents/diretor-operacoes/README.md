@@ -12,6 +12,7 @@ Este diretório contém só o que não pode depender de memória de conversa.
 | `engine/policy.py` | o **portão**: classifica a ação e só então executa (ou não) |
 | `engine/demanda.py` | CLI operacional: demandas, jobs, briefings, aprovações, feedback, retomada |
 | `schemas/*.json` | os quatro contratos: demanda, job, briefing, retorno |
+| `tests/test_policy.py` | testes da política: o portão, o hook e a convenção dos padrões |
 
 ## Onde ficam os dados
 
