@@ -176,3 +176,21 @@ e acrescentar uma linha em `conhecimento/deteccao-de-tipo.md`. O agente não é 
 - Arquivos muito grandes (acima de ~8 MB) podem falhar no download do Drive.
 - A avaliação não é determinística: rodadas diferentes podem variar em torno de meia
   estrela. Falhas críticas e status são estáveis.
+
+---
+
+## Outros plugins deste catálogo
+
+O marketplace `squad-legend-ai` também publica:
+
+| Plugin | O que faz |
+|---|---|
+| **gestor-de-trafego** | Gestor de Tráfego e Performance — planeja, executa, analisa, diagnostica e reporta mídia paga em Meta Ads, Google Ads e TikTok Ads. Documentação em [`gestor-de-trafego/README.md`](gestor-de-trafego/README.md) |
+
+Instalação, depois de registrar o catálogo:
+
+```bash
+claude plugin install gestor-de-trafego@squad-legend-ai
+```
+
+Cada plugin é instalado separadamente — instalar um não traz o outro.
