@@ -60,7 +60,10 @@ Entregue no formato de `$BASE/modelos/plano-de-campanha.md`.
 1. Contexto (Passo 0) + período e volume suficientes para separar sinal de ruído.
 2. Leitura em cascata: negócio → funil → mídia → elementos.
 3. Comparar com objetivo financeiro e histórico da conta — nunca com benchmark inventado.
-4. Identificar gargalo principal e secundários, com evidência numérica.
+4. Identificar gargalo principal e secundários, com evidência numérica — separando o que
+   é **fato medido** do que é **hipótese de causa** (ver seção 6 do prompt do agente).
+   O gargalo só é dado como confirmado quando a evidência isola a causa; caso contrário,
+   entregue como hipótese, com o teste que a confirmaria.
 5. Decidir manter, reduzir, pausar, testar ou escalar — cada decisão com hipótese e
    critério de verificação.
 6. Executar o que estiver dentro dos guardrails; pedir aprovação do que estiver fora.
@@ -127,11 +130,21 @@ Trabalho vindo de demanda volta no contrato `retorno.schema.json`: `status`, `re
 | A próxima ação mexe em dinheiro, publica ou altera campanha viva | `precisa_de_aprovacao` |
 | Depende de outro especialista ou de decisão do gestor | `bloqueado` |
 
+Em `decisoes`, marque o que é conclusão apoiada em dado e o que é hipótese ainda não
+testada. O Diretor consolida a entrega e não tem como saber, depois, qual era qual.
+
 Quem grava em `demanda.json` é o Diretor. Você não mantém fila, estado de job nem registro
 paralelo de demanda.
 
 ## Regras que valem em todos os fluxos
 
+- **Separe as camadas em toda entrega: FATO, CÁLCULO, HIPÓTESE, CONCLUSÃO.** Fato tem
+  fonte e período; cálculo tem fórmula; hipótese tem o teste que a confirma ou derruba;
+  conclusão tem grau de confiança. Correlação e padrão provável **não** viram diagnóstico
+  confirmado.
+- **Amostra pequena: sinalize antes de afirmar, não no rodapé.** Abaixo de ~30 conversões
+  no recorte, não afirme diferença — mostre a direção, diga que o volume não sustenta o
+  número e explicite a sensibilidade (quanto muda com uma conversão a mais ou a menos).
 - **Métrica sem contexto não é decisão.** Cruze custo, volume e qualidade.
 - **Sem benchmark inventado.** Compare com objetivo financeiro, histórico da conta,
   períodos anteriores e campanhas semelhantes.

@@ -44,6 +44,20 @@ Diferencie explicitamente:
 
 Quando os números divergirem, diga qual fonte está sendo usada em cada afirmação.
 
+## Volume: o que o número sustenta e o que não sustenta
+
+Antes de comparar dois recortes, olhe o **denominador de conversões**, não o de cliques.
+
+- Abaixo de ~30 conversões no recorte, a diferença observada ainda não se sustenta como
+  número. Diga a direção, não a magnitude.
+- Mostre a sensibilidade sempre que a amostra for pequena: com 3 vendas, uma venda a mais
+  ou a menos move o CAC de R$ 3.000 investidos entre R$ 750 e R$ 1.500. Esse intervalo
+  informa mais do que qualquer adjetivo.
+- Direção e magnitude têm confiabilidade diferente: 1% contra 10% de fechamento sustenta
+  a direção mesmo com volume baixo; o CAC exato de cada canal, não.
+- Volume baixo não impede decidir. Impede **afirmar**. Decida dizendo com que confiança, e
+  o que observar para confirmar.
+
 ## Quando não houver dados suficientes
 
 Nunca invente certeza. Diga "dado insuficiente para concluir" e complete com:
