@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block titulo %}{{ tool.label }} · Squad NK{% endblock %}
+{% block conteudo %}
+<p class="volta"><a href="/">← Squad</a></p>
+<h1>{{ tool.label }}</h1>
+<p class="sub">{{ tool.subtitle }}</p>
+{% if tool.help %}<p class="ajuda-topo">{{ tool.help }}</p>{% endif %}
+{% if erro %}<p class="erro">{{ erro }}</p>{% endif %}
+
+<form method="post" action="/tools/{{ tool.id }}" enctype="multipart/form-data" class="formulario">
+  {% for campo in tool.inputs %}
+    {% if campo.type == "file" %}
+      <label>{{ campo.label }} <span class="req">obrigatório</span>
+        <input type="file" name="{{ campo.name }}" required
+               accept="{{ campo.accept | join(',') }}">
+        <small>Formatos: {{ campo.accept | join(', ') }} · até {{ max_mb }} MB</small>
+      </label>
+    {% elif campo.type == "enum" %}
+      <label>{{ campo.label }}
+        <select name="{{ campo.name }}">
+          {% for o in campo.options %}
+          <option value="{{ o }}" {% if o == campo.default %}selected{% endif %}>{{ o }}</option>
+          {% endfor %}
+        </select>
+        {% if campo.ajuda %}<small>{{ campo.ajuda }}</small>{% endif %}
+      </label>
+    {% elif campo.type == "bool" %}
+      {# O oculto garante que o campo sempre chegue; a checkbox, quando marcada,
+         manda um segundo valor que sobrescreve o primeiro. #}
+      <input type="hidden" name="{{ campo.name }}" value="0">
+      <label class="caixa">
+        <input type="checkbox" name="{{ campo.name }}" value="1"
+               {% if campo.default %}checked{% endif %}>
+        <span>{{ campo.label }}</span>
+      </label>
+      {% if campo.ajuda %}<small class="solto">{{ campo.ajuda }}</small>{% endif %}
+    {% elif campo.type == "lines" %}
+      <label>{{ campo.label }}
+        <textarea name="{{ campo.name }}" rows="3"></textarea>
+        {% if campo.ajuda %}<small>{{ campo.ajuda }}</small>{% endif %}
+      </label>
+    {% elif campo.type == "number" %}
+      <label>{{ campo.label }}
+        <input type="number" step="0.1" name="{{ campo.name }}">
+        {% if campo.ajuda %}<small>{{ campo.ajuda }}</small>{% endif %}
+      </label>
+    {% else %}
+      <label>{{ campo.label }}
+        <input type="text" name="{{ campo.name }}">
+        {% if campo.ajuda %}<small>{{ campo.ajuda }}</small>{% endif %}
+      </label>
+    {% endif %}
+  {% endfor %}
+  <button type="submit" class="principal">Executar</button>
+</form>
+{% endblock %}

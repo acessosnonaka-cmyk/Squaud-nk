@@ -250,15 +250,40 @@ Claude Code. O único artefato que sai para fora é o preview de LP:
 
 ---
 
-## Arquitetura Web
+## Squad NK Web
 
-O plano para o time usar o Squad pelo navegador, sem terminal e sem WSL, está em
-[`docs/arquitetura-web.md`](docs/arquitetura-web.md), com o que dá para reaproveitar, o que precisa
-ser construído e onde aparece custo.
+Aplicação para o time usar o Squad pelo navegador, sem terminal, WSL, Git ou Claude Code.
+Está em [`apps/web/`](apps/web/); como operar em [`docs/squad-nk-web.md`](docs/squad-nk-web.md).
 
-Resumo honesto: salvar os agentes no GitHub **não** os torna web. Todos dependem do Claude Code
-como runtime. Tirar essa dependência exige um executor próprio chamando a API da Anthropic, e isso
-tem custo por token. Não há caminho com custo zero para a Fase B.
+```bash
+cp .env.example .env
+python3 -c "import secrets;print(secrets.token_urlsafe(48))"   # SQUAD_WEB_SESSION_SECRET
+docker compose up -d                                           # http://127.0.0.1:8000
+```
+
+**Versão atual: v0.1 — espinha dorsal.** Login, dashboard dos seis agentes, e o **Legend IA
+integrado de ponta a ponta**: envio do vídeo, fila, processamento, status ao vivo, download e
+histórico. Os outros cinco aparecem no dashboard marcados **EM BREVE** e não têm integração —
+nenhuma é simulada.
+
+### Por que só o Legend IA
+
+A [arquitetura aprovada](docs/arquitetura-web.md) parte de um fato do código: **nenhum dos
+arquivos Python do repositório chama LLM.** Toda inteligência é Markdown executada pelo Claude
+Code; todo Python é motor determinístico. Isso divide a Fase B em duas etapas:
+
+- **Etapa 1 — sem consumo de LLM.** Os motores determinísticos rodam na web sem nenhuma chamada
+  a modelo, e portanto **sem custo por token**. O Legend IA é o caso completo: transcrição é ASR
+  local (`faster-whisper`), não LLM. Entram na fila desta etapa o QA e a publicação de Landing
+  Page, a inspeção técnica de vídeo e o render do Design IA.
+- **Etapa 2 — runtime de inteligência.** Diretor de Operações, Copywriter, o parecer do Revisor,
+  a direção de arte e a construção da LP dependem de um modelo raciocinando. Essa etapa
+  acrescenta um worker com o Claude Agent SDK, que carrega os `SKILL.md` e os agentes deste
+  repositório sem reescrita.
+
+**A Fase B inteira não é gratuita.** A Etapa 1 é, e entrega valor real hoje. A Etapa 2 tem custo
+por token, e a decisão de ligá-la fica adiada até existir medição — o plano de medir está na
+seção 11 de [`docs/arquitetura-web.md`](docs/arquitetura-web.md).
 
 ---
 

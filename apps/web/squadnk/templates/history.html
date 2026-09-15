@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titulo %}Histórico · Squad NK{% endblock %}
+{% block conteudo %}
+<h1>Histórico</h1>
+<p class="sub">Seus jobs, do mais recente para o mais antigo.</p>
+{% if not jobs %}
+  <p class="vazio">Nenhum job ainda. Comece pelo <a href="/">Squad</a>.</p>
+{% else %}
+<table class="tabela">
+  <tr><th>Quando</th><th>Ferramenta</th><th>Arquivo</th><th>Status</th><th>Erro</th><th></th></tr>
+  {% for j in jobs %}
+  <tr>
+    <td class="mono">{{ j["created_at"][:16].replace("T", " ") }}</td>
+    <td>{{ j["tool_id"] }}</td>
+    <td>{{ j["title"].split(" · ")[-1] }}</td>
+    <td><span class="estado {{ j['status'] }}">{{ status_label(j["status"]) }}</span></td>
+    <td class="erro-cel">{{ j["error_summary"] or "" }}</td>
+    <td><a href="/jobs/{{ j['id'] }}">abrir</a></td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block titulo %}Entrar · Squad NK{% endblock %}
+{% block conteudo %}
+<div class="login">
+  <h1>SQUAD NK</h1>
+  <p class="sub">Acesso interno</p>
+  {% if erro %}<p class="erro">{{ erro }}</p>{% endif %}
+  <form method="post" action="/login">
+    <input type="hidden" name="next" value="{{ next }}">
+    <label>E-mail
+      <input type="email" name="email" required autofocus autocomplete="username">
+    </label>
+    <label>Senha
+      <input type="password" name="password" required autocomplete="current-password">
+    </label>
+    <button type="submit" class="principal">Entrar</button>
+  </form>
+</div>
+{% endblock %}

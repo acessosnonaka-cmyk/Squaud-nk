@@ -56,3 +56,14 @@ agents/design-ia/engine/clients
 agents/design-ia/engine/jobs
 agents/design-ia/engine/output
 shared/runtime/
+
+# --- Squad NK Web: dados de produção NUNCA entram no git ---
+# uploads, jobs, outputs e banco vivem em SQUAD_DATA_HOME (fora do repo);
+# estas linhas cobrem quem apontar SQUAD_DATA_HOME para dentro do clone.
+/data/
+data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+apps/web/.venv/
+apps/web/.run/

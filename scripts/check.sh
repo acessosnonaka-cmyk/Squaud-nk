@@ -68,6 +68,19 @@ file_ "$REPO/apps/legend-ia/requirements.txt" && green "requirements.txt" || red
 file_ "$REPO/apps/legend-ia/venv/bin/python" && green "venv pronto" || yellow "venv ausente — rode scripts/setup.sh"
 "$REPO/apps/legend-ia/venv/bin/python" -c "import faster_whisper" 2>/dev/null && green "faster-whisper" || yellow "faster-whisper ausente"
 
+head_ "6. SQUAD NK WEB"
+file_ "$REPO/apps/web/squadnk/main.py" && green "aplicação" || red "apps/web ausente"
+file_ "$REPO/apps/web/tools/legend.editar.yaml" && green "ferramenta legend.editar" || red "declaração da ferramenta ausente"
+file_ "$REPO/docker-compose.yml" && green "docker-compose.yml" || red "compose ausente"
+file_ "$REPO/apps/web/.venv/bin/python" && green "venv da web" || yellow "venv ausente — 'python3 -m venv apps/web/.venv && apps/web/.venv/bin/pip install -r apps/web/requirements.txt'"
+if [ -f "$REPO/.env" ]; then
+  grep -q '^SQUAD_WEB_SESSION_SECRET=.\{32,\}' "$REPO/.env" \
+    && green "SQUAD_WEB_SESSION_SECRET configurado" \
+    || yellow "SQUAD_WEB_SESSION_SECRET ausente ou curto — o app recusa subir"
+else
+  yellow ".env ausente — 'cp .env.example .env' e preencha o segredo de sessão"
+fi
+
 head_ "Segredos no repositório"
 # Os padroes sao montados em pedacos para o proprio check.sh nao casar com eles.
 # docs/ e scripts/ ficam de fora: documentam os padroes, nao carregam segredo.

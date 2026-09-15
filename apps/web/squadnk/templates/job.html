@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block titulo %}Job {{ job["id"] }} · Squad NK{% endblock %}
+{% block conteudo %}
+<p class="volta"><a href="/historico">← Histórico</a></p>
+<h1>{{ job["title"] }}</h1>
+<p class="sub mono">{{ job["id"] }} · criado {{ job["created_at"][:16].replace("T", " ") }}</p>
+
+<p>Status: <span id="estado" class="estado {{ job['status'] }}">{{ status_label(job["status"]) }}</span></p>
+
+{% if job["error_summary"] %}
+<div class="erro-bloco">
+  <strong>Erro</strong>
+  <p>{{ job["error_summary"] }}</p>
+</div>
+{% endif %}
+
+<div id="resultado">
+{% if artefatos %}
+  <h2 class="secao">Resultado</h2>
+  {% for a in artefatos %}
+    {% if a["kind"] == "video" %}
+      <video controls preload="metadata" src="/artifacts/{{ a['id'] }}"></video>
+    {% elif a["kind"] == "image" %}
+      <img src="/artifacts/{{ a['id'] }}" alt="{{ a['label'] }}">
+    {% endif %}
+    <p><a class="principal" href="/artifacts/{{ a['id'] }}" download>
+      Baixar {{ a["label"] }} ({{ mb(a["bytes"]) }})</a></p>
+  {% endfor %}
+{% endif %}
+</div>
+
+<h2 class="secao">Execução</h2>
+<pre id="log" class="log">carregando…</pre>
+
+<script>
+(function () {
+  const estado = document.getElementById("estado");
+  const log = document.getElementById("log");
+  const terminais = ["done", "failed", "canceled"];
+  const rotulos = {queued: "Na fila", running: "Processando", done: "Concluído",
+                   failed: "Falhou", canceled: "Cancelado"};
+
+  fetch("/jobs/{{ job['id'] }}/log").then(r => r.text()).then(t => {
+    log.textContent = t; log.scrollTop = log.scrollHeight;
+  });
+
+  if (!terminais.includes({{ job["status"] | tojson }})) {
+    const fonte = new EventSource("/jobs/{{ job['id'] }}/events");
+    fonte.addEventListener("log", e => {
+      if (log.textContent === "carregando…") log.textContent = "";
+      log.textContent += e.data + "\n";
+      log.scrollTop = log.scrollHeight;
+    });
+    fonte.addEventListener("status", e => {
+      estado.textContent = rotulos[e.data] || e.data;
+      estado.className = "estado " + e.data;
+    });
+    fonte.addEventListener("fim", () => { fonte.close(); location.reload(); });
+    fonte.onerror = () => { fonte.close(); setTimeout(() => location.reload(), 3000); };
+  }
+})();
+</script>
+{% endblock %}
