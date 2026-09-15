@@ -212,6 +212,7 @@ Dependências de sistema, se `check.sh` reclamar:
 ```bash
 sudo apt install ffmpeg python3-venv
 pip install playwright && python3 -m playwright install chromium
+bash scripts/chromium-libs.sh          # libnss3/libnspr4, funciona sem root
 ```
 
 ---
@@ -295,7 +296,7 @@ claude plugin marketplace update squad-legend-ai
 | Skill `lp-*` ou `designer-ia` não aparece | symlink não criado | `bash scripts/setup.sh` |
 | `Agent(diretor-de-operacoes)` não existe | `~/.claude/agents/` sem o symlink | `bash scripts/setup.sh` |
 | Render da peça falha sem erro claro | Playwright/Chromium ausente | `pip install playwright && python3 -m playwright install chromium` |
-| Render falha com `libnss3.so` | libs do Chromium ausentes no host | `sudo apt install libnss3 libnspr4` |
+| Render falha com `libnspr4.so` / `libnss3.so` | libs do Chromium ausentes no host | `bash scripts/chromium-libs.sh` — resolve com ou sem root |
 | `revisor.py locate` não acha nada | plugin não instalado | `claude plugin install revisor-de-criacao@squad-legend-ai` ou exporte `DESIGNER_REVISOR_HOME` |
 | Legend IA: `ffmpeg not found` | FFmpeg ausente | `sudo apt install ffmpeg` |
 | Legend IA: `No module named faster_whisper` | venv não montado | `bash scripts/setup.sh` |

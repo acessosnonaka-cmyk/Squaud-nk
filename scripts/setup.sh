@@ -27,17 +27,17 @@ link() {
   ln -s "$src" "$dst"; ok "$dst -> $src"
 }
 
-step "1/7  Agentes  ->  $CLAUDE_HOME/agents"
+step "1/8  Agentes  ->  $CLAUDE_HOME/agents"
 link "$CLAUDE_HOME/agents/copywriter.md"           "$REPO/agents/copywriter/agents/copywriter.md"
 link "$CLAUDE_HOME/agents/diretor-de-operacoes.md" "$REPO/agents/diretor-operacoes/agents/diretor-de-operacoes.md"
 
-step "2/7  Skills  ->  $CLAUDE_HOME/skills"
+step "2/8  Skills  ->  $CLAUDE_HOME/skills"
 link "$CLAUDE_HOME/skills/designer-ia"      "$REPO/agents/design-ia/skills/designer-ia"
 for s in lp-ingestao lp-design-review lp-qa lp-publicar; do
   link "$CLAUDE_HOME/skills/$s" "$REPO/apps/lp-builder/skills/$s"
 done
 
-step "3/7  Skill externa: humanizer (MIT, blader/humanizer)"
+step "3/8  Skill externa: humanizer (MIT, blader/humanizer)"
 if [ -d "$REPO/shared/skills/humanizer/.git" ]; then
   ok "humanizer já clonado"
 else
@@ -50,7 +50,7 @@ else
 fi
 [ -f "$REPO/shared/skills/humanizer/SKILL.md" ] && link "$CLAUDE_HOME/skills/humanizer" "$REPO/shared/skills/humanizer"
 
-step "4/7  Motor do Design IA  ->  $CLAUDE_HOME/art-builder"
+step "4/8  Motor do Design IA  ->  $CLAUDE_HOME/art-builder"
 mkdir -p "$CLAUDE_HOME/art-builder"
 for f in "$REPO"/agents/design-ia/engine/*.py "$REPO"/agents/design-ia/engine/formats.json \
          "$REPO"/agents/design-ia/engine/templates "$REPO"/agents/design-ia/engine/fonts; do
@@ -65,7 +65,7 @@ for d in clients jobs output; do
 done
 ok "dados do Design IA ficam em $CLAUDE_HOME/art-builder/ (fora do git)"
 
-step "5/7  Motor do LP Builder  ->  $CLAUDE_HOME/lp-builder"
+step "5/8  Motor do LP Builder  ->  $CLAUDE_HOME/lp-builder"
 mkdir -p "$CLAUDE_HOME/lp-builder"
 for f in "$REPO"/apps/lp-builder/engine/*.py; do
   link "$CLAUDE_HOME/lp-builder/$(basename "$f")" "$f"
@@ -78,7 +78,7 @@ else
 fi
 mkdir -p "$CLAUDE_HOME/lp-builder/clients" "$CLAUDE_HOME/lp-builder/previews"
 
-step "6/7  Legend IA (venv + faster-whisper)"
+step "6/8  Legend IA (venv + faster-whisper)"
 if command -v ffmpeg >/dev/null 2>&1; then ok "ffmpeg encontrado"; else warn "ffmpeg AUSENTE — 'sudo apt install ffmpeg'"; fi
 if [ -d "$REPO/apps/legend-ia/venv" ]; then
   ok "venv já existe"
@@ -90,12 +90,17 @@ else
 fi
 mkdir -p "$REPO/apps/legend-ia/entrada de vídeo" "$REPO/apps/legend-ia/entrega"
 
-step "7/7  Playwright (LP Builder: QA e screenshots)"
+step "7/8  Playwright (Design IA e LP Builder: render, QA e screenshots)"
 if python3 -c "import playwright" 2>/dev/null; then
   ok "playwright presente"
+  python3 -m playwright install chromium >/dev/null 2>&1 && ok "chromium baixado" \
+    || warn "chromium não baixou — 'python3 -m playwright install chromium'"
 else
   warn "playwright ausente — 'pip install playwright && python3 -m playwright install chromium'"
 fi
+
+step "8/8  Libs do Chromium headless (libnss3/libnspr4)"
+bash "$REPO/scripts/chromium-libs.sh" || warn "sem as libs o render do Design IA não roda"
 
 step "Revisor de Arte (plugin do Claude Code)"
 cat <<'MSG'
