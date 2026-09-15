@@ -65,6 +65,22 @@ def classificar(acao: str) -> dict:
             "impacto": "desconhecido", "padrao": None, "acao": acao}
 
 
+def classificar_shell(comando: str) -> dict | None:
+    """Classificação para um COMANDO DE SHELL cru, usada pelo hook.
+
+    Diferença deliberada em relação a `classificar`: aqui, comando que não casa
+    com nenhuma regra devolve None — e o hook deixa passar. O fail-closed do
+    portão continua valendo para AÇÃO DESCRITA em português; aplicá-lo a todo
+    comando de shell tornaria o Claude Code inutilizável, porque `ls`, `git
+    status` e `pytest` também são "desconhecidos".
+
+    Em uma frase: o hook barra o que a política reconhece como perigoso; o portão
+    barra tudo que ela não reconhece como seguro.
+    """
+    v = classificar(comando)
+    return v if v.get("padrao") else None
+
+
 # --------------------------------------------------------------- aprovações
 
 def aprovacao_valida(demanda: dict, acao: str) -> dict | None:

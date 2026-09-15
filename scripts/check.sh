@@ -32,6 +32,13 @@ else
   red "squad.yaml ausente — o roster oficial não existe"
 fi
 
+head_ "Âncora do repositório"
+if [ -L "$CLAUDE_HOME/squad-nk" ] && [ -d "$CLAUDE_HOME/squad-nk/agents" ]; then
+  green "~/.claude/squad-nk -> $(readlink "$CLAUDE_HOME/squad-nk")"
+else
+  yellow "âncora ausente — os prompts citam ~/.claude/squad-nk; rode scripts/setup.sh"
+fi
+
 head_ "Ferramentas de base"
 have git     && green "git"     || red "git ausente"
 have python3 && green "python3 $(python3 -V 2>&1 | cut -d' ' -f2)" || red "python3 ausente"
@@ -78,6 +85,12 @@ if python3 "$REPO/agents/diretor-operacoes/engine/demanda.py" listar >/dev/null 
 else
   red "CLI de demandas não executa"
 fi
+file_ "$REPO/scripts/hook-pretooluse.py" && green "hook PreToolUse presente" || red "hook ausente"
+if grep -q "hook-pretooluse" "$CLAUDE_HOME/settings.json" 2>/dev/null; then
+  green "hook registrado em settings.json"
+else
+  yellow "hook não registrado — veja agents/diretor-operacoes/README.md"
+fi
 
 head_ "3. DESIGN IA"
 for f in render.py brand.py job.py artdirection.py revisor.py validate.py autofix.py assets.py selfcheck.py formats.json; do
@@ -95,6 +108,12 @@ fi
 
 head_ "4. REVISOR DE ARTE"
 file_ "$REPO/agents/revisor-arte/agents/revisor-de-criacao.md" && green "agente" || red "agente ausente"
+reg=0
+for s in revisao-visual-criativos revisao-textual-criativos revisao-tecnica-criativos revisao-anuncios-criativos; do
+  [ -L "$CLAUDE_HOME/skills/$s" ] && reg=$((reg+1))
+done
+[ "$reg" -eq 4 ] && green "4 skills registradas no Claude Code" \
+  || yellow "$reg/4 skills registradas — rode scripts/setup.sh"
 [ -d "$REPO/agents/revisor-arte/conhecimento/criterios" ] && green "base de critérios" || red "critérios ausentes"
 file_ "$REPO/.claude-plugin/marketplace.json" && green "marketplace do plugin" || red "marketplace ausente"
 python3 "$REPO/agents/design-ia/engine/revisor.py" locate >/dev/null 2>&1 \

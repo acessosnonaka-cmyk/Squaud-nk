@@ -27,6 +27,21 @@ link() {
   ln -s "$src" "$dst"; ok "$dst -> $src"
 }
 
+step "0/8  Âncora do repositório e raiz de dados"
+# Um ponto fixo para os agentes citarem o clone sem caminho de máquina no prompt.
+# É o mesmo truque de ~/.claude/art-builder: o prompt fala de ~/.claude/squad-nk,
+# e quem aponta para o clone é este symlink.
+link "$CLAUDE_HOME/squad-nk" "$REPO"
+mkdir -p "$DATA_HOME/copywriter/entregas"
+# Entregas anteriores à unificação continuam onde estão, e ficam alcançáveis a
+# partir da nova raiz. Nada é movido nem apagado.
+if [ -d "$HOME/projetos/copywriter/entregas" ] \
+   && [ ! -e "$DATA_HOME/copywriter/entregas-legado" ]; then
+  ln -s "$HOME/projetos/copywriter/entregas" "$DATA_HOME/copywriter/entregas-legado"
+  ok "entregas antigas acessíveis em $DATA_HOME/copywriter/entregas-legado"
+fi
+ok "dados do Copywriter em $DATA_HOME/copywriter/"
+
 step "1/8  Agentes  ->  $CLAUDE_HOME/agents"
 # Os seis agentes com prompt próprio, do roster de squad.yaml. O Gestor de
 # Tráfego não entra: ainda não tem implementação (docs/gestor-de-trafego.md).
@@ -41,6 +56,14 @@ step "2/8  Skills  ->  $CLAUDE_HOME/skills"
 link "$CLAUDE_HOME/skills/designer-ia"      "$REPO/agents/design-ia/skills/designer-ia"
 for s in lp-ingestao lp-design-review lp-qa lp-publicar; do
   link "$CLAUDE_HOME/skills/$s" "$REPO/apps/lp-builder/skills/$s"
+done
+
+step "2b/8  Skills do Revisor de Arte"
+# Symlink, não cópia: o arquivo continua único, no clone. Se o plugin do Revisor
+# também estiver instalado, as dele ficam com prefixo de plugin e não colidem.
+for s in revisao-visual-criativos revisao-textual-criativos \
+         revisao-tecnica-criativos revisao-anuncios-criativos; do
+  link "$CLAUDE_HOME/skills/$s" "$REPO/agents/revisor-arte/skills/$s"
 done
 
 step "3/8  Skill externa: humanizer (MIT, blader/humanizer)"

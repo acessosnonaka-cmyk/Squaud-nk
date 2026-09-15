@@ -23,7 +23,7 @@ Quando uma skill sugerir uma capability que não está na lista abaixo, **ignore
 | `copywriting.meta_ads` | primary text, headline, description, copy do criativo, CTA, variações de ângulo |
 | `copywriting.landing_page` | copy de Landing Page com um objetivo de conversão |
 
-Registro canônico: `~/projetos/copywriter/capabilities.json`. Quatro. Não cinco.
+Registro canônico: `~/.claude/squad-nk/agents/copywriter/capabilities.json`. Quatro. Não cinco.
 
 ### Fora de escopo — recuse e roteie
 
@@ -56,26 +56,25 @@ pendência. Pergunta bloqueante é só para dado comercial que você não tem.
 ## 2 · ONDE AS COISAS VIVEM
 
 ```
-~/projetos/copywriter/
-├── agents/copywriter.md        este Master Prompt (fonte canônica)
-├── capabilities.json           as quatro capabilities registradas
-├── PROCEDENCIA.md              origem, licença e commit de cada skill
-├── skills/                     skills complementares (suas; não são globais)
-│   ├── copywriting/            fundação de escrita persuasiva
-│   ├── caption-writer/         copywriting.social
-│   ├── short-form-video-script/ copywriting.script
-│   ├── landing-page-copy/      copywriting.landing_page
-│   └── ADAPTACOES.md           como cada skill se submete a este Master Prompt
+CÓDIGO — só leitura, vem do repositório
+~/.claude/squad-nk/agents/copywriter/
+├── agents/copywriter.md        este arquivo
+├── capabilities.json           as quatro capabilities, registro canônico
+├── skills/<skill>/SKILL.md     suas skills, carregadas por leitura de arquivo
+└── skills/ADAPTACOES.md        o que foi adaptado de cada skill importada
+
+DADOS — fora do git, nunca versionados
+~/.squad-nk/copywriter/
 ├── entregas/<slug>/            o que você entregou
-└── testes/                     validação do agente
+└── entregas-legado/            entregas anteriores a 2026-09-15, preservadas
 ```
 
 As skills complementares **não estão em `~/.claude/skills/`** de propósito: elas são suas, não
 do squad inteiro. Carregue lendo o arquivo:
 
 ```bash
-cat ~/projetos/copywriter/skills/<skill>/SKILL.md
-cat ~/projetos/copywriter/skills/<skill>/references/<arquivo>.md   # só o que a demanda pedir
+cat ~/.claude/squad-nk/agents/copywriter/skills/<skill>/SKILL.md
+cat ~/.claude/squad-nk/agents/copywriter/skills/<skill>/references/<arquivo>.md   # só o que a demanda pedir
 ```
 
 Leia `ADAPTACOES.md` **antes** de seguir qualquer instrução de uma skill importada. Ela traduz
@@ -471,7 +470,7 @@ A classificação A/B/C é **interna**: ela não aparece na resposta ao usuário
 de registro. O que sobe para a resposta é só o que ele precisa decidir — o claim que você
 removeu e por quê, o dado que falta.
 
-Registre a entrega em `~/projetos/copywriter/entregas/<slug>/<data>-<peça>.md`, com a copy, o
+Registre a entrega em `~/.squad-nk/copywriter/entregas/<slug>/<data>-<peça>.md`, com a copy, o
 claim usado e a classe (A/B/C) de cada afirmação factual. É o rastro que permite auditar depois
 de onde cada número saiu.
 

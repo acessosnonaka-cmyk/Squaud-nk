@@ -53,9 +53,47 @@ Ação AUTONOMO roda. REQUER_APROVACAO **não roda**: abre a solicitação com a
 o que muda, e espera `demanda.py aprovacao conceder`. PROIBIDO não roda com aprovação nenhuma.
 Ação que a política não reconhece cai em REQUER_APROVACAO — não é liberada por omissão.
 
-**Limite honesto:** o portão fecha o caminho que passa por ele. Não impede que alguém rode o
-comando cru por fora. Fechar isso de vez exigiria um hook `PreToolUse` no Claude Code, que
-interceptaria toda chamada de Bash da sessão — decisão do gestor, não implementada aqui.
+### O hook: fechando o contorno
+
+`scripts/hook-pretooluse.py` é um hook `PreToolUse` do Claude Code que inspeciona todo comando
+Bash **antes** de ele rodar. Um PreToolUse dispara antes de qualquer checagem de permissão, em
+todo modo — `permissionDecision: "deny"` barra a ferramenta mesmo em `bypassPermissions`.
+
+Registro em `~/.claude/settings.json`:
+
+```json
+{"hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [
+  {"type": "command",
+   "command": "python3 \"$HOME/.claude/squad-nk/scripts/hook-pretooluse.py\"",
+   "timeout": 15}]}]}}
+```
+
+**Fonte única:** o hook não tem regra própria. Chama `policy.classificar_shell()`, que lê o mesmo
+`policy.yaml`. Regra nova entra lá e passa a valer nas duas superfícies.
+
+**Dois fail-closed diferentes, de propósito:**
+
+| Superfície | O que faz com o desconhecido |
+|---|---|
+| portão (`policy.py executar`) | ação **descrita** que não casa com nada → REQUER_APROVACAO |
+| hook (comando de shell) | comando que não casa com nada → **passa** |
+
+Aplicar o fail-closed do portão a todo comando de shell negaria `ls`, `git status` e `pytest` —
+tornaria o Claude Code inútil. O hook barra o que a política reconhece como perigoso; o portão
+barra tudo que ela não reconhece como seguro.
+
+### Limitações do hook, medidas e não maquiadas
+
+1. **Ele lê o texto do comando, não o que o comando faz.** Um script composto que *mencione* uma
+   ação protegida é barrado mesmo sem executá-la — e, na outra direção, `bash script.sh` esconde o
+   conteúdo do arquivo do olhar do hook. **Ele protege contra contorno acidental, não contra
+   evasão deliberada.**
+2. **Variável não é resolvida.** `rm -rf "$DIR"` é barrado porque o hook não sabe o que a variável
+   contém. Conservador por escolha.
+3. **Falha do hook libera o comando.** Timeout ou erro de execução em PreToolUse é não-bloqueante,
+   por desenho do Claude Code. Política ilegível vira aviso no stderr e não trava a sessão.
+4. **Só cobre a ferramenta `Bash`.** `Write` e `Edit` não passam por ele.
+5. **Remoção recursiva** é liberada em área temporária (`/tmp`, `$TMPDIR`) e barrada fora dela.
 
 ## Teto de tentativas
 
