@@ -50,3 +50,8 @@ shared/skills/humanizer/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Pastas de dados do Design IA: symlinks criados por scripts/setup.sh
+agents/design-ia/engine/clients
+agents/design-ia/engine/jobs
+agents/design-ia/engine/output

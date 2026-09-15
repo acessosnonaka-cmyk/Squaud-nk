@@ -56,8 +56,14 @@ for f in "$REPO"/agents/design-ia/engine/*.py "$REPO"/agents/design-ia/engine/fo
          "$REPO"/agents/design-ia/engine/templates "$REPO"/agents/design-ia/engine/fonts; do
   link "$CLAUDE_HOME/art-builder/$(basename "$f")" "$f"
 done
+# O motor resolve tudo a partir da propria pasta (ROOT = dirname do .py). Como os .py
+# sao symlinks para o repositorio, ROOT cai dentro do clone — e dado de cliente nao pode
+# morar no clone. Estas tres pastas do clone apontam de volta para fora do git.
 mkdir -p "$CLAUDE_HOME/art-builder/clients" "$CLAUDE_HOME/art-builder/jobs" "$CLAUDE_HOME/art-builder/output"
-ok "pastas de dados preservadas (clients/ jobs/ output/)"
+for d in clients jobs output; do
+  link "$REPO/agents/design-ia/engine/$d" "$CLAUDE_HOME/art-builder/$d"
+done
+ok "dados do Design IA ficam em $CLAUDE_HOME/art-builder/ (fora do git)"
 
 step "5/7  Motor do LP Builder  ->  $CLAUDE_HOME/lp-builder"
 mkdir -p "$CLAUDE_HOME/lp-builder"
