@@ -287,6 +287,12 @@
   for (const el of document.querySelectorAll('[data-fit], .deco, .handle')) {
     if (!el.textContent.trim()) el.remove();
   }
+  // Peca sem fotografia (image_mode=none, ou slot de foto vazio): o <img> sem src
+  // fica no DOM como no de imagem quebrada e a validacao o conta como imagem que nao carregou
+  // e como dependencia remota. Mesma regra ja aplicada ao logo, agora para a foto.
+  const ph = document.querySelector('[data-role="photo"]');
+  if (ph && !ph.getAttribute('src')) { const w = ph.closest('.photo'); (w || ph).remove(); }
+
   // Sem arquivo de logo, a marca vira wordmark tipografico.
   const mk = document.querySelector('[data-mark]');
   if (mk) {

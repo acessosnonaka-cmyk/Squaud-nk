@@ -50,3 +50,23 @@ shared/skills/humanizer/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Pastas de dados do Design IA: symlinks criados por scripts/setup.sh
+agents/design-ia/engine/clients
+agents/design-ia/engine/jobs
+agents/design-ia/engine/output
+# Libs do Chromium: scripts/chromium-libs.sh liga engine/runtime/lib para
+# shared/runtime/lib. O diretório-pai também não pode entrar no git.
+agents/design-ia/engine/runtime/
+shared/runtime/
+
+# --- Squad NK Web: dados de produção NUNCA entram no git ---
+# uploads, jobs, outputs e banco vivem em SQUAD_DATA_HOME (fora do repo);
+# estas linhas cobrem quem apontar SQUAD_DATA_HOME para dentro do clone.
+/data/
+data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+apps/web/.venv/
+apps/web/.run/

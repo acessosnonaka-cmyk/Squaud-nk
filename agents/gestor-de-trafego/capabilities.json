@@ -6,14 +6,6 @@
   "master_prompt": "agents/gestor-de-trafego/agents/gestor-de-trafego.md",
   "capabilities": [
     {
-      "id": "trafego.diagnostico",
-      "label": "Diagnostico de conta",
-      "entrega": "gargalo principal e secundarios com evidencia numerica, impacto estimado, prioridade e plano de acao",
-      "skill": "skills/gestao-de-trafego",
-      "acessa_plataforma": false,
-      "handoff": "depende do gargalo: Copywriter, Designer IA, Legend AI, LP Builder ou gestor humano"
-    },
-    {
       "id": "trafego.planejamento",
       "label": "Planejamento de midia",
       "entrega": "tese, plataforma, publico, funil, estrutura de campanha, orcamento, tracking, KPIs, criterio de escala e de pausa",
@@ -22,25 +14,28 @@
       "handoff": "Copywriter para a copy dos anuncios; Designer IA ou Legend AI para as pecas"
     },
     {
-      "id": "trafego.analise",
-      "label": "Analise de performance",
-      "entrega": "leitura negocio > funil > midia > elementos, decisao de manter, reduzir, pausar, testar ou escalar, com hipotese e criterio de verificacao",
-      "skill": "skills/gestao-de-trafego",
-      "fonte_de_dado": "export, relatorio ou conector autorizado fornecido pelo humano"
-    },
-    {
-      "id": "trafego.operacao",
-      "label": "Operacao de campanha",
+      "id": "trafego.criacao",
+      "label": "Criacao e operacao de campanha",
       "entrega": "criacao, publicacao, pausa, ativacao, ajuste de orcamento, segmentacao, negativas, palavras-chave e escala",
       "skill": "skills/gestao-de-trafego",
       "requer": "acesso autorizado a plataforma e guardrails.md preenchido",
-      "sem_guardrail": "toda alteracao financeira exige aprovacao humana"
+      "sem_guardrail": "toda alteracao financeira exige aprovacao humana",
+      "classe_policy": "REQUER_APROVACAO"
     },
     {
-      "id": "trafego.relatorio",
-      "label": "Relatorio de performance",
-      "entrega": "relatorio executivo orientado a decisao: resultados, o que funcionou, o que nao funcionou, gargalo, insight, acoes feitas e proximas",
+      "id": "trafego.otimizacao",
+      "label": "Otimizacao e diagnostico",
+      "entrega": "gargalo principal e secundarios com evidencia numerica, impacto estimado, prioridade e plano de acao",
       "skill": "skills/gestao-de-trafego",
+      "acessa_plataforma": false,
+      "handoff": "depende do gargalo: Copywriter, Designer IA, Legend AI, LP Builder ou gestor humano"
+    },
+    {
+      "id": "trafego.analise",
+      "label": "Analise de performance e relatorio",
+      "entrega": "leitura negocio > funil > midia > elementos, decisao de manter, reduzir, pausar, testar ou escalar, com hipotese e criterio de verificacao; relatorio executivo orientado a decisao",
+      "skill": "skills/gestao-de-trafego",
+      "fonte_de_dado": "export, relatorio ou conector autorizado fornecido pelo humano",
       "skill_global_usada": "humanizer"
     }
   ],
@@ -68,5 +63,13 @@
     ],
     "dados_proprios": "$SQUAD_DATA_HOME/trafego/clients/<slug>/ — contexto, guardrails e historico de midia; fora do git",
     "cria_base_paralela": false
+  },
+  "roster_id": "gestor-trafego",
+  "subagent_type": "gestor-de-trafego",
+  "contrato": {
+    "entrada": "agents/diretor-operacoes/schemas/briefing.schema.json",
+    "saida": "agents/diretor-operacoes/schemas/retorno.schema.json",
+    "estado_da_demanda": "do Diretor de Operacoes (engine/demanda.py) — o Gestor nao mantem estado de demanda",
+    "portao_de_acao": "agents/diretor-operacoes/policy.yaml via engine/policy.py"
   }
 }

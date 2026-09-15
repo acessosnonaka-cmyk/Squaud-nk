@@ -1,7 +1,30 @@
 # SQUAD NK
 
-Repositório central do Squad Legend AI: seis componentes de IA usados na operação da Nonaka ADS,
-mais o Copywriter. Fonte da verdade do código e da configuração — o que não está aqui não existe.
+Repositório central do **Squad NK**: **1 orquestrador + 6 especialistas = 7 agentes**, usados na
+operação da Nonaka ADS. Fonte da verdade do código e da configuração — o que não está aqui não
+existe.
+
+O roster oficial é [`squad.yaml`](squad.yaml): legível por máquina, lido pela documentação, pelo
+Diretor de Operações e pelo dashboard do Squad NK Web. Os três reconhecem a mesma arquitetura.
+
+| | Agente | Papel | Representação | Web |
+|---|---|---|---|---|
+| ♟️ | **Diretor de Operações** | orquestrador | prompt | não integrado |
+| ✍️ | **Copywriter** | especialista | prompt + 4 skills | não integrado |
+| 🎨 | **Designer** | especialista | prompt + skill + motor | não integrado |
+| 🧱 | **LP Builder** | especialista | prompt + 4 skills + motor | parcial |
+| 🎬 | **Legend IA** | especialista | prompt + skill + motor | **integrado** |
+| 🔎 | **Revisor de Arte** | especialista | prompt + 4 skills + motor | não integrado |
+| 📈 | **Gestor de Tráfego** | especialista | prompt + skill + conhecimento | não integrado |
+
+**Agente ≠ skill ≠ motor ≠ conector.** Um agente raciocina e decide; skill é conhecimento que ele
+carrega; motor é executor determinístico que ele aciona; conector é integração externa que ele usa.
+Estar implementado hoje como skill ou motor não faz de ninguém menos agente.
+
+O Gestor de Tráfego **recomenda por padrão e só executa com autorização**: criar, subir, pausar
+ou mexer em orçamento é `REQUER_APROVACAO` no [`policy.yaml`](agents/diretor-operacoes/policy.yaml).
+Sem leitura real da conta ele declara a limitação em vez de estimar — nada de campanha é
+simulado. Estado do acesso em [`docs/gestor-de-trafego.md`](docs/gestor-de-trafego.md).
 
 ---
 
@@ -122,11 +145,18 @@ Depois, em linguagem natural: link do Drive + tipo da peça. O Design IA o local
 
 ### Gestor de Tráfego
 
-**Função** — performance e aquisição: planeja mídia, lê resultado, encontra o gargalo de
-aquisição com evidência, decide manter, pausar, testar ou escalar, opera a campanha dentro
-de guardrails autorizados e entrega relatório orientado a decisão. Meta Ads, Google Ads e
-TikTok Ads. Pensa negócio antes de plataforma — **não escreve a copy do anúncio** (isso é
-do Copywriter) e não produz peça.
+**Função** — performance e aquisição em Meta Ads, Google Ads e TikTok Ads: planeja mídia, lê
+resultado, encontra o gargalo com evidência e recomenda manter, pausar, testar ou escalar. Pensa
+negócio antes de plataforma. **Não escreve a copy do anúncio** (Copywriter) e não produz peça
+(Designer, Legend IA, LP Builder) — ele define o ângulo, o público e o critério de sucesso, e
+depois mede o que voltou.
+
+**Capabilities** — `trafego.planejamento`, `trafego.criacao`, `trafego.otimizacao`,
+`trafego.analise`. Acionável pelo Diretor por qualquer uma delas.
+
+**Fronteira de execução** — recomendar é autônomo; executar na conta do cliente não. Subir,
+pausar, ativar ou mexer em orçamento cai em `REQUER_APROVACAO` no `policy.yaml`, passa pelo portão
+do Diretor e pelo hook `PreToolUse`, e exige `guardrails.md` preenchido para aquela conta.
 
 **Como executar** — é um plugin do Claude Code. Uma vez por máquina:
 
@@ -243,6 +273,7 @@ Dependências de sistema, se `check.sh` reclamar:
 ```bash
 sudo apt install ffmpeg python3-venv
 pip install playwright && python3 -m playwright install chromium
+bash scripts/chromium-libs.sh          # libnss3/libnspr4, funciona sem root
 ```
 
 ---
@@ -281,15 +312,49 @@ Claude Code. O único artefato que sai para fora é o preview de LP:
 
 ---
 
-## Arquitetura Web
+## Squad NK Web
 
-O plano para o time usar o Squad pelo navegador, sem terminal e sem WSL, está em
-[`docs/arquitetura-web.md`](docs/arquitetura-web.md), com o que dá para reaproveitar, o que precisa
-ser construído e onde aparece custo.
+Aplicação para o time usar o Squad pelo navegador, sem terminal, WSL, Git ou Claude Code.
+Está em [`apps/web/`](apps/web/); como operar em [`docs/squad-nk-web.md`](docs/squad-nk-web.md).
 
-Resumo honesto: salvar os agentes no GitHub **não** os torna web. Todos dependem do Claude Code
-como runtime. Tirar essa dependência exige um executor próprio chamando a API da Anthropic, e isso
-tem custo por token. Não há caminho com custo zero para a Fase B.
+```bash
+cp .env.example .env
+python3 -c "import secrets;print(secrets.token_urlsafe(48))"   # SQUAD_WEB_SESSION_SECRET
+docker compose up -d                                           # http://127.0.0.1:8000
+```
+
+**Versão atual: v0.2.** Login, dashboard dos seis agentes, fila, status ao vivo e histórico.
+
+| Componente | Estado |
+|---|---|
+| **Legend IA** | integrado — vídeo entra, legenda e CTA queimados, download |
+| **LP Builder — QA** | integrado — relatório e capturas em três viewports |
+| **LP Builder — Preview** | integrado — servido pela camada autenticada, por dono |
+| **LP Builder — Publicar / Rollback** | integrado — versionado, com rollback |
+| **LP Builder — Publicação remota** | **somente quando um servidor estiver configurado.** Sem configuração, a interface informa isso e o preview continua acessível aqui dentro |
+| **Diretor, Design IA, Revisor, Copywriter** | ainda não integrados |
+
+Nenhuma integração é simulada: um agente só aparece como **DISPONÍVEL** quando existe uma
+declaração de ferramenta para ele.
+
+### Por que esses e não os outros
+
+A [arquitetura aprovada](docs/arquitetura-web.md) parte de um fato do código: **nenhum dos
+arquivos Python do repositório chama LLM.** Toda inteligência é Markdown executada pelo Claude
+Code; todo Python é motor determinístico. Isso divide a Fase B em duas etapas:
+
+- **Etapa 1 — sem consumo de LLM.** Os motores determinísticos rodam na web sem nenhuma chamada
+  a modelo, e portanto **sem custo por token**. O Legend IA é o caso completo (transcrição é ASR
+  local, não LLM) e o LP Builder entrou em seguida: QA, publicação, preview e rollback. Falta
+  desta etapa a inspeção técnica de vídeo e o render do Design IA.
+- **Etapa 2 — runtime de inteligência.** Diretor de Operações, Copywriter, o parecer do Revisor,
+  a direção de arte e a **construção** da LP dependem de um modelo raciocinando. Essa etapa
+  acrescenta um worker com o Claude Agent SDK, que carrega os `SKILL.md` e os agentes deste
+  repositório sem reescrita.
+
+**A Fase B inteira não é gratuita.** A Etapa 1 é, e entrega valor real hoje. A Etapa 2 tem custo
+por token, e a decisão de ligá-la fica adiada até existir medição — o plano de medir está na
+seção 11 de [`docs/arquitetura-web.md`](docs/arquitetura-web.md).
 
 ---
 
@@ -327,7 +392,7 @@ claude plugin marketplace update squad-legend-ai
 | Skill `lp-*` ou `designer-ia` não aparece | symlink não criado | `bash scripts/setup.sh` |
 | `Agent(diretor-de-operacoes)` não existe | `~/.claude/agents/` sem o symlink | `bash scripts/setup.sh` |
 | Render da peça falha sem erro claro | Playwright/Chromium ausente | `pip install playwright && python3 -m playwright install chromium` |
-| Render falha com `libnss3.so` | libs do Chromium ausentes no host | `sudo apt install libnss3 libnspr4` |
+| Render falha com `libnspr4.so` / `libnss3.so` | libs do Chromium ausentes no host | `bash scripts/chromium-libs.sh` — resolve com ou sem root |
 | `revisor.py locate` não acha nada | plugin não instalado | `claude plugin install revisor-de-criacao@squad-legend-ai` ou exporte `DESIGNER_REVISOR_HOME` |
 | Legend IA: `ffmpeg not found` | FFmpeg ausente | `sudo apt install ffmpeg` |
 | Legend IA: `No module named faster_whisper` | venv não montado | `bash scripts/setup.sh` |

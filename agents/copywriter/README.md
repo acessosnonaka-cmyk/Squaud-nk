@@ -1,4 +1,4 @@
-# COPYWRITER — Squad Legend AI
+# COPYWRITER — Squad NK
 
 Especialista estreito em escrita. Faz quatro coisas e recusa o resto.
 
@@ -28,7 +28,7 @@ subagente e instruir a ler `~/projetos/copywriter/agents/copywriter.md` e assumi
 | `skills/ADAPTACOES.md` | como cada skill importada se submete ao Master Prompt |
 | `skills/*/` | as quatro skills complementares (locais do agente, não globais) |
 | `testes/` | validação da V1 |
-| `entregas/<slug>/` | o que foi entregue, com a classe A/B/C de cada claim |
+| `~/.squad-nk/copywriter/entregas/<slug>/` | o que foi entregue, com a classe A/B/C de cada claim — **fora do git** |
 
 ## Fronteiras
 

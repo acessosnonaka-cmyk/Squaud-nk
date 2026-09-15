@@ -1,0 +1,128 @@
+/* Squad NK Web — folha única. Sem build, sem framework. */
+:root{
+  --tinta:#16181d; --papel:#fbfbfa; --caixa:#fff; --linha:#e3e2de;
+  --fraco:#6b6f76; --acento:#1c4ed8; --ok:#0f7b46; --erro:#b42318; --espera:#8a6d1f;
+  --raio:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--papel);color:var(--tinta);
+  font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--acento)}
+h1{font-size:1.6rem;margin:0 0 .2rem}
+h2{font-size:1.05rem}
+.sub{color:var(--fraco);margin:0 0 1.6rem}
+.secao{margin:2rem 0 .7rem;border-top:1px solid var(--linha);padding-top:1.1rem}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em}
+.volta{margin:0 0 .8rem}
+.vazio{color:var(--fraco)}
+
+.topo{display:flex;align-items:center;gap:1.4rem;padding:.8rem 1.5rem;
+  background:var(--caixa);border-bottom:1px solid var(--linha);flex-wrap:wrap}
+.marca{font-weight:700;letter-spacing:.08em;text-decoration:none;color:var(--tinta)}
+.topo nav{display:flex;gap:1.1rem;flex:1}
+.topo nav a{text-decoration:none;color:var(--fraco)}
+.topo nav a:hover{color:var(--tinta)}
+.sair{display:flex;align-items:center;gap:.7rem;margin:0}
+.quem{color:var(--fraco);font-size:.85rem}
+.link{background:none;border:0;color:var(--acento);cursor:pointer;font-size:.85rem;padding:0}
+
+.conteudo{max-width:900px;margin:0 auto;padding:2rem 1.2rem 4rem}
+
+.login{max-width:340px;margin:12vh auto;background:var(--caixa);
+  border:1px solid var(--linha);border-radius:var(--raio);padding:2rem}
+.login h1{letter-spacing:.1em;font-size:1.25rem}
+
+label{display:block;margin:0 0 1rem;font-weight:600;font-size:.9rem}
+input[type=text],input[type=email],input[type=password],input[type=number],
+select,textarea,input[type=file]{
+  display:block;width:100%;margin-top:.35rem;padding:.55rem .7rem;font:inherit;
+  border:1px solid var(--linha);border-radius:8px;background:#fff;font-weight:400}
+textarea{resize:vertical}
+label.caixa{display:flex;align-items:center;gap:.5rem}
+label.caixa input{width:auto;margin:0}
+small{display:block;margin-top:.3rem;color:var(--fraco);font-weight:400}
+small.solto{margin:-.7rem 0 1rem}
+.req{color:var(--fraco);font-weight:400;font-size:.78rem}
+.formulario{background:var(--caixa);border:1px solid var(--linha);
+  border-radius:var(--raio);padding:1.4rem}
+.ajuda-topo{background:#f2f4f8;border-left:3px solid var(--acento);
+  padding:.7rem .9rem;border-radius:0 8px 8px 0;color:#374151;margin:0 0 1.4rem}
+
+button.principal,a.principal{display:inline-block;background:var(--acento);color:#fff;
+  border:0;border-radius:8px;padding:.6rem 1.2rem;font:inherit;font-weight:600;
+  cursor:pointer;text-decoration:none}
+button.principal:hover,a.principal:hover{filter:brightness(1.1)}
+
+.cards{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(258px,1fr))}
+.card{background:var(--caixa);border:1px solid var(--linha);border-radius:var(--raio);
+  padding:1.1rem;display:flex;flex-direction:column;gap:.5rem}
+.card.inativo{opacity:.72}
+.card header{display:flex;justify-content:space-between;align-items:flex-start;gap:.6rem}
+.card h2{margin:0;font-size:1rem}
+.card .cap{margin:0;font-size:.74rem;color:var(--fraco);
+  font-family:ui-monospace,Menlo,monospace}
+.card .resumo{margin:0;font-size:.88rem;flex:1}
+.card .nota{margin:0;font-size:.8rem;color:var(--fraco);font-style:italic}
+.selo{font-size:.65rem;font-weight:700;letter-spacing:.06em;padding:.2rem .5rem;
+  border-radius:999px;white-space:nowrap}
+.selo.ok{background:#e6f4ec;color:var(--ok)}
+.selo.espera{background:#f4efdf;color:var(--espera)}
+
+.tabela{width:100%;border-collapse:collapse;background:var(--caixa);
+  border:1px solid var(--linha);border-radius:var(--raio);overflow:hidden}
+.tabela th,.tabela td{text-align:left;padding:.55rem .7rem;
+  border-bottom:1px solid var(--linha);font-size:.87rem}
+.tabela th{background:#f5f5f3;font-size:.74rem;text-transform:uppercase;
+  letter-spacing:.05em;color:var(--fraco)}
+.tabela tr:last-child td{border-bottom:0}
+.erro-cel{color:var(--erro);max-width:260px}
+
+.estado{font-size:.72rem;font-weight:700;padding:.15rem .5rem;border-radius:999px}
+.estado.queued{background:#eceef2;color:var(--fraco)}
+.estado.running{background:#e7eefc;color:var(--acento)}
+.estado.done{background:#e6f4ec;color:var(--ok)}
+.estado.failed{background:#fdeceb;color:var(--erro)}
+.estado.canceled{background:#eceef2;color:var(--fraco)}
+
+.erro{background:#fdeceb;color:var(--erro);border:1px solid #f6cfcb;
+  border-radius:8px;padding:.6rem .8rem;margin:0 0 1.2rem}
+.erro-bloco{background:#fdeceb;border:1px solid #f6cfcb;border-radius:8px;
+  padding:.8rem 1rem;margin:1rem 0}
+.erro-bloco p{margin:.3rem 0 0}
+
+.log{background:#15171c;color:#d7dae0;padding:1rem;border-radius:var(--raio);
+  max-height:340px;overflow:auto;font-family:ui-monospace,Menlo,monospace;
+  font-size:.78rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+
+video,img{max-width:100%;border-radius:var(--raio);border:1px solid var(--linha);
+  display:block;margin:.6rem 0}
+
+@media(max-width:560px){
+  .conteudo{padding:1.4rem 1rem 3rem}
+  .topo{gap:.8rem}
+  .tabela th:nth-child(5),.tabela td:nth-child(5){display:none}
+}
+
+/* v0.2 — LP Builder */
+.acoes{display:flex;flex-direction:column;gap:.4rem;align-items:flex-start}
+.acoes a.principal{font-size:.82rem;padding:.4rem .8rem}
+.aviso{border:1px solid var(--linha);border-radius:var(--raio);padding:.8rem 1rem;
+  margin:0 0 1.4rem;background:var(--caixa)}
+.aviso.ok{border-left:3px solid var(--ok)}
+.aviso.espera{border-left:3px solid var(--espera);background:#fbf8ef}
+.aviso p{margin:.3rem 0 0;color:var(--fraco);font-size:.88rem}
+.relatorio{background:#f7f7f5;color:var(--tinta);border:1px solid var(--linha);
+  padding:1rem;border-radius:var(--raio);max-height:460px;overflow:auto;
+  font-family:ui-monospace,Menlo,monospace;font-size:.78rem;line-height:1.5;
+  white-space:pre-wrap;word-break:break-word}
+
+/* Roster: o card mostra o AGENTE; skill e motor são camadas dele. */
+.card .papel{margin:0;font-size:.72rem;color:var(--fraco);text-transform:uppercase;
+  letter-spacing:.08em}
+.card .camadas{display:flex;flex-wrap:wrap;gap:.3rem;margin:.2rem 0 0}
+.tag{font-size:.66rem;padding:.12rem .45rem;border-radius:4px;background:#eef0f3;
+  color:var(--fraco);border:1px solid var(--linha)}
+.tag.conceito{background:#f4efdf;color:var(--espera);border-color:#e6d9b4}
+.selo.parcial{background:#e7eefc;color:var(--acento)}
+.nota.pendencia{color:var(--espera);font-style:normal;font-size:.76rem;
+  border-top:1px dashed var(--linha);padding-top:.5rem}

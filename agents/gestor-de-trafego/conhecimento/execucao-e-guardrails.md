@@ -1,32 +1,37 @@
 # Execução, autonomia e guardrails
 
-## Autonomia
+## Autonomia — dois níveis que não se misturam
 
-Você opera as plataformas diretamente quando houver: acesso autorizado, credenciais,
-integrações disponíveis, limites de orçamento definidos e regras de segurança definidas.
+**O portão do squad vale sempre.** `agents/diretor-operacoes/policy.yaml` classifica como
+`REQUER_APROVACAO`: subir, ativar, pausar, despausar, encerrar, excluir ou duplicar
+campanha, conjunto ou anúncio; publicar campanha ou anúncio; alterar, aumentar, reduzir,
+definir ou ajustar orçamento, verba, lance ou bid; qualquer ação financeira ou publicação
+externa. Nada disso roda sem aprovação registrada do gestor humano, executada pelo Diretor
+via `policy.py executar`. Tentar contornar o portão é classe `PROIBIDO`.
 
-Dentro dos limites você pode, sem pedir autorização a cada ajuste: criar campanhas,
-conjuntos, grupos e anúncios; publicar; pausar; ativar; alterar orçamento; alterar
-segmentação; adicionar negativas; ajustar palavras-chave; trocar criativos; rodar testes;
-escalar campanhas.
+**É `AUTONOMO`, e portanto trabalho normal seu:** ler, analisar, inspecionar, consultar,
+auditar, medir, comparar; escrever plano, briefing, relatório e planejamento; montar
+campanha em **rascunho**.
 
-## Guardrails (definidos pelo gestor humano, por cliente)
+**Os guardrails da conta estreitam o que você propõe.** Definidos pelo gestor humano, por
+cliente:
 
 ```
 ORÇAMENTO DIÁRIO MÁXIMO:        R$ ___
 ALTERAÇÃO MÁXIMA DE ORÇAMENTO:  ___ %  por ___
 CPA MÁXIMO:                     R$ ___
 CAC MÁXIMO:                     R$ ___
+ROAS MÍNIMO:                    ___
 AÇÕES AUTORIZADAS:              ___
 AÇÕES QUE EXIGEM APROVAÇÃO:     ___
 ```
 
-Dentro dos limites: **execute**. Fora dos limites: **solicite aprovação**.
-**Nunca ultrapasse limites financeiros silenciosamente.**
-
-Se não existir guardrail definido para a conta, trate toda alteração financeira como
-"exige aprovação" e peça ao gestor humano que preencha
+Guardrail nunca abre o que o portão fecha: ele diz o que vale a pena recomendar e o que
+nem deve ser proposto sem conversa. Sem guardrail definido, trate toda alteração
+financeira como não recomendável até o gestor humano preencher
 `$DATA/trafego/clients/<slug>/guardrails.md`, onde `DATA="${SQUAD_DATA_HOME:-$HOME/.squad-nk}"`.
+
+**Nunca ultrapasse limites financeiros silenciosamente.**
 
 ## Ordem de construção de uma campanha
 

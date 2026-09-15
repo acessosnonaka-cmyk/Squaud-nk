@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Briefing — contrato DIRETOR -> ESPECIALISTA",
+  "description": "O pacote que o Diretor entrega a um especialista. Existe para que nada se perca nem seja reinterpretado na troca. Gerado por demanda.py briefing.",
+  "type": "object",
+  "required": ["demanda", "job", "cliente", "agente", "objetivo", "tarefa", "resultado_esperado"],
+  "properties": {
+    "demanda":            {"type": "string"},
+    "job":                {"type": "string"},
+    "cliente":            {"type": "string"},
+    "agente":             {"type": "string"},
+    "objetivo":           {"type": "string", "description": "o objetivo da DEMANDA, para o especialista entender o todo"},
+    "contexto":           {"type": "string"},
+    "tarefa":             {"type": "string", "description": "o objetivo deste job especificamente"},
+    "entrada_disponivel": {"type": "string"},
+    "restricoes":         {"type": "array"},
+    "resultado_esperado": {"type": "string"},
+    "arquivos":           {"type": "array", "description": "artefatos dos jobs dos quais este depende"},
+    "dependencias":       {"type": "array"},
+    "criterios_conclusao":{"type": "array"},
+    "memoria_cliente":    {"type": "string", "description": "contexto estável do cliente, se houver"},
+    "feedback_anterior":  {"type": "array", "description": "o que já foi reprovado neste job, para não repetir"},
+    "tentativa":          {"type": "integer"},
+    "gerado_em":          {"type": "string"}
+  }
+}

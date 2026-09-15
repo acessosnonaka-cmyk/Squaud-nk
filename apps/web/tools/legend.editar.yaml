@@ -1,0 +1,99 @@
+# Legend IA — declaração da ferramenta.
+# O motor NÃO é duplicado: este arquivo apenas descreve como chamá-lo.
+# Código do motor: apps/legend-ia/process_video.py (inalterado).
+id: legend.editar
+label: "Legend IA"
+subtitle: "Legendar e finalizar vídeo"
+capability: video.edicao
+concurrency_key: whisper        # transcrição é o recurso escasso: 1 por vez
+timeout_s: 3600
+
+engine:
+  cwd: apps/legend-ia
+  # Primeiro que existir vence: venv local no host, python3 global no container.
+  interpreter: ["venv/bin/python", "python3"]
+  script: process_video.py
+
+# resolve_video_path() do motor recusa arquivo fora de apps/legend-ia/.
+# Por isso a entrada é copiada para lá, carimbada com o job_id — o que também
+# elimina a colisão de `entrega/<stem>_final.mp4` entre dois jobs homônimos.
+# Posicionais explícitos, na ordem que o motor espera.
+args: ["{video_arg}"]
+
+stage:
+  - from: video
+    to: "entrada de vídeo/{job_id}-{filename}"
+    bind: video_arg
+
+inputs:
+  - name: video
+    type: file
+    label: "Vídeo"
+    accept: [".mp4", ".mov", ".m4v"]
+    verify: video
+    required: true
+
+  - name: preset
+    type: enum
+    label: "Estilo visual"
+    options: [classic, editorial, impact]
+    default: classic
+    flag: --preset
+    ajuda: "classic preserva o comportamento já validado em produção."
+
+  - name: subtitles
+    type: bool
+    label: "Gerar legenda automática (transcrição)"
+    default: true
+    flag_true: --subtitles
+    flag_false: --no-subtitles
+    ajuda: "Desligue se o vídeo já tiver legenda queimada."
+
+  - name: cta
+    type: text
+    label: "CTA (chamada no fim do vídeo)"
+    flag: --cta
+
+  - name: cta_position
+    type: enum
+    label: "Posição do CTA"
+    options: [topo, centro, inferior, acima-legenda]
+    default: acima-legenda
+    flag: --cta-position
+    depends_on: cta
+
+  - name: cta_duration
+    type: number
+    label: "Duração do CTA (segundos)"
+    flag: --cta-duration
+    depends_on: cta
+
+  - name: textos
+    type: lines
+    label: "Textos na tela"
+    flag: --text
+    ajuda: "Um por linha. Cada linha vira um --text."
+
+  - name: headlines
+    type: lines
+    label: "Headlines"
+    flag: --headline
+    ajuda: "Um por linha. Chamada de maior hierarquia, no topo."
+
+constraints:
+  - if: {subtitles: false}
+    require_any: [cta, textos, headlines]
+    message: >-
+      Sem legenda automática, o motor precisa de pelo menos um CTA, texto ou
+      headline — senão não há nada a fazer com o vídeo.
+
+collect:
+  - glob: "entrega/{job_id}-*_final.mp4"
+    kind: video
+    label: "Vídeo final"
+    primary: true
+
+help: >-
+  Envia o vídeo, transcreve o áudio em português com faster-whisper, revisa a
+  transcrição, e queima legenda, textos e CTA com FFmpeg. O arquivo original nunca
+  é alterado. Vídeos verticais recebem safe zone automática para Reels e Stories.

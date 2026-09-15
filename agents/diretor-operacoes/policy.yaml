@@ -1,0 +1,131 @@
+# ---------------------------------------------------------------
+# POLÍTICA DE AUTONOMIA DO SQUAD NK — fonte única.
+#
+# Quem lê: engine/policy.py, que é o portão por onde o Diretor executa ação de
+# efeito. Não é texto de orientação: ação classificada como REQUER_APROVACAO
+# não roda sem aprovação registrada, e PROIBIDO não roda nunca.
+#
+# Como a classificação funciona: cada regra tem padrões (expressões regulares,
+# sem acento e em minúsculas). Vence a classe mais restritiva que casar —
+# PROIBIDO > REQUER_APROVACAO > AUTONOMO. Ação que não casa com nada cai no
+# padrao_desconhecido abaixo.
+# ---------------------------------------------------------------
+versao: 2
+atualizado_em: "2026-09-15"
+
+# Duas superfícies leem este arquivo, e é de propósito que seja o mesmo:
+#   1. engine/policy.py  — o portão, quando o Diretor descreve a ação em português
+#   2. scripts/hook-pretooluse.py — o hook do Claude Code, quando alguém tenta
+#      rodar o comando cru pelo Bash, contornando o portão
+# Por isso algumas regras trazem tanto a forma em prosa quanto a forma de shell.
+# Regra nova entra AQUI, e as duas superfícies passam a conhecê-la.
+
+# Ação não reconhecida NÃO é liberada por omissão.
+padrao_desconhecido: REQUER_APROVACAO
+
+classes:
+
+  PROIBIDO:
+    descricao: >-
+      Nunca executa, com ou sem aprovação. Pedido assim vira bloqueio registrado
+      e volta ao gestor humano.
+    regras:
+      - id: credenciais
+        motivo: "Expor ou copiar credencial quebra a segurança de todos os clientes."
+        padroes:
+          - "revelar .*(credencial|senha|token|chave|api.?key)"
+          - "(imprimir|exibir|mostrar|copiar|enviar) .*(credencial|senha|token|api.?key|secret)"
+          # forma de shell
+          # .env.example não carrega valor nenhum e é lido o tempo todo: fica de fora
+          - "(cat|less|head|tail|cp|scp|base64) .*(\\.env\\b(?!\\.example)|credentials\\.json|id_ed25519|id_rsa|\\.pem\\b)"
+      - id: contornar-seguranca
+        motivo: "Desligar a trava é o mesmo que não ter trava."
+        padroes:
+          - "(contornar|burlar|ignorar|pular|desabilitar|remover) .*(aprovac|seguranc|politica|trava|permiss)"
+          - "aprovar em nome (do|da) (humano|gestor|usuario)"
+      - id: destrutivo-nao-autorizado
+        motivo: "Ação destrutiva sem autorização não tem volta."
+        padroes:
+          # Remocao recursiva em area temporaria e rotina de desenvolvimento e passa.
+          # Fora dela — home, repositorio, dados de cliente, raiz — e destrutivo e nao
+          # tem volta. Trava larga demais tornaria o Claude Code inutil, e trava frouxa
+          # nao protege: o corte e o ALVO, nao o comando.
+          - "rm +-[a-z]*r[a-z]* +(?!/tmp/|/var/tmp/|\\$\\{?tmpdir)"
+          - "(apagar|deletar|destruir) .*(backup|historico|log|repositorio|banco)"
+          - "git push .*(--force|-f)\\b"
+          - "drop (table|database)"
+          # forma de shell das mesmas ações, para o hook reconhecer o comando cru
+          - "\\bmkfs\\b|\\bdd if=/dev/"
+          - "git reset --hard"
+          - "chmod -R 777 /"
+      - id: fora-da-permissao
+        motivo: "Dado de cliente só se acessa dentro do escopo da demanda."
+        padroes:
+          - "acessar .*(conta|dados) .*(outro cliente|sem permissao|de terceiro)"
+
+  REQUER_APROVACAO:
+    descricao: >-
+      Tem efeito fora da máquina, mexe em produção, gasta dinheiro ou não tem
+      desfazer. Para, registra, mostra impacto e espera autorização explícita.
+    regras:
+      - id: dinheiro
+        motivo: "Mexe em dinheiro de cliente."
+        impacto: "Gasto real na conta de anúncios."
+        padroes:
+          - "(alterar|aumentar|reduzir|definir|ajustar) .*(orcamento|budget|verba|lance|bid)"
+          - "(pagar|cobrar|faturar|reembolsar)"
+          - "acao financeira"
+      - id: campanha
+        motivo: "Campanha viva afeta entrega e custo imediatamente."
+        impacto: "Anúncio passa a rodar, parar ou mudar para o público real."
+        padroes:
+          - "(subir|ativar|pausar|despausar|encerrar|excluir|duplicar) .*(campanha|conjunto|anuncio|ad ?set)"
+          - "publicar .*(campanha|anuncio)"
+      - id: publicacao-externa
+        motivo: "Sai da máquina e chega a terceiros."
+        impacto: "Conteúdo fica acessível fora do ambiente local."
+        padroes:
+          - "publicar (?!.*rascunho)"
+          - "(enviar|postar|subir) .*(para o cliente|ao cliente|instagram|facebook|site|producao|servidor)"
+          - "deploy"
+          # forma de shell: o hook classifica o comando cru com estes mesmos padrões
+          - "rsync .*@"
+          - "\\bscp\\b .*@"
+          - "npm publish|docker push|gh release create"
+          - "curl .*(-X (POST|PUT|DELETE)|--upload-file)"
+      - id: comunicacao-externa
+        motivo: "Mensagem enviada não volta atrás."
+        impacto: "O cliente recebe a comunicação."
+        padroes:
+          - "(enviar|mandar) .*(email|e-mail|whatsapp|mensagem|proposta) .*(cliente|externo)"
+      - id: producao
+        motivo: "Produção é onde o erro aparece para o público."
+        impacto: "Ambiente vivo é alterado."
+        padroes:
+          - "(alterar|atualizar|substituir|derrubar) .*(producao|production|ativo publicado|preview publicado)"
+      - id: irreversivel
+        motivo: "Sem desfazer."
+        impacto: "O estado anterior deixa de existir."
+        padroes:
+          - "(sobrescrever|substituir) .*(arquivo|entrega|versao|original)"
+          - "(excluir|apagar|remover) .*(cliente|demanda|entrega|preview|peca)"
+          - "irrevers"
+
+  AUTONOMO:
+    descricao: >-
+      Efeito local, reversível e dentro do ambiente de trabalho. O Diretor
+      executa e registra, sem interromper o gestor.
+    regras:
+      - id: leitura
+        padroes:
+          - "(ler|analisar|inspecionar|consultar|listar|verificar|auditar|medir|comparar)"
+      - id: producao-local
+        padroes:
+          - "(gerar|escrever|criar|produzir|montar|renderizar|compilar) .*(copy|texto|roteiro|legenda|arte|peca|criativo|video|pagina|landing|relatorio|plano|briefing|planejamento|rascunho)"
+          - "(executar|rodar) .*(qa|validacao|selfcheck|teste|inspecao)"
+          - "criar campanha .*(rascunho|draft|local|simulac)"
+      - id: orquestracao
+        padroes:
+          - "(abrir|registrar|planejar|decompor|delegar|consolidar|fechar) .*(demanda|job)"
+          - "(atualizar|registrar) .*(estado|evento|memoria|feedback)"
+          - "(solicitar|pedir) aprovacao"

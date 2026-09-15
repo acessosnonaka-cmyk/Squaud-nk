@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block titulo %}Squad NK{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+{% if user %}
+<header class="topo">
+  <a class="marca" href="/">SQUAD&nbsp;NK</a>
+  <nav>
+    <a href="/">Squad</a>
+    <a href="/previews">Previews</a>
+    <a href="/historico">Histórico</a>
+  </nav>
+  <form method="post" action="/logout" class="sair">
+    <span class="quem">{{ user["email"] }}</span>
+    <button type="submit" class="link">Sair</button>
+  </form>
+</header>
+{% endif %}
+<main class="conteudo">{% block conteudo %}{% endblock %}</main>
+</body>
+</html>

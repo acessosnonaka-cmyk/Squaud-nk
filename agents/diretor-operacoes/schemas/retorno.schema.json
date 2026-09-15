@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Retorno — contrato ESPECIALISTA -> DIRETOR",
+  "description": "O que o especialista devolve ao Diretor. Validado por demanda.py job concluir.",
+  "type": "object",
+  "required": ["status", "resumo"],
+  "properties": {
+    "status":        {"type": "string", "enum": ["concluido","bloqueado","precisa_de_informacao","precisa_de_aprovacao","falhou"]},
+    "resumo":        {"type": "string", "description": "o que foi feito, em prosa curta"},
+    "artefatos":     {"type": "array", "description": "caminhos dos arquivos produzidos"},
+    "decisoes":      {"type": "array", "description": "decisões que um humano precisaria entender depois"},
+    "observacoes":   {"type": "string"},
+    "proximo_passo": {"type": "string", "description": "recomendação do especialista ao Diretor"},
+    "pendencia":     {"type": "string", "description": "obrigatório quando status != concluido"},
+    "agente":        {"type": "string"},
+    "em":            {"type": "string"}
+  }
+}

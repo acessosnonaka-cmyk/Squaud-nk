@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block titulo %}Squad NK{% endblock %}
+{% block conteudo %}
+<h1>Squad NK</h1>
+<p class="sub">Um orquestrador e seis especialistas. O que varia é o quanto de cada um
+já chegou à web — a arquitetura é a mesma no GitHub, no Claude Code e aqui.</p>
+
+<div class="cards">
+  {% for a in agentes %}
+  <article class="card {{ 'ativo' if a.operavel else 'inativo' }}">
+    <header>
+      <h2>{{ a.emoji }} {{ a.nome }}</h2>
+      <span class="selo {{ a.classe_web }}">{{ a.rotulo_web }}</span>
+    </header>
+    <p class="papel">{{ "orquestrador" if a.papel == "orquestrador" else "especialista" }}</p>
+    <p class="resumo">{{ a.resumo }}</p>
+
+    <p class="camadas">
+      {% if a.conceito %}<span class="tag conceito">sem implementação</span>
+      {% else %}<span class="tag">agente</span>{% endif %}
+      {% if a.n_skills %}<span class="tag">{{ a.n_skills }} skill{{ "s" if a.n_skills > 1 }}</span>{% endif %}
+      {% if a.n_motores %}<span class="tag">motor</span>{% endif %}
+      {% if a.conectores %}<span class="tag">conector</span>{% endif %}
+    </p>
+
+    {% if a.operavel %}
+      <div class="acoes">
+        {% for f in a.ferramentas %}
+          <a class="principal" href="/tools/{{ f.id }}">{{ f.subtitle or f.label }}</a>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if a.nota_web %}<p class="nota">{{ a.nota_web }}</p>{% endif %}
+    {% if a.pendencia %}<p class="nota pendencia">{{ a.pendencia }}</p>{% endif %}
+  </article>
+  {% endfor %}
+</div>
+
+{% if previews %}
+<h2 class="secao">Previews publicados</h2>
+<p class="sub">{{ publicacao.resumo }}
+  <a href="/previews">ver todos ({{ previews | length }})</a></p>
+{% endif %}
+
+{% if recentes %}
+<h2 class="secao">Últimos jobs</h2>
+<table class="tabela">
+  <tr><th>Quando</th><th>Ferramenta</th><th>Status</th><th></th></tr>
+  {% for j in recentes %}
+  <tr>
+    <td class="mono">{{ j["created_at"][:16].replace("T", " ") }}</td>
+    <td>{{ j["title"] }}</td>
+    <td><span class="estado {{ j['status'] }}">{{ status_label(j["status"]) }}</span></td>
+    <td><a href="/jobs/{{ j['id'] }}">abrir</a></td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}

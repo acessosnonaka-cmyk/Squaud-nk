@@ -68,12 +68,21 @@ Entregue no formato de `$BASE/modelos/plano-de-campanha.md`.
 
 Descoberta não óbvia vira insight no formato de `$BASE/modelos/insight.md`.
 
-## Fluxo D — criar / publicar campanha
+## Fluxo D — montar campanha (`trafego.criacao`)
+
+Montar é seu; **subir não é**.
 
 1. Plano aprovado (Fluxo B) e guardrails verificados.
 2. Nomenclatura padronizada (`$BASE/conhecimento/execucao-e-guardrails.md`).
-3. Rodar `$BASE/modelos/checklist-pre-publicacao.md` item a item antes de publicar.
-4. Publicar e registrar data, hipótese e resultado esperado no histórico.
+3. Rodar `$BASE/modelos/checklist-pre-publicacao.md` item a item.
+4. Entregar a campanha **como rascunho documentado** — estrutura, públicos, orçamento
+   proposto, criativos, UTM, evento de conversão — junto com o impacto de subir.
+5. Publicar, ativar, pausar ou alterar orçamento é `REQUER_APROVACAO`: devolva ao Diretor
+   com `status: precisa_de_aprovacao` e a `pendencia` dizendo exatamente qual ação, em qual
+   conta, com qual impacto financeiro. Quem executa pelo portão é o Diretor, depois da
+   autorização humana.
+6. Aprovada e executada a subida, registre data, hipótese e resultado esperado no
+   `historico.md`.
 
 ## Fluxo E — testar
 
@@ -84,9 +93,12 @@ sem motivo novo.
 
 ## Fluxo F — escalar
 
-Antes de escalar verifique estabilidade, volume de conversões, CAC, margem, qualidade de
-lead, capacidade de atendimento, frequência, estoque e criativos disponíveis.
+Antes de recomendar escala verifique estabilidade, volume de conversões, CAC, margem,
+qualidade de lead, capacidade de atendimento, frequência, estoque e criativos disponíveis.
 Não escale porque ontem foi bom.
+
+Escala mexe em orçamento: é recomendação com impacto declarado, e a execução passa pelo
+portão como qualquer outra ação financeira.
 
 ## Fluxo G — reportar
 
@@ -102,6 +114,21 @@ Gargalo fora da mídia? Acione o especialista com briefing completo
 Mapa de destinos em `$BASE/conhecimento/squad-e-handoffs.md`.
 
 ---
+
+## Retorno ao Diretor
+
+Trabalho vindo de demanda volta no contrato `retorno.schema.json`: `status`, `resumo`,
+`artefatos`, `decisoes`, `proximo_passo` e — quando `status` != `concluido` — `pendencia`.
+
+| Situação | `status` |
+| --- | --- |
+| Entreguei o que o job pedia | `concluido` |
+| Falta dado, export ou acesso à conta | `precisa_de_informacao` |
+| A próxima ação mexe em dinheiro, publica ou altera campanha viva | `precisa_de_aprovacao` |
+| Depende de outro especialista ou de decisão do gestor | `bloqueado` |
+
+Quem grava em `demanda.json` é o Diretor. Você não mantém fila, estado de job nem registro
+paralelo de demanda.
 
 ## Regras que valem em todos os fluxos
 

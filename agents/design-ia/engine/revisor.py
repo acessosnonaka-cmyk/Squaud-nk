@@ -46,19 +46,27 @@ def candidates() -> list[tuple[str, pathlib.Path]]:
     # 2. quando o proprio Claude Code ja expos a raiz do plugin
     add("env:CLAUDE_PLUGIN_ROOT", os.environ.get("CLAUDE_PLUGIN_ROOT"))
 
-    # 3. instalacao neste ambiente (Linux/WSL)
+    # 3. o proprio monorepo do Squad: engine/ e agents/revisor-arte/ sao irmaos.
+    #    Com isto, um clone limpo ja resolve o handoff sem plugin instalado.
+    try:
+        add("monorepo Squad NK (mesmo clone)",
+            pathlib.Path(__file__).resolve().parents[2] / "revisor-arte")
+    except IndexError:
+        pass
+
+    # 4. instalacao neste ambiente (Linux/WSL)
     for pat in ("plugins/cache/*/revisor*/*", "plugins/cache/*/revisor*",
                 "plugins/marketplaces/*/", "plugins/marketplaces/*/*/"):
         for p in sorted(glob.glob(str(HOME / ".claude" / pat))):
             add("plugin instalado (este ambiente)", p)
 
-    # 4. instalacao do lado Windows, visivel do WSL. Mesmo plugin, outra arvore de config.
+    # 5. instalacao do lado Windows, visivel do WSL. Mesmo plugin, outra arvore de config.
     for pat in ("plugins/cache/*/revisor*/*", "plugins/cache/*/revisor*",
                 "plugins/marketplaces/*/", "plugins/marketplaces/*/*/"):
         for p in sorted(glob.glob(f"/mnt/c/Users/*/.claude/{pat}")):
             add("plugin instalado (Windows, via /mnt/c)", p)
 
-    # 5. repositorio de desenvolvimento
+    # 6. repositorio de desenvolvimento
     for pat in ("projetos/*", "*", "projetos/*/*"):
         for p in sorted(glob.glob(str(HOME / pat))):
             add("repositorio local", p)
@@ -95,7 +103,7 @@ def locate() -> dict:
         "erro": "Revisor de Criacao nao encontrado neste ambiente.",
         "como_resolver": [
             "Instalar o plugin (uma vez, num terminal claude interativo):",
-            "  claude plugin marketplace add acessosnonaka-cmyk/revisor-de-arte",
+            "  claude plugin marketplace add acessosnonaka-cmyk/Squaud-nk",
             "  claude plugin install revisor-de-criacao@squad-legend-ai",
             "Ou apontar uma copia existente:",
             "  export DESIGNER_REVISOR_HOME=/caminho/para/revisor-de-criacao",

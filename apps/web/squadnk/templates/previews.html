@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block titulo %}Previews · Squad NK{% endblock %}
+{% block conteudo %}
+<h1>Previews de Landing Page</h1>
+<p class="sub">Só os seus. Cada preview é de quem o publicou.</p>
+
+<div class="aviso {{ 'ok' if publicacao.configurada else 'espera' }}">
+  <strong>{{ publicacao.resumo }}</strong>
+  <p>{{ publicacao.detalhe }}</p>
+</div>
+
+{% if not previews %}
+  <p class="vazio">Nenhum preview publicado ainda.
+     Comece por <a href="/tools/lp.publicar">Publicar preview</a>.</p>
+{% else %}
+<table class="tabela">
+  <tr><th>Slug</th><th>Versão atual</th><th>Versões</th><th>Atualizado</th><th></th></tr>
+  {% for p in previews %}
+  <tr>
+    <td><strong>{{ p.slug }}</strong></td>
+    <td class="mono">{{ p.atual or "—" }}</td>
+    <td>{{ p.total }}</td>
+    <td class="mono">{{ p.atualizado[:16].replace("T", " ") }}</td>
+    <td><a href="/preview/{{ p.slug }}/" target="_blank" rel="noopener">abrir</a></td>
+  </tr>
+  {% endfor %}
+</table>
+<p class="sub" style="margin-top:1rem">
+  Rodar QA: <a href="/tools/lp.qa">LP Builder — QA</a> ·
+  Voltar versão: <a href="/tools/lp.rollback">Rollback</a>
+</p>
+{% endif %}
+{% endblock %}

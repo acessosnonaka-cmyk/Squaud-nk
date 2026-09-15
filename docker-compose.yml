@@ -1,0 +1,59 @@
+# Squad NK Web — v0.1
+#
+#   cp .env.example .env
+#   python3 -c "import secrets;print(secrets.token_urlsafe(48))"   # SQUAD_WEB_SESSION_SECRET
+#   docker compose up -d
+#
+# Portátil de propósito: sobe igual no laptop, num PC de mesa ou numa VM.
+# Nenhum serviço externo, nenhuma conta, nenhum provedor.
+name: squad-nk
+
+x-comum: &comum
+  build:
+    context: .
+    dockerfile: apps/web/Dockerfile
+  env_file: [.env]
+  environment:
+    SQUAD_DATA_HOME: /data
+    SQUAD_REPO_ROOT: /app
+    # O motor de publicação testa o preview por HTTP. Dentro da rede do Compose,
+    # o worker alcança o web por este nome. Nenhuma porta de preview é publicada:
+    # o `publish.py serve` não é usado, justamente porque escuta em 0.0.0.0 e
+    # lista todos os clientes na raiz.
+    SQUAD_INTERNAL_BASE_URL: http://web:8000
+  restart: unless-stopped
+
+services:
+  # Autentica, valida, enfileira e mostra. Nunca executa motor.
+  web:
+    <<: *comum
+    # Escuta só no loopback por padrão: sem exposição acidental na rede local.
+    ports: ["${SQUAD_WEB_BIND:-127.0.0.1}:${SQUAD_WEB_PORT:-8000}:8000"]
+    volumes:
+      - squad_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/healthz"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # Consome a fila e executa os motores. Job de vídeo leva minutos e não cabe
+  # numa request HTTP.
+  worker:
+    <<: *comum
+    command: ["python", "-m", "squadnk.worker"]
+    volumes:
+      - squad_data:/data
+      - whisper_cache:/home/squad/.cache
+    # Chromium (Etapa 1, Design IA) trava com /dev/shm de 64 MB.
+    shm_size: "1gb"
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  # Dados de produção vivem aqui, nunca no repositório.
+  squad_data:
+  # Modelo do faster-whisper (~140 MB): baixado uma vez, não a cada restart.
+  whisper_cache:
