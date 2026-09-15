@@ -1,0 +1,14 @@
+{
+  "base_url": "http://localhost:8090",
+
+  "_como_ligar_o_vps": "Preencha o bloco remote abaixo e a publicação passa a enviar por rsync+ssh automaticamente, mantendo tudo o mais igual.",
+  "remote": null,
+
+  "_exemplo_remote": {
+    "host": "203.0.113.10",
+    "user": "deploy",
+    "key": "~/.ssh/id_ed25519_deploy",
+    "path": "/var/www/preview",
+    "base_url": "https://preview.seudominio.com.br"
+  }
+}

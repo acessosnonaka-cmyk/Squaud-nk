@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "_comment": "Pool global de tipografia. Todas OFL (SIL Open Font License 1.1), uso comercial livre, redistribuicao permitida. Usado SOMENTE quando o cliente nao tem tipografia oficial confirmada — nesse caso a escolha e uma decisao criativa do job, registrada em art-direction.json, e NUNCA vira identidade do cliente.",
+  "license_note": "OFL 1.1 exige que o nome da fonte nao seja alterado e que ela nao seja vendida isoladamente. Embutir em peca grafica e permitido.",
+  "families": {
+    "fraunces": {
+      "file": "fraunces.woff2", "weights": "300 900", "variable": true,
+      "class": "serif expressiva", "license": "OFL-1.1",
+      "personality": ["artesanal", "premium", "editorial", "humano"],
+      "notes": "Serif de eixo suave com opsz variavel. Carrega calor e feitura manual; boa para oficio, materia-prima, tradicao."
+    },
+    "playfair": {
+      "file": "playfair.woff2", "weights": "400 900", "variable": true,
+      "class": "serif editorial", "license": "OFL-1.1",
+      "personality": ["premium", "editorial", "impacto"],
+      "notes": "Alto contraste didone. Excelente em corpo grande; em corpo pequeno os filetes somem."
+    },
+    "libre-baskerville": {
+      "file": "libre-baskerville.woff2", "weights": "400 700", "variable": false,
+      "class": "serif editorial", "license": "OFL-1.1",
+      "personality": ["institucional", "editorial", "confiavel"],
+      "notes": "Transicional de leitura. Sobria, sem maneirismo; boa para texto corrido e tom formal."
+    },
+    "cormorant": {
+      "file": "cormorant.woff2", "weights": "300 700", "variable": false,
+      "class": "serif sofisticada", "license": "OFL-1.1",
+      "personality": ["premium", "delicado", "editorial"],
+      "notes": "Garalde de traco fino e elegante. Precisa de corpo grande e respiro; some em tamanho pequeno."
+    },
+    "spectral": {
+      "file": "spectral.woff2", "weights": "300 700", "variable": false,
+      "class": "serif contemporanea", "license": "OFL-1.1",
+      "personality": ["contemporaneo", "humano", "editorial", "institucional"],
+      "notes": "Serif de tela, moderna e legivel. Boa ponte entre formal e atual."
+    },
+    "instrument-serif": {
+      "file": "instrument-serif.woff2", "weights": "400", "variable": false,
+      "class": "serif display", "license": "OFL-1.1",
+      "personality": ["contemporaneo", "premium", "editorial"],
+      "notes": "Display serif estreita e atual. So para headline; nao tem peso para texto."
+    },
+    "inter": {
+      "file": "inter.woff2", "weights": "100 900", "variable": true,
+      "class": "sans grotesk", "license": "OFL-1.1",
+      "personality": ["tecnico", "contemporaneo", "neutro"],
+      "notes": "Neutra de interface. Otima para corpo e legenda; sem personalidade propria em headline."
+    },
+    "archivo": {
+      "file": "archivo.woff2", "weights": "100 900", "variable": true,
+      "class": "sans grotesk", "license": "OFL-1.1",
+      "personality": ["institucional", "contemporaneo", "impacto"],
+      "notes": "Grotesca robusta, boa em toda a escala. Par natural de Archivo Black."
+    },
+    "space-grotesk": {
+      "file": "space-grotesk.woff2", "weights": "300 700", "variable": true,
+      "class": "sans grotesk", "license": "OFL-1.1",
+      "personality": ["tecnico", "contemporaneo"],
+      "notes": "Grotesca com detalhes idiossincraticos. Da ar de produto/tecnologia."
+    },
+    "work-sans": {
+      "file": "work-sans.woff2", "weights": "100 900", "variable": true,
+      "class": "sans humanista", "license": "OFL-1.1",
+      "personality": ["humano", "contemporaneo", "institucional"],
+      "notes": "Humanista aberta e amigavel sem ser informal."
+    },
+    "source-sans": {
+      "file": "source-sans.woff2", "weights": "200 900", "variable": true,
+      "class": "sans humanista", "license": "OFL-1.1",
+      "personality": ["institucional", "humano", "neutro"],
+      "notes": "Humanista sobria de leitura longa. Discreta por natureza."
+    },
+    "outfit": {
+      "file": "outfit.woff2", "weights": "100 900", "variable": true,
+      "class": "sans geometrica", "license": "OFL-1.1",
+      "personality": ["contemporaneo", "premium", "limpo"],
+      "notes": "Geometrica de circulo puro. Moderna e limpa; pouca voz em texto corrido."
+    },
+    "archivo-narrow": {
+      "file": "archivo-narrow.woff2", "weights": "400 700", "variable": true,
+      "class": "condensed", "license": "OFL-1.1",
+      "personality": ["editorial", "institucional"],
+      "notes": "Condensada legivel. Boa para eyebrow, legenda e credito sem gritar."
+    },
+    "oswald": {
+      "file": "oswald.woff2", "weights": "200 700", "variable": true,
+      "class": "condensed", "license": "OFL-1.1",
+      "personality": ["impacto", "urbano", "editorial"],
+      "notes": "Condensada de cartaz. Ganha densidade em caixa alta."
+    },
+    "anton": {
+      "file": "anton.woff2", "weights": "400", "variable": false,
+      "class": "display", "license": "OFL-1.1",
+      "personality": ["impacto", "urbano"],
+      "notes": "Display pesadissima e estreita. Uma palavra dominante, nunca um paragrafo."
+    },
+    "bebas": {
+      "file": "bebas.woff2", "weights": "400", "variable": false,
+      "class": "display condensed", "license": "OFL-1.1",
+      "personality": ["impacto", "contemporaneo"],
+      "notes": "So caixa alta. Boa para etiqueta e chamada curta."
+    },
+    "archivo-black": {
+      "file": "archivo-black.woff2", "weights": "400", "variable": false,
+      "class": "display", "license": "OFL-1.1",
+      "personality": ["impacto", "institucional"],
+      "notes": "Grotesca preta. Peso sem a estreiteza de Anton."
+    }
+  },
+  "pairing_guidance": [
+    "Duas familias resolvem quase tudo: uma de voz (display/headline) e uma de servico (body/caption/eyebrow).",
+    "Tres familias so com motivo declarado. Acima disso e ruido, nao direcao.",
+    "Contraste de classe funciona melhor que contraste de peso: serif expressiva + grotesca neutra.",
+    "Serif de alto contraste (playfair, cormorant) exige corpo grande; em texto pequeno perde o traco fino.",
+    "Display (anton, bebas, archivo-black) nunca em texto corrido nem em paragrafo."
+  ]
+}
