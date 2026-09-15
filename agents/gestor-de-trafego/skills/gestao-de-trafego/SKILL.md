@@ -31,7 +31,16 @@ DATA="${SQUAD_DATA_HOME:-$HOME/.squad-nk}"; echo "BASE=$BASE  DATA=$DATA"
 3. Leia a memória de mídia em `$DATA/trafego/clients/<slug>/`: `contexto.md`,
    `guardrails.md` e `historico.md`. Cliente novo: copie `$BASE/modelos/cliente/` para lá.
 
-4. Só pergunte ao gestor humano o que **não** estiver em nenhuma dessas fontes.
+4. **Confira a completude do handoff antes de trabalhar.** O briefing precisa trazer o
+   conteúdo, não o aviso de que ele existe. Para job de configuração de plataforma, o
+   mínimo é: conta, pixel/tag, **destino e local de conversão**, evento de otimização,
+   valor e período do orçamento, região, definição do público e das exclusões, URL da LP
+   (ou o artefato equivalente ao destino), caminho dos criativos e da copy aprovados, e os
+   guardrails da conta. Faltando qualquer um, devolva `HANDOFF_INCOMPLETO` ao Diretor,
+   campo a campo, dizendo onde ele resolve sozinho — não escale ao gestor humano o que o
+   Diretor tem como responder.
+5. Só pergunte ao gestor humano o que **não** existir em fonte nenhuma do squad — e ainda
+   assim pelo Diretor.
 
 ## Fluxo A — assumir conta nova / diagnóstico inicial
 
@@ -53,7 +62,12 @@ NEGÓCIO → OBJETIVO → OFERTA → FUNIL → CONVERSÃO → TRACKING
 → PLATAFORMA → PÚBLICO → CRIATIVO → ESTRUTURA → ORÇAMENTO → MENSURAÇÃO
 ```
 
-Entregue no formato de `$BASE/modelos/plano-de-campanha.md`.
+Entregue no formato de `$BASE/modelos/plano-de-campanha.md` — que diz **quais perguntas
+responder**, não quais respostas dar. Toda decisão de estrutura (ABO/CBO, número de
+conjuntos e de anúncios, broad ou interesse, Advantage+, lance, posicionamentos) sai da
+hipótese do teste, do orçamento, do volume esperado de conversão e do histórico da conta,
+e vem acompanhada do que tornaria a escolha oposta a certa. Sem isso é receita, e receita
+não é decisão.
 
 ## Fluxo C — analisar performance / otimizar
 
@@ -75,7 +89,11 @@ Descoberta não óbvia vira insight no formato de `$BASE/modelos/insight.md`.
 
 Montar é seu; **subir não é**.
 
-1. Plano aprovado (Fluxo B) e guardrails verificados.
+1. Plano aprovado (Fluxo B), guardrails verificados e **destino/local de conversão
+   explícito no briefing**. Site com formulário próprio, Lead Ads, WhatsApp, ligação, app
+   e checkout exigem objetivo, evento e tracking diferentes — a existência de uma LP não
+   revela qual deles é. Não explicitado: dúvida material, devolva ao Diretor antes da
+   parte afetada e entregue o que não depende dela.
 2. Nomenclatura padronizada (`$BASE/conhecimento/execucao-e-guardrails.md`).
 3. Rodar `$BASE/modelos/checklist-pre-publicacao.md` item a item.
 4. Entregar a campanha **como rascunho documentado** — estrutura, públicos, orçamento
@@ -127,6 +145,8 @@ Trabalho vindo de demanda volta no contrato `retorno.schema.json`: `status`, `re
 | --- | --- |
 | Entreguei o que o job pedia | `concluido` |
 | Falta dado, export ou acesso à conta | `precisa_de_informacao` |
+| O briefing afirma entrega mas não traz o conteúdo | `precisa_de_informacao`, com `HANDOFF_INCOMPLETO` abrindo a `pendencia` |
+| Falta entrada material (destino, evento, objetivo, conta) | `precisa_de_informacao`, entregando a parte não afetada |
 | A próxima ação mexe em dinheiro, publica ou altera campanha viva | `precisa_de_aprovacao` |
 | Depende de outro especialista ou de decisão do gestor | `bloqueado` |
 
@@ -142,9 +162,11 @@ paralelo de demanda.
   fonte e período; cálculo tem fórmula; hipótese tem o teste que a confirma ou derruba;
   conclusão tem grau de confiança. Correlação e padrão provável **não** viram diagnóstico
   confirmado.
-- **Amostra pequena: sinalize antes de afirmar, não no rodapé.** Abaixo de ~30 conversões
-  no recorte, não afirme diferença — mostre a direção, diga que o volume não sustenta o
-  número e explicite a sensibilidade (quanto muda com uma conversão a mais ou a menos).
+- **Amostra pequena: sinalize antes de afirmar, não no rodapé.** Não existe limiar
+  universal — o volume necessário muda com a raridade do evento, o tamanho da diferença, a
+  variabilidade da métrica e o contexto do período. Mostre a direção, explicite a
+  sensibilidade (quanto muda com uma conversão a mais ou a menos) e **não declare
+  significância sem teste que a sustente**.
 - **Métrica sem contexto não é decisão.** Cruze custo, volume e qualidade.
 - **Sem benchmark inventado.** Compare com objetivo financeiro, histórico da conta,
   períodos anteriores e campanhas semelhantes.

@@ -44,19 +44,30 @@ Diferencie explicitamente:
 
 Quando os números divergirem, diga qual fonte está sendo usada em cada afirmação.
 
-## Volume: o que o número sustenta e o que não sustenta
+## Volume: o que o número sustenta
 
 Antes de comparar dois recortes, olhe o **denominador de conversões**, não o de cliques.
+E não procure um limiar: **não existe número universal de conversões** a partir do qual a
+comparação passa a valer. O volume necessário depende de quatro coisas:
 
-- Abaixo de ~30 conversões no recorte, a diferença observada ainda não se sustenta como
-  número. Diga a direção, não a magnitude.
-- Mostre a sensibilidade sempre que a amostra for pequena: com 3 vendas, uma venda a mais
-  ou a menos move o CAC de R$ 3.000 investidos entre R$ 750 e R$ 1.500. Esse intervalo
-  informa mais do que qualquer adjetivo.
-- Direção e magnitude têm confiabilidade diferente: 1% contra 10% de fechamento sustenta
-  a direção mesmo com volume baixo; o CAC exato de cada canal, não.
-- Volume baixo não impede decidir. Impede **afirmar**. Decida dizendo com que confiança, e
-  o que observar para confirmar.
+| Fator | Como muda a exigência |
+| --- | --- |
+| Raridade do evento | LPV e clique acumulam rápido; venda de ticket alto, devagar. A mesma janela dá confiança diferente para cada métrica |
+| Tamanho da diferença | 10× se enxerga com pouco volume; 10% exige muito mais |
+| Variabilidade da métrica | Custo e ticket têm cauda longa e oscilam mais que taxa. Leilão instável e sazonalidade somam ruído |
+| Contexto do período | Aprendizado, troca de criativo, mudança de oferta ou entrada de concorrente sujam a comparação em qualquer volume |
+
+Como operar:
+
+- **Sensibilidade, sempre.** Com 3 vendas sobre R$ 3.000, uma venda a mais ou a menos move
+  o CAC entre R$ 750 e R$ 1.500. Esse intervalo informa mais do que qualquer adjetivo.
+- **Direção e magnitude são coisas diferentes.** 1% contra 10% de fechamento sustenta a
+  direção mesmo com volume baixo; o CAC exato de cada canal, não.
+- **Sem teste, sem significância.** Não escreva "significativo", "estatisticamente
+  relevante" ou "comprovado" quando não houve teste que sustente isso — e na operação de
+  mídia quase nunca há. Diga o que o dado sustenta e sob qual suposição.
+- **Volume baixo não impede decidir.** Impede **afirmar**. Decida dizendo com que
+  confiança, o que observar para confirmar e em quanto tempo isso fica claro.
 
 ## Quando não houver dados suficientes
 

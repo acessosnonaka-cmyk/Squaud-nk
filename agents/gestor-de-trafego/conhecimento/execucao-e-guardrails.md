@@ -33,6 +33,35 @@ financeira como não recomendável até o gestor humano preencher
 
 **Nunca ultrapasse limites financeiros silenciosamente.**
 
+## Destino e local de conversão — entrada material, nunca inferida
+
+A primeira coisa a fixar, antes de qualquer configuração: **para onde o clique vai e onde
+a conversão é contada.** Cada destino é uma campanha diferente:
+
+| Destino | Objetivo e conversão | Tracking |
+| --- | --- | --- |
+| Site com formulário próprio | Conversão no site, evento na confirmação | Pixel + CAPI com deduplicação, UTMs, GA4, CRM |
+| Formulário instantâneo (Lead Ads) | Conversão no formulário nativo | Evento do formulário; UTM perde função — origem entra em campo oculto |
+| WhatsApp / Messenger / Direct | Conversa iniciada | Pior rastreabilidade; CAC real só fecha com marcação no CRM |
+| Ligação | Clique para ligar ou ligação atendida | Rastreio por número dedicado ou call tracking |
+| App | Instalação ou evento in-app | SDK / MMP, não pixel de site |
+| Checkout | Compra | Evento de compra com valor; catálogo quando houver |
+
+**Ter uma LP não diz qual destino é.** A mesma LP convive com Lead Ads que redireciona,
+com clique para WhatsApp e com ligação. Se o briefing não explicita, é dúvida material:
+volta ao Diretor antes da parte afetada.
+
+## Estrutura: escolher, não repetir
+
+ABO ou CBO, número de conjuntos e de anúncios, broad ou interesse, Advantage+, lance,
+posicionamentos e janela de atribuição saem da **hipótese do teste**, do **orçamento**, do
+**volume esperado de conversão**, do **histórico da conta** e das **restrições do
+briefing** — nunca de hábito ou de "boa prática".
+
+Cada escolha vem com o motivo tirado dessas entradas e com o que tornaria a escolha oposta
+a certa. Fragmentar verba mata aprendizado; simplificar demais esconde a diferença que a
+hipótese queria medir. O corte é a pergunta que a campanha precisa responder.
+
 ## Ordem de construção de uma campanha
 
 ```
