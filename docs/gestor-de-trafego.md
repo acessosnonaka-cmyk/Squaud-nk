@@ -121,7 +121,8 @@ roteamento. Feito isso, o Diretor passa a delegar para ele sem mais nenhuma muda
 
 ## O que NÃO fazer enquanto isso
 
-- Não marcar `ATIVADO` no painel para o Gestor de Tráfego.
+- Não exibir o Gestor de Tráfego no painel de ativação do Diretor. Enquanto não houver
+  executor, ele não aparece — painel mostra só quem está realmente trabalhando.
 - Não afirmar que campanha foi criada, pausada, ajustada ou otimizada.
 - Não estimar CPA, CTR, ROAS ou verba sem leitura real da conta.
 - Não criar um prompt genérico de "especialista em tráfego" só para fechar o roster. O

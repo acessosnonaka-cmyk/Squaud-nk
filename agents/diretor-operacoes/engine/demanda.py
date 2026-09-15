@@ -211,6 +211,7 @@ def cmd_briefing(a) -> int:
         "criterios_conclusao": j.get("criterios") or [],
         "memoria_cliente": mem, "feedback_anterior": [f["texto"] for f in feedback_job],
         "tentativa": j.get("tentativas", 0) + 1, "gerado_em": modelo.agora(),
+        "execution_mode": modelo.EXECUTION_MODE_PADRAO,
     }
     erros = modelo.validar(briefing, "briefing")
     if erros:
@@ -251,6 +252,8 @@ def formatar_briefing(b: dict) -> str:
     if b.get("feedback_anterior"):
         linhas.append("JÁ REPROVADO ANTES " + "\n                   ".join(b["feedback_anterior"]))
     linhas.append(f"TENTATIVA          {b['tentativa']}")
+    linhas.append(f"EXECUTION_MODE     {b.get('execution_mode', modelo.EXECUTION_MODE_PADRAO)}"
+                  "  — execute sem narrar etapa, handoff ou progresso")
     linhas.append("═" * 62)
     return "\n".join(linhas)
 

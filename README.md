@@ -101,6 +101,25 @@ Agent(subagent_type: "diretor-de-operacoes")
 Ou em linguagem natural: "organize e execute", "acionando o squad", qualquer demanda que envolva
 mais de um especialista.
 
+**Interface — modo ultrassilencioso.** O Diretor analisa, planeja e delega sem publicar nada.
+A única mensagem antes da entrega é o painel, com **apenas os especialistas realmente acionados**:
+
+```
+╔══════════════════════════════════════╗
+║        ♟️ ATIVANDO SQUAD NK         ║
+╠══════════════════════════════════════╣
+║ ✍️ COPYWRITER      ● TRABALHANDO... ║
+║ 🎨 DESIGN.IA       ● TRABALHANDO... ║
+║ 🔎 REVISOR DE ARTE ● TRABALHANDO... ║
+╚══════════════════════════════════════╝
+```
+
+Quem não tem job nesta demanda não aparece — sem `aguardando`, sem `standby`. Depois do painel
+vem silêncio: nada de progresso, handoff ou log. Só a dúvida que muda o resultado interrompe, e
+o que volta no fim é a entrega. Todo especialista acionado recebe `EXECUTION_MODE: SILENT` no
+briefing e trabalha da mesma forma. A regra vive na seção 0 de
+[`diretor-de-operacoes.md`](agents/diretor-operacoes/agents/diretor-de-operacoes.md).
+
 ### Design IA
 
 **Função** — cria peça gráfica profissional a partir de briefing em linguagem natural: interpreta o

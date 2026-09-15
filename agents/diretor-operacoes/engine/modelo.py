@@ -81,6 +81,12 @@ MAX_TENTATIVAS = 3
 
 CLASSES_FEEDBACK = ["feedback_da_demanda", "preferencia_do_cliente", "regra_global"]
 
+# Modo de execução carimbado em todo briefing. SILENT é a interface do Squad
+# (seção 0 do prompt do Diretor): o especialista executa sem narrar etapa,
+# handoff ou progresso. Viaja no contrato, e não na lembrança do Diretor —
+# briefing improvisado à mão é justamente onde a regra se perde.
+EXECUTION_MODE_PADRAO = "SILENT"   # enum em schemas/briefing.schema.json
+
 
 class ErroDeEstado(Exception):
     """Operação recusada porque violaria a máquina de estados ou um contrato."""

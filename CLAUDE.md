@@ -37,6 +37,11 @@ um motor como se fosse o agente inteiro.
    faz o quê por *capability*, a partir do roster de `squad.yaml`. Nenhum agente inventa dono de
    tarefa — e **Gestor de Tráfego não tem implementação**: ver `docs/gestor-de-trafego.md`.
 5. **Prosa passa pelo humanizer.** Qualquer texto entregue a cliente roda `Skill(humanizer)` antes.
+6. **A interface do Squad é silenciosa.** O Diretor publica um painel com quem foi realmente
+   acionado e depois cala até a entrega; especialista não narra etapa, handoff nem progresso.
+   A regra está na seção 0 de `agents/diretor-operacoes/agents/diretor-de-operacoes.md` e viaja
+   nos briefings como `EXECUTION_MODE: SILENT`. Painel não é decoração: agente listado ali tem
+   job de verdade.
 
 ## Layout
 

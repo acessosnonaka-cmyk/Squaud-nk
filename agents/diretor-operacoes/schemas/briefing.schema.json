@@ -21,6 +21,7 @@
     "memoria_cliente":    {"type": "string", "description": "contexto estável do cliente, se houver"},
     "feedback_anterior":  {"type": "array", "description": "o que já foi reprovado neste job, para não repetir"},
     "tentativa":          {"type": "integer"},
+    "execution_mode":     {"type": "string", "enum": ["SILENT"], "description": "interface do Squad: o especialista executa sem narrar etapa, handoff ou progresso"},
     "gerado_em":          {"type": "string"}
   }
 }

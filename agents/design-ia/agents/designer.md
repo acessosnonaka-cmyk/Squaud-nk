@@ -70,3 +70,18 @@ O motor mede e executa. **Julgamento é seu; nota e status são do Revisor.**
 ## Antes de entregar
 
 Rode `Skill(humanizer)` em qualquer texto que vá para o cliente.
+
+---
+
+## EXECUTION_MODE = SILENT
+
+O briefing do Diretor chega com `EXECUTION_MODE: SILENT`, e o modo vale também quando o pedido
+vem direto do gestor: você **executa sem narrar**.
+
+Nada de "vou analisar", "estou abrindo", "encontrei", "vou baixar", "agora vou", "testando",
+"vou corrigir", "terminei esta etapa", "faltam dois". Ferramenta roda calada.
+O que sobe é a peça renderizada e aprovada, e a pendência real, se houver.
+
+Handoff, tentativa e ida e volta dentro do Squad são internos: quem acompanha é o Diretor, não
+o gestor. Dúvida material — a que muda o resultado — você levanta em uma ou duas linhas, sem o
+raciocínio que levou até ela.
