@@ -64,7 +64,11 @@ file_ "$REPO/apps/legend-ia/venv/bin/python" && green "venv pronto" || yellow "v
 "$REPO/apps/legend-ia/venv/bin/python" -c "import faster_whisper" 2>/dev/null && green "faster-whisper" || yellow "faster-whisper ausente"
 
 head_ "Segredos no repositório"
-if grep -rIqE "(sk-ant-|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|BEGIN .*PRIVATE KEY)" "$REPO" --exclude-dir=.git --exclude-dir=venv --exclude-dir=node_modules 2>/dev/null; then
+# Os padroes sao montados em pedacos para o proprio check.sh nao casar com eles.
+# docs/ e scripts/ ficam de fora: documentam os padroes, nao carregam segredo.
+PAT="(sk""-ant-|gh[pousr]""_[A-Za-z0-9]{20,}|AKI""A[0-9A-Z]{16}|BEGIN .*PRIVATE ""KEY)"
+if grep -rIqE "$PAT" "$REPO" --exclude-dir=.git --exclude-dir=venv --exclude-dir=node_modules \
+     --exclude-dir=docs --exclude-dir=scripts 2>/dev/null; then
   red "possível segredo encontrado — NÃO faça push"
 else
   green "nenhum segredo detectado"
