@@ -1,0 +1,1 @@
+../../agents/revisor-arte/agents/revisor-de-criacao.md

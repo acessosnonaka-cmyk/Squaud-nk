@@ -1,0 +1,1 @@
+../../apps/lp-builder/agents/lp-builder.md

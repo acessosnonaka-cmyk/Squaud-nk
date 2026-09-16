@@ -71,11 +71,64 @@ else
   red "squad.yaml ausente — o roster oficial não existe"
 fi
 
+head_ "Disponibilidade real para o Claude Code"
+# Arquivo existir no repositório não é o mesmo que o Claude Code enxergar.
+# São três estados distintos, e só o primeiro sobrevive a um clone novo:
+#   PROJETO  .claude/ do repositório — funciona sem instalação prévia
+#   HOME     symlink em ~/.claude    — depende de o setup.sh ter rodado aqui
+#   AUSENTE  nenhum dos dois         — o agente não existe para quem for acioná-lo
+disponibilidade() {                       # $1 = tipo (agents|skills) · $2 = nome
+  local tipo="$1" nome="$2" sufixo=""
+  [ "$tipo" = "agents" ] && sufixo=".md"
+  if [ -e "$REPO/.claude/$tipo/$nome$sufixo" ]; then echo PROJETO
+  elif [ -e "$CLAUDE_HOME/$tipo/$nome$sufixo" ]; then echo HOME
+  else echo AUSENTE; fi
+}
+
+if file_ "$REPO/squad.yaml"; then
+  proj=0; home=0; ausente=0
+  for sub in $(grep -E '^    subagent_type: [^n]' "$REPO/squad.yaml" | awk '{print $2}'); do
+    case "$(disponibilidade agents "$sub")" in
+      PROJETO) proj=$((proj+1)) ;;
+      HOME)    home=$((home+1));  yellow "agente '$sub': só em ~/.claude — some em clone novo" ;;
+      AUSENTE) ausente=$((ausente+1)); red "agente '$sub': AUSENTE — não é acionável nesta sessão" ;;
+    esac
+  done
+  [ "$proj" -gt 0 ] && green "$proj/7 agentes disponíveis pelo PROJETO (.claude/agents)"
+  [ "$ausente" -eq 0 ] && [ "$home" -eq 0 ] && [ "$proj" -eq 7 ] \
+    && green "os 7 agentes sobrevivem a um clone novo sem setup.sh"
+
+  sproj=0; shome=0; sausente=0
+  for s in $(grep -E '^      - (agents|apps)/.*/skills/' "$REPO/squad.yaml" | awk '{print $2}'); do
+    nome="$(basename "$s")"
+    case "$(disponibilidade skills "$nome")" in
+      PROJETO) sproj=$((sproj+1)) ;;
+      HOME)    shome=$((shome+1)); yellow "skill '$nome': só em ~/.claude — some em clone novo" ;;
+      AUSENTE) sausente=$((sausente+1)); red "skill '$nome': AUSENTE — o agente carrega o nada" ;;
+    esac
+  done
+  [ "$sproj" -gt 0 ] && green "$sproj skills próprias disponíveis pelo PROJETO (.claude/skills)"
+fi
+
+# O humanizer é clone externo e não entra no git. Ausência degrada, não bloqueia:
+# a regra 5 do CLAUDE.md deixa de ser aplicável e isso precisa ficar visível.
+if [ -f "$REPO/shared/skills/humanizer/SKILL.md" ]; then
+  green "humanizer presente — prosa de cliente passa por ele"
+else
+  yellow "humanizer ausente (clone externo, não versionado) — o Squad funciona, mas a regra 5 do CLAUDE.md fica suspensa; rode scripts/setup.sh para instalar"
+fi
+
+if file_ "$REPO/.claude/settings.json"; then
+  green "configuração de projeto presente (.claude/settings.json)"
+else
+  red ".claude/settings.json ausente — o hook PreToolUse não é registrado pelo projeto"
+fi
+
 head_ "Âncora do repositório"
 if [ -L "$CLAUDE_HOME/squad-nk" ] && [ -d "$CLAUDE_HOME/squad-nk/agents" ]; then
   green "~/.claude/squad-nk -> $(readlink "$CLAUDE_HOME/squad-nk")"
 else
-  yellow "âncora ausente — os prompts citam ~/.claude/squad-nk; rode scripts/setup.sh"
+  yellow "âncora ausente — os motores e os prompts citam ~/.claude/squad-nk; rode scripts/setup.sh. Os agentes e as skills NÃO dependem disso: chegam pelo .claude/ do projeto"
 fi
 
 head_ "Ferramentas de base"

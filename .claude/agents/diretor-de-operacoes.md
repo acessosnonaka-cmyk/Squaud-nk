@@ -1,0 +1,1 @@
+../../agents/diretor-operacoes/agents/diretor-de-operacoes.md

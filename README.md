@@ -145,8 +145,23 @@ A única mensagem antes da entrega é o painel, com **apenas os especialistas re
 Quem não tem job nesta demanda não aparece — sem `aguardando`, sem `standby`. Depois do painel
 vem silêncio: nada de progresso, handoff ou log. Só a dúvida que muda o resultado interrompe, e
 o que volta no fim é a entrega. Todo especialista acionado recebe `EXECUTION_MODE: SILENT` no
-briefing e trabalha da mesma forma. A regra vive na seção 0 de
-[`diretor-de-operacoes.md`](agents/diretor-operacoes/agents/diretor-de-operacoes.md).
+briefing e trabalha da mesma forma.
+
+Os status são dois: `● TRABALHANDO...` para job real disparado e `⚠ BLOQUEADO` para
+especialista necessário que não está disponível na sessão. Indisponível **não** vira execução
+pelo Claude principal — vira bloqueio declarado com a causa.
+
+**Roteamento sem palavra-chave.** Demanda de marketing entra pelo Diretor sozinha; o gestor não
+escreve "acione o Squad". A regra global e autocontida está na seção *Roteamento obrigatório* do
+[`CLAUDE.md`](CLAUDE.md), que é o arquivo que o Claude Code carrega em toda sessão — inclusive na
+web. O prompt do Diretor ([seção 0](agents/diretor-operacoes/agents/diretor-de-operacoes.md)) e
+este README repetem o template por necessidade de plataforma, e `auditoria.py` confere que as
+três cópias não divergiram.
+
+**Portabilidade.** Os 7 agentes chegam ao Claude Code por [`.claude/agents/`](.claude/agents) e
+as skills próprias por [`.claude/skills/`](.claude/skills), como symlink para o arquivo canônico
+do repositório. Clone novo já enxerga o Squad, sem `setup.sh` antes. O `setup.sh` continua sendo
+o que instala **motores e dependências** — Chromium, Pillow, humanizer, dados fora do git.
 
 ### Design IA
 

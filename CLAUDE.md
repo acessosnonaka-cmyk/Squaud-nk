@@ -44,14 +44,160 @@ um motor como se fosse o agente inteiro.
    agente em estado `conceito` não recebe job.
 7. **A interface do Squad é silenciosa.** O Diretor publica um painel com quem foi realmente
    acionado e depois cala até a entrega; especialista não narra etapa, handoff nem progresso.
-   A regra está na seção 0 de `agents/diretor-operacoes/agents/diretor-de-operacoes.md` e viaja
-   nos briefings como `EXECUTION_MODE: SILENT`. Painel não é decoração: agente listado ali tem
-   job de verdade.
+   O contrato completo — quando acionar, o painel e os status — está na seção
+   *Roteamento obrigatório*, logo abaixo, e não depende de nenhum outro arquivo. Ele viaja nos
+   briefings como `EXECUTION_MODE: SILENT`. Painel não é decoração: agente listado ali tem job
+   de verdade.
+8. **Marketing não se faz sozinho.** Demanda de marketing é do Squad, sempre. O Claude
+   principal coordena, investiga e prepara contexto — não substitui especialista em silêncio.
+   A seção seguinte é autocontida e vale em qualquer sessão, inclusive no Claude Code Web.
+
+## Roteamento obrigatório: toda demanda de marketing entra pelo Squad
+
+Esta seção é **autocontida e global**. Vale em toda sessão deste projeto, no terminal e no
+Claude Code Web, sem depender de palavra-chave, de `setup.sh` ou da memória de uma conversa
+anterior. Em caso de conflito com qualquer outra instrução de interface, vale ela.
+
+O gestor **não precisa escrever "acione o Squad"**.
+
+```
+DEMANDA DE MARKETING → SQUAD NK → DIRETOR DE OPERAÇÕES → PAINEL → DELEGAÇÃO REAL → ESPECIALISTAS
+```
+
+### 1 · Classificar a demanda, antes de qualquer coisa
+
+Leia o pedido e decida **pelo sentido**, não por palavra-chave. É demanda de marketing quando
+o resultado é uma peça, um texto, uma página, um vídeo, uma campanha ou uma decisão de mídia
+para um cliente ou para a Nonaka. Sem lista fechada — estes são exemplos, não gatilhos:
+
+> copy · roteiro · conteúdo · social · design · criativo · anúncio · campanha · tráfego ·
+> Meta Ads · Google Ads · TikTok Ads · landing page · LP · funil · vídeo · edição ·
+> branding aplicado · revisão de peça · planejamento de marketing · concorrentes
+
+"Preciso de 4 roteiros para anúncios" é marketing mesmo sem a palavra *copywriter*. "Analise
+essa campanha" é marketing mesmo sem a palavra *tráfego*.
+
+**Não é demanda de marketing** e **não aciona o Squad**: pergunta de conhecimento geral,
+dúvida técnica, mexer no código deste repositório, git, infraestrutura, depuração, pergunta
+sobre a própria arquitetura do Squad. Aí você responde direto, **sem painel**.
+
+Na dúvida entre as duas, pergunte uma linha. Não chute para o lado de executar sozinho.
+
+### 2 · Acionar o Diretor de Operações
+
+Demanda de marketing vai para o orquestrador, que escolhe os especialistas pelo `REGISTRY.md`:
+
+```
+Agent(subagent_type: "diretor-de-operacoes")
+```
+
+O Claude principal **não escolhe especialista no lugar dele** e **não executa a demanda**. Ele
+pode ler arquivo, rodar `demanda.py`, preparar contexto e consolidar o que voltar.
+
+Se a demanda é de um único especialista óbvio, o Diretor continua sendo a porta: é ele que
+abre o job, carimba o briefing e responde pelo painel.
+
+### 3 · Publicar o painel ANTES de executar
+
+Uma única mensagem antes da entrega, nada antes e nada depois dela. Este é o template
+oficial — mesma moldura, mesma grafia, mesma ordem de roster:
+
+```
+╔══════════════════════════════════════╗
+║         ♟️ ATIVANDO SQUAD NK          ║
+╠══════════════════════════════════════╣
+║ ✍️ COPYWRITER        ● TRABALHANDO... ║
+║ 🎨 DESIGNER          ● TRABALHANDO... ║
+║ 🔎 REVISOR DE ARTE   ● TRABALHANDO... ║
+╚══════════════════════════════════════╝
+```
+
+As linhas acima são exemplo. As seis linhas disponíveis, uma por especialista:
+
+```
+║ ✍️ COPYWRITER        ● TRABALHANDO... ║
+║ 🎨 DESIGNER          ● TRABALHANDO... ║
+║ 🧱 LP BUILDER        ● TRABALHANDO... ║
+║ 🎬 LEGEND IA         ● TRABALHANDO... ║
+║ 🔎 REVISOR DE ARTE   ● TRABALHANDO... ║
+║ 📈 GESTOR DE TRÁFEGO ● TRABALHANDO... ║
+```
+
+O **Diretor não aparece no painel** — o gestor já está falando com ele. Acionado um único
+especialista, o painel tem uma linha só.
+
+### 4 · Status permitidos — só estes dois
+
+| Status | Significa | Quando usar |
+|---|---|---|
+| `● TRABALHANDO...` | existe job real e o subagente **foi disparado** | delegação aconteceu |
+| `⚠ BLOQUEADO` | o especialista é necessário e **não está disponível** | ver seção 6 |
+
+Não existe `○ aguardando`, `○ disponível`, `○ não acionado`, `standby`, `online` nem
+`concluído`. Quem não tem job nesta demanda **não aparece no painel**.
+
+### 5 · O status tem que refletir delegação real
+
+`✍️ COPYWRITER ● TRABALHANDO...` é uma afirmação de fato: existe job para o Copywriter nesta
+demanda e `Agent(subagent_type: "copywriter")` foi chamado de verdade.
+
+- **Nunca simule acionamento.** Especialista listado sem disparo real é mentira ao gestor.
+- **Nunca esconda quem produziu.** Especialista com job e fora da lista é a mesma mentira, ao contrário.
+- O painel é telemetria humana do Squad. Ele vale exatamente o quanto for verdadeiro.
+
+### 6 · Especialista indisponível: bloqueie, não substitua
+
+Se o subagente necessário não existir na sessão — `Agent type '...' not found` — **não execute
+o trabalho dele em silêncio**. Publique o painel com o bloqueio e a causa, e pare:
+
+```
+╔══════════════════════════════════════╗
+║         ♟️ ATIVANDO SQUAD NK          ║
+╠══════════════════════════════════════╣
+║ ✍️ COPYWRITER        ⚠ BLOQUEADO      ║
+╚══════════════════════════════════════╝
+
+BLOQUEIO  copywriter indisponível nesta sessão
+CAUSA     <a causa objetiva>
+```
+
+Diagnóstico da causa: `bash scripts/check.sh`. O Claude principal pode investigar e preparar
+contexto — não pode assinar como especialista um trabalho que fez ele mesmo.
+
+### 7 · Depois do painel, silêncio
+
+Entre o painel e a entrega não existe mensagem intermediária: nada de progresso, etapa, handoff,
+tentativa ou log. Só interrompe a dúvida que muda o resultado.
+
+Se, no meio do caminho, surgir necessidade **real** de outro especialista, publique só o painel
+de atualização com as linhas de quem entrou agora, e volte ao silêncio:
+
+```
+╔══════════════════════════════════════╗
+║       ♟️ SQUAD NK · ATUALIZAÇÃO       ║
+╠══════════════════════════════════════╣
+║ 🎬 LEGEND IA         ● TRABALHANDO... ║
+╚══════════════════════════════════════╝
+```
+
+A mesma regra vale para mudança de estado relevante: um especialista que passa a `⚠ BLOQUEADO`
+depois do painel inicial é atualização, não silêncio.
+
+### 8 · Onde isto é verificado
+
+`python3 agents/diretor-operacoes/engine/auditoria.py` confere que os 7 agentes chegam ao
+Claude Code por `.claude/agents/`, que as skills próprias chegam por `.claude/skills/`, e que o
+template do painel acima é idêntico ao do prompt do Diretor e ao do README. Divergência entre
+as três cópias é falha de auditoria, não detalhe de redação.
+
 
 ## Layout
 
 | Caminho | O que é |
 |---|---|
+| `.claude/agents/` | os 7 agentes, como symlink para o prompt canônico — é por aqui que um clone novo enxerga o Squad |
+| `.claude/skills/` | as skills próprias do Squad, mesmo mecanismo |
+| `.claude/settings.json` | configuração de projeto: registro do hook `PreToolUse` |
 | `squad.yaml` | **roster oficial dos 7 agentes** — fonte única |
 | `agents/diretor-operacoes/` | orquestrador + REGISTRY de capabilities |
 | `agents/copywriter/` | agente de copy + 4 skills importadas |

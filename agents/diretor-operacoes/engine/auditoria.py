@@ -29,6 +29,25 @@ REPO = roster.REPO
 REGISTRY = REPO / "agents" / "diretor-operacoes" / "REGISTRY.md"
 SETUP = REPO / "scripts" / "setup.sh"
 MARKETPLACE = REPO / ".claude-plugin" / "marketplace.json"
+PROJETO_AGENTES = REPO / ".claude" / "agents"
+PROJETO_SKILLS = REPO / ".claude" / "skills"
+CLAUDE_MD = REPO / "CLAUDE.md"
+DIRETOR = REPO / "agents" / "diretor-operacoes" / "agents" / "diretor-de-operacoes.md"
+LEIAME = REPO / "README.md"
+
+# Fonte canônica do painel: o CLAUDE.md, porque é o único arquivo que o Claude
+# Code carrega sozinho em qualquer sessão. As outras duas cópias existem por
+# motivo de plataforma (prompt do subagente, documentação) e são conferidas
+# contra esta. Divergir é falha, não detalhe de redação.
+PAINEL_CANONICO = """```
+╔══════════════════════════════════════╗
+║         ♟️ ATIVANDO SQUAD NK          ║
+╠══════════════════════════════════════╣
+║ ✍️ COPYWRITER        ● TRABALHANDO... ║
+║ 🎨 DESIGNER          ● TRABALHANDO... ║
+║ 🔎 REVISOR DE ARTE   ● TRABALHANDO... ║
+╚══════════════════════════════════════╝
+```"""
 
 
 def frontmatter(caminho: pathlib.Path) -> dict:
@@ -46,13 +65,34 @@ def frontmatter(caminho: pathlib.Path) -> dict:
     return dados
 
 
-def como_se_instala(prompt: str, setup: str, marketplace: str) -> str:
-    """Por onde o prompt chega ao Claude Code: symlink do setup.sh ou plugin.
+def chega_pelo_projeto(sub: str, prompt: str) -> bool:
+    """O agente está em `.claude/agents/` e aponta para o prompt declarado?
 
-    São dois caminhos legítimos e o roster usa os dois — o Revisor de Arte e o
-    Gestor de Tráfego são plugins do marketplace. O que não pode é nenhum: aí o
-    agente existe no repositório e não existe para quem vai acioná-lo.
+    Este é o único caminho que funciona em clone novo sem instalação prévia: o
+    Claude Code lê `.claude/agents/` do projeto e segue symlink. Os outros dois
+    (symlink do setup.sh em ~/.claude, plugin do marketplace) dependem de um
+    passo manual que não acontece num container Web novo.
     """
+    if not sub:
+        return False
+    arquivo = PROJETO_AGENTES / f"{sub}.md"
+    if not arquivo.is_file():                 # is_file() já segue o symlink
+        return False
+    try:
+        return arquivo.resolve() == (REPO / prompt).resolve()
+    except OSError:
+        return False
+
+
+def como_se_instala(prompt: str, setup: str, marketplace: str, sub: str = "") -> str:
+    """Por onde o prompt chega ao Claude Code, em ordem de portabilidade.
+
+    `projeto` é o que vale num clone novo. `symlink` e `plugin` continuam
+    legítimos e seguem valendo na máquina de quem rodou o setup, mas nenhum dos
+    dois sozinho faz o Squad existir numa sessão Web recém-aberta.
+    """
+    if chega_pelo_projeto(sub, prompt):
+        return "projeto"
     if prompt in setup:
         return "symlink"
     base = pathlib.PurePosixPath(prompt).parent.parent          # agents/<x>/agents/y.md -> agents/<x>
@@ -106,15 +146,64 @@ def auditar_agente(a: dict, registry: str, setup: str, marketplace: str) -> tupl
             if not (REPO / alvo).exists():
                 falhas.append(f"{ident}: {campo[:-1]} declarado não existe ({alvo})")
 
+    # Skill que o agente carrega só serve se o Claude Code enxergar. Mesmo
+    # raciocínio do prompt: em clone novo, quem entrega isso é `.claude/skills/`.
+    for alvo in a.get("skills") or []:
+        nome = pathlib.PurePosixPath(alvo).name
+        atalho = PROJETO_SKILLS / nome
+        if not atalho.exists():
+            falhas.append(f"{ident}: skill '{nome}' não chega ao Claude Code "
+                          f"— ausente em .claude/skills/")
+        elif atalho.resolve() != (REPO / alvo).resolve():
+            falhas.append(f"{ident}: .claude/skills/{nome} aponta para outro lugar que não {alvo}")
+
+    if not chega_pelo_projeto(sub, prompt):
+        falhas.append(f"{ident}: ausente em .claude/agents/ — não existe em clone novo, "
+                      "só na máquina de quem rodou o setup.sh")
+
     if a.get("papel") == "especialista":
         if sub not in modelo.agentes_acionaveis():
             falhas.append(f"{ident}: formal, mas o motor não o considera acionável")
         if sub and sub not in registry:
             falhas.append(f"{ident}: ausente no REGISTRY.md — o Diretor não sabe rotear para ele")
-    if not como_se_instala(prompt, setup, marketplace):
+    if not como_se_instala(prompt, setup, marketplace, sub):
         falhas.append(f"{ident}: não chega ao Claude Code — nem symlink no setup.sh, "
                       "nem plugin declarado no marketplace")
     return falhas, notas
+
+
+def auditar_painel() -> list:
+    """O template do painel é o mesmo nos três lugares onde ele precisa existir?
+
+    Não dá para ter uma cópia só: o CLAUDE.md é o que o Claude Code carrega
+    sozinho, o prompt do Diretor é o que vale quando o subagente roda, e o README
+    é o que o humano lê. O que dá para garantir é que as três digam a mesma coisa.
+    """
+    falhas = []
+    if not CLAUDE_MD.is_file():
+        return ["CLAUDE.md ausente: a regra global de roteamento não existe"]
+
+    claude_md = CLAUDE_MD.read_text(encoding="utf-8")
+    if PAINEL_CANONICO not in claude_md:
+        falhas.append("CLAUDE.md não contém o template do painel na forma canônica "
+                      "— é ele que o Claude Code carrega sozinho")
+    for termo, motivo in (
+        ("Agent(subagent_type: \"diretor-de-operacoes\")",
+         "não manda acionar o Diretor"),
+        ("● TRABALHANDO...", "não declara o status de trabalho"),
+        ("⚠ BLOQUEADO", "não declara o status de bloqueio"),
+    ):
+        if termo not in claude_md:
+            falhas.append(f"CLAUDE.md {motivo} ({termo})")
+
+    for arquivo, rotulo in ((DIRETOR, "prompt do Diretor"), (LEIAME, "README.md")):
+        if not arquivo.is_file():
+            falhas.append(f"{rotulo} ausente: não dá para conferir o painel")
+            continue
+        if PAINEL_CANONICO not in arquivo.read_text(encoding="utf-8"):
+            falhas.append(f"{rotulo}: template do painel diverge do CLAUDE.md "
+                          "— duas verdades sobre a mesma interface")
+    return falhas
 
 
 def auditar() -> tuple[list, list, list]:
@@ -126,6 +215,10 @@ def auditar() -> tuple[list, list, list]:
 
     if not registry:
         falhas.append("REGISTRY.md ausente: ninguém define o roteamento por capability")
+    falhas += auditar_painel()
+    if not (REPO / ".claude" / "settings.json").is_file():
+        falhas.append(".claude/settings.json ausente: o hook PreToolUse não é registrado "
+                      "pelo projeto e o portão fica sem o contorno de shell")
     if len(agentes) != 7:
         falhas.append(f"roster tem {len(agentes)} agentes; o Squad são 7")
 
@@ -145,7 +238,8 @@ def auditar() -> tuple[list, list, list]:
         notas += n
         estado = "FALHA" if f else ("BLOQUEIO" if n else "OK")
         alvo = a.get("subagent_type") or "—"
-        via = como_se_instala(a.get("prompt") or "", setup, marketplace) if a.get("prompt") else ""
+        via = (como_se_instala(a.get("prompt") or "", setup, marketplace,
+                               a.get("subagent_type") or "") if a.get("prompt") else "")
         linhas.append(f"  {a.get('emoji','?')} {ident:<20} {estado:<9} {alvo:<22} {via}")
     return falhas, notas, linhas
 

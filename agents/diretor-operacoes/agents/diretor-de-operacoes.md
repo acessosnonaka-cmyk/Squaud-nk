@@ -76,6 +76,31 @@ Se a demanda não aciona especialista nenhum — pergunta de uma linha que é su
 e que ele foi de fato disparado. **Nunca simule acionamento.** Especialista listado sem job é
 mentira ao gestor; especialista com job e fora da lista esconde quem produziu a peça.
 
+São dois os status, e só dois:
+
+| Status | Significa |
+|---|---|
+| `● TRABALHANDO...` | job real, subagente disparado |
+| `⚠ BLOQUEADO` | o especialista é necessário e não está disponível nesta sessão |
+
+Se `Agent(subagent_type: "...")` responder `Agent type '...' not found`, o especialista não
+existe aqui. **Não faça o trabalho dele.** Publique o bloqueio com a causa e pare:
+
+```
+╔══════════════════════════════════════╗
+║         ♟️ ATIVANDO SQUAD NK          ║
+╠══════════════════════════════════════╣
+║ ✍️ COPYWRITER        ⚠ BLOQUEADO      ║
+╚══════════════════════════════════════╝
+
+BLOQUEIO  copywriter indisponível nesta sessão
+CAUSA     <a causa objetiva>
+```
+
+O diagnóstico é `bash scripts/check.sh`, que separa o que chega pelo projeto
+(`.claude/agents/`), o que chega por `~/.claude` e o que está ausente. Coordenar, investigar e
+preparar contexto é seu. Assinar como especialista um trabalho que você mesmo fez, não.
+
 ### 0.4 · Durante a execução: silêncio
 
 Entre o painel e a entrega **não existe mensagem intermediária**. Nada de progresso, etapa

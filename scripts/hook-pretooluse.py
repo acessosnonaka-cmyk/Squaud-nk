@@ -70,8 +70,19 @@ def main() -> None:
     if GATE.match(comando):
         liberar()                      # é o próprio portão; ele decide
 
-    raiz = pathlib.Path(os.environ.get("SQUAD_NK_HOME")
-                        or (pathlib.Path.home() / ".claude" / "squad-nk"))
+    # Onde está o repositório, em ordem de confiança. O próprio arquivo vem
+    # primeiro: o hook é chamado por caminho absoluto a partir de scripts/, então
+    # parents[1] é a raiz real, exista ou não o symlink do setup.sh. É o que faz
+    # o hook funcionar em clone novo, sem instalação prévia.
+    candidatos = [
+        pathlib.Path(__file__).resolve().parents[1],
+        pathlib.Path(os.environ["CLAUDE_PROJECT_DIR"]) if os.environ.get("CLAUDE_PROJECT_DIR") else None,
+        pathlib.Path(os.environ["SQUAD_NK_HOME"]) if os.environ.get("SQUAD_NK_HOME") else None,
+        pathlib.Path.home() / ".claude" / "squad-nk",
+    ]
+    raiz = next((c for c in candidatos
+                 if c and (c / "agents" / "diretor-operacoes" / "engine" / "policy.py").is_file()),
+                candidatos[0])
     try:
         sys.path.insert(0, str(raiz / "agents" / "diretor-operacoes"))
         from engine import policy      # type: ignore
@@ -104,7 +115,7 @@ def main() -> None:
         f"Impacto: {veredito['impacto'] or 'não declarado'}\n"
         "Esta ação REQUER APROVAÇÃO HUMANA e não pode ser executada direto pelo Bash.\n"
         "Passe pelo portão, que registra a solicitação e checa se já existe aprovação:\n"
-        "  python3 ~/.claude/squad-nk/agents/diretor-operacoes/engine/policy.py executar \\\n"
+        "  python3 agents/diretor-operacoes/engine/policy.py executar \\\n"
         "      --acao \"<o que você vai fazer, em português>\" --demanda <DEM-...> -- <o comando>"
     )
 
