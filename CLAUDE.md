@@ -99,8 +99,12 @@ abre o job, carimba o briefing e responde pelo painel.
 
 ### 3 · Publicar o painel ANTES de executar
 
-Uma única mensagem antes da entrega, nada antes e nada depois dela. Este é o template
-oficial — mesma moldura, mesma grafia, mesma ordem de roster:
+Uma única mensagem antes da entrega, nada antes e nada depois dela. **A primeira coisa que o
+gestor lê é a moldura.** Sem preâmbulo, sem título, sem "demanda de marketing detectada", sem
+"acionando o Squad", sem explicar a classificação. Se você escreveu uma linha antes do `╔`,
+está errado.
+
+Este é o template oficial — mesma moldura, mesma grafia, mesma ordem de roster:
 
 ```
 ╔══════════════════════════════════════╗
@@ -145,6 +149,14 @@ demanda e `Agent(subagent_type: "copywriter")` foi chamado de verdade.
 - **Nunca esconda quem produziu.** Especialista com job e fora da lista é a mesma mentira, ao contrário.
 - O painel é telemetria humana do Squad. Ele vale exatamente o quanto for verdadeiro.
 
+**Quem o painel lista é quem o Diretor despachou de verdade** — não quem você imagina que ele
+vai escolher. Chutar o especialista antes de o Diretor abrir o job produz painel falso: o
+gestor lê `✍️ COPYWRITER ● TRABALHANDO...` e o Copywriter nunca recebeu nada, porque o Diretor
+travou pedindo contexto.
+
+Se você é o Claude principal e ainda não sabe quem entrou, **espere o Diretor dizer**. Painel
+atrasado é interface; painel errado é mentira.
+
 ### 6 · Especialista indisponível: bloqueie, não substitua
 
 Se o subagente necessário não existir na sessão — `Agent type '...' not found` — **não execute
@@ -167,7 +179,9 @@ contexto — não pode assinar como especialista um trabalho que fez ele mesmo.
 ### 7 · Depois do painel, silêncio
 
 Entre o painel e a entrega não existe mensagem intermediária: nada de progresso, etapa, handoff,
-tentativa ou log. Só interrompe a dúvida que muda o resultado.
+tentativa ou log. Isto inclui o Claude principal enquanto espera o subagente: "Diretor acionado",
+"aguardando conclusão", "já volto com os roteiros" são exatamente a narração que a regra proíbe.
+Chamou o Diretor, cale. Só interrompe a dúvida que muda o resultado.
 
 Se, no meio do caminho, surgir necessidade **real** de outro especialista, publique só o painel
 de atualização com as linhas de quem entrou agora, e volte ao silêncio:
