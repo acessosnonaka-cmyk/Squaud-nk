@@ -109,10 +109,10 @@ head_ "2b. DIRETOR — camada operacional"
 for f in engine/modelo.py engine/demanda.py engine/policy.py policy.yaml; do
   file_ "$REPO/agents/diretor-operacoes/$f" && green "$f" || red "$f ausente"
 done
-for sc in demanda job briefing retorno; do
+for sc in demanda job briefing retorno fonte; do
   file_ "$REPO/agents/diretor-operacoes/schemas/$sc.schema.json" || red "schema $sc ausente"
 done
-green "4 schemas de contrato"
+green "5 schemas de contrato"
 if python3 "$REPO/agents/diretor-operacoes/engine/policy.py" classificar "ler um arquivo" >/dev/null 2>&1; then
   green "portão de autonomia responde"
 else

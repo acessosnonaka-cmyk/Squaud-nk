@@ -119,7 +119,8 @@ não fecham um pedido de 5.
 ```bash
 E=agents/diretor-operacoes/engine
 python3 $E/auditoria.py                     # o roster bate com o disco?
-python3 agents/diretor-operacoes/testes/teste-roteamento.py   # roteamento, contrato e travas
+python3 agents/diretor-operacoes/testes/teste-roteamento.py        # roteamento, contrato e travas
+python3 agents/diretor-operacoes/testes/teste-contexto-cliente.py  # acervo externo do cliente
 ```
 
 A auditoria compara `squad.yaml` com os prompts, o frontmatter de cada um, skills, motores, o
@@ -128,6 +129,27 @@ devolve `SQUAD NK VALIDADO` ou o bloqueio. Os seis especialistas passam, **Gesto
 incluído**: ele é acionável por `Agent(subagent_type: "gestor-de-trafego")` e recebe job como
 qualquer outro. Acionável não é autorizado — subir, ativar, pausar ou mexer em orçamento
 continua `REQUER_APROVACAO` no `policy.yaml`.
+
+**Acervo externo do cliente.** O material do cliente vive no Google Drive conectado, e quem
+fala com ele é **só o Diretor** — especialista recebe fato pelo briefing e não vai ao acervo por
+conta própria. Antes de planejar, o Diretor localiza o cliente em silêncio; o que lê é
+classificado, e a classe decide o que viaja: `fato`, `asset` e `decisao_vigente` entram no
+briefing como Source of Truth, enquanto `historico`, `campanha_anterior` e o que envelheceu
+(90 dias sem reverificação) só chegam ao especialista se o Diretor anexar a fonte ao job — e
+ainda assim como referência. É o que impede a campanha passada de virar verdade da demanda nova.
+Acervo não encontrado não bloqueia demanda que pode andar; **dois clientes possíveis para o
+mesmo nome é dúvida material** e o Diretor pergunta antes de abrir arquivo.
+
+```bash
+python3 $E/demanda.py cliente resolver "CamareroVIX"
+python3 $E/demanda.py cliente fonte add camarero-vix --classe fato \
+    --titulo "Tabela de preços 2026" --ref <fileId>
+python3 $E/demanda.py cliente contexto camarero-vix
+```
+
+O registro fica em `$SQUAD_DATA_HOME/diretor/clientes/<slug>.fontes.json`: um arquivo por
+cliente, com o que a fonte diz e o `fileId` de onde veio. É memória operacional com rastro —
+nunca cópia nem sincronização do Drive.
 
 **Interface — modo ultrassilencioso.** O Diretor analisa, planeja e delega sem publicar nada.
 A única mensagem antes da entrega é o painel, com **apenas os especialistas realmente acionados**:
@@ -256,7 +278,7 @@ no repositório com o LICENSE de cada uma. Procedência completa em
 | Playwright + Chromium | render do Design IA, QA/screenshot do LP Builder | sim para arte e LP |
 | `Pillow` | `validate.py` do Design IA — conferência da peça renderizada | sim para arte |
 | `faster-whisper` | Legend IA | sim para transcrição |
-| Conector Google Drive do claude.ai | LP Builder (ingestão), Revisor (link de Drive) | conta, não máquina |
+| Conector Google Drive do claude.ai | **Diretor** (acervo do cliente), LP Builder (ingestão), Revisor (link de Drive) | conta, não máquina |
 | `rsync` + SSH | LP Builder, só ao publicar em VPS | não |
 
 Nenhum MCP server está configurado. Nenhum banco de dados é usado por estes cinco componentes.

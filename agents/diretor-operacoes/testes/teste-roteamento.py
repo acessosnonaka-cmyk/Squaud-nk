@@ -117,13 +117,15 @@ rodar(demanda.cmd_planejar, demanda=did, plano="copy -> arte -> revisão")
 # Agente que não existe não recebe job — nem por engano de grafia.
 msg = erro_de(rodar, demanda.cmd_job_add, demanda=did, agente="gestor-trafego",
               objetivo="subir campanha", entrada=None, saida="campanha", depende=None,
-              criterio=None, restricao=None)
+              criterio=None, restricao=None, fonte=None)
 checar("job/agente-inexistente", "não é acionável" in msg, msg or "id do roster foi aceito como agente")
 
 rodar(demanda.cmd_job_add, demanda=did, agente="copywriter", objetivo="copy dos 2 criativos",
-      entrada=None, saida="primary text + headline", depende=None, criterio=None, restricao=None)
+      entrada=None, saida="primary text + headline", depende=None, criterio=None,
+      restricao=None, fonte=None)
 rodar(demanda.cmd_job_add, demanda=did, agente="designer", objetivo="2 peças",
-      entrada=None, saida="2 PNG", depende=["JOB-001"], criterio=None, restricao=None)
+      entrada=None, saida="2 PNG", depende=["JOB-001"], criterio=None, restricao=None,
+      fonte=None)
 
 # REQUEST_CHECKLIST: todo requisito tem dono.
 rodar(demanda.cmd_requisito_add, demanda=did, texto="2 criativos para Meta Ads",
@@ -203,7 +205,7 @@ rodar(demanda.cmd_planejar, demanda=dt, plano="gestor analisa e recomenda")
 rodar(demanda.cmd_job_add, demanda=dt, agente="gestor-de-trafego",
       objetivo="diagnóstico da conta e recomendação de escala", entrada=None,
       saida="parecer com evidência", depende=None, criterio=None,
-      restricao=["não executar ação na conta"])
+      restricao=["não executar ação na conta"], fonte=None)
 rodar(demanda.cmd_requisito_add, demanda=dt, texto="parecer sobre escalar ou não",
       dono="gestor-de-trafego", job="JOB-001")
 

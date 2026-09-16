@@ -154,7 +154,8 @@ def cmd_job_add(a) -> int:
         "id": jid, "demanda_id": d["id"], "agente": a.agente, "objetivo": a.objetivo,
         "entrada": a.entrada or "", "saida_esperada": a.saida or "",
         "criterios": a.criterio or [], "restricoes": a.restricao or [],
-        "dependencias": deps, "status": "PENDENTE", "tentativas": 0,
+        "dependencias": deps, "fontes": _validar_fontes(d["cliente"], a.fonte or []),
+        "status": "PENDENTE", "tentativas": 0,
         "max_tentativas": modelo.MAX_TENTATIVAS, "resultado": None, "erro": None,
         "criado_em": modelo.agora(),
     }
@@ -210,6 +211,7 @@ def cmd_briefing(a) -> int:
 
     mem = dir_memoria_cliente(d["cliente"])
     feedback_job = [f for f in d.get("feedback", []) if f.get("job") == j["id"]]
+    ctx = modelo.contexto_cliente(d["cliente"], j.get("fontes") or [])
 
     briefing = {
         "demanda": d["id"], "job": j["id"], "cliente": d["cliente"],
@@ -224,6 +226,9 @@ def cmd_briefing(a) -> int:
         "requisitos": [f"{r['id']} {r['texto']}" for r in d.get("requisitos", [])
                        if r.get("job") == j["id"]
                        or (not r.get("job") and r.get("dono") == j["agente"])],
+        "base_externa": ctx["base_externa"],
+        "fontes_canonicas": ctx["fontes_canonicas"],
+        "referencias_nao_canonicas": ctx["referencias_nao_canonicas"],
         "tentativa": j.get("tentativas", 0) + 1, "gerado_em": modelo.agora(),
         "execution_mode": modelo.EXECUTION_MODE_PADRAO,
     }
@@ -265,6 +270,14 @@ def formatar_briefing(b: dict) -> str:
         linhas.append("REQUISITOS DO PEDIDO " + "\n                     ".join(b["requisitos"]))
     if b.get("memoria_cliente"):
         linhas.append(f"MEMÓRIA DO CLIENTE {b['memoria_cliente'][:400]}")
+    if b.get("base_externa"):
+        linhas.append(f"ACERVO DO CLIENTE  {b['base_externa']}")
+    if b.get("fontes_canonicas"):
+        linhas.append("SOURCE OF TRUTH    " + "\n                   ".join(b["fontes_canonicas"]))
+    if b.get("referencias_nao_canonicas"):
+        linhas.append("REFERÊNCIA (NÃO É VERDADE ATUAL — o pedido original e a instrução "
+                      "atual prevalecem)\n                   "
+                      + "\n                   ".join(b["referencias_nao_canonicas"]))
     if b.get("feedback_anterior"):
         linhas.append("JÁ REPROVADO ANTES " + "\n                   ".join(b["feedback_anterior"]))
     linhas.append(f"TENTATIVA          {b['tentativa']}")
@@ -631,6 +644,125 @@ def cmd_cliente_anotar(a) -> int:
     return 0
 
 
+# ------------------------------------- contexto externo do cliente (Drive)
+#
+# Quem fala com o Drive é o Diretor, pelo conector MCP — motor não tem conector e
+# não vai ganhar um. O que mora aqui é a decisão: qual cliente é este, o que do
+# que foi encontrado vale como verdade e o que é apenas referência. Assim existe
+# uma implementação só, no orquestrador, e não sete nos especialistas.
+
+def _validar_fontes(cliente: str, ids: list) -> list:
+    if not ids:
+        return []
+    reg = modelo.carregar_fontes(cliente)
+    for i in ids:
+        modelo.achar_fonte(reg, i)          # levanta se a fonte não existe
+    return ids
+
+
+def cmd_cliente_resolver(a) -> int:
+    """Do nome falado para o cliente registrado. Três saídas, e só três.
+
+    Duas pastas possíveis é dúvida material: o Diretor pergunta, não escolhe.
+    Confundir cliente é o erro que não se conserta depois da entrega.
+    """
+    achados = modelo.resolver_cliente(a.cliente)
+    if len(achados) == 1:
+        p(f"RESOLVIDO {achados[0]['cliente']}")
+        return 0
+    if not achados:
+        p(f"SEM BASE  {modelo.slug(a.cliente)}")
+        p("  nenhum cliente registrado com este nome. Localize a pasta no acervo e "
+          "registre com 'cliente base definir', ou siga sem base externa.")
+        return 0
+    p("DÚVIDA MATERIAL")
+    for reg in achados:
+        base = reg.get("base") or {}
+        p(f"  {reg['cliente']:<24} {base.get('pasta_nome', '(sem pasta registrada)')}")
+    p("  dois clientes possíveis para o mesmo nome. Pergunte ao gestor qual é, antes "
+      "de consultar qualquer arquivo.")
+    return 2
+
+
+def cmd_cliente_base_definir(a) -> int:
+    reg = modelo.carregar_fontes(a.cliente)
+    reg["cliente"] = modelo.slug(a.cliente)
+    reg["base"] = {"fonte": a.fonte_externa, "pasta_id": a.pasta_id,
+                   "pasta_nome": a.pasta_nome or "", "definida_em": modelo.agora()}
+    for apelido in (a.alias or []):
+        if apelido not in reg.setdefault("aliases", []):
+            reg["aliases"].append(apelido)
+    modelo.salvar_fontes(a.cliente, reg)
+    p(f"  base de {reg['cliente']}: {a.fonte_externa}:{a.pasta_id}")
+    return 0
+
+
+def cmd_cliente_base_ver(a) -> int:
+    reg = modelo.carregar_fontes(a.cliente)
+    base = reg.get("base")
+    if not base:
+        p(f"  {reg['cliente']}: sem base externa registrada")
+        return 0
+    p(f"  {reg['cliente']}")
+    p(f"  base      {base.get('fonte')}:{base.get('pasta_id')}  {base.get('pasta_nome', '')}")
+    if reg.get("aliases"):
+        p(f"  também conhecido por: {', '.join(reg['aliases'])}")
+    return 0
+
+
+def cmd_cliente_fonte_add(a) -> int:
+    if a.classe not in modelo.CLASSES_FONTE:
+        raise modelo.ErroDeEstado(f"classe inválida. Use: {', '.join(modelo.CLASSES_FONTE)}")
+    reg = modelo.carregar_fontes(a.cliente)
+    reg["cliente"] = modelo.slug(a.cliente)
+    fonte = {
+        "id": modelo.proxima_fonte_id(reg), "classe": a.classe, "titulo": a.titulo,
+        "resumo": a.resumo or "", "fonte_externa": a.fonte_externa,
+        "ref": a.ref or "", "link": a.link or "",
+        "verificado_em": a.verificado_em or modelo.agora()[:10],
+        "demanda": a.demanda or "", "registrado_em": modelo.agora(),
+    }
+    erros = modelo.validar(fonte, "fonte")
+    if erros:
+        raise modelo.ErroDeEstado("fonte inválida: " + "; ".join(erros))
+    reg.setdefault("fontes", []).append(fonte)
+    modelo.salvar_fontes(a.cliente, reg)
+    if a.demanda:
+        modelo.registrar_evento(a.demanda, "FONTE_REGISTRADA",
+                                resumo=f"[{fonte['classe']}] {fonte['titulo'][:120]}")
+    p(fonte["id"])
+    return 0
+
+
+def cmd_cliente_fonte_listar(a) -> int:
+    reg = modelo.carregar_fontes(a.cliente)
+    if not reg.get("fontes"):
+        p(f"  {reg['cliente']}: nenhuma fonte registrada")
+        return 0
+    cab(f"FONTES · {reg['cliente']}")
+    for f in reg["fontes"]:
+        efetiva = modelo.classe_efetiva(f)
+        marca = "·" if efetiva in modelo.FONTES_CANONICAS else " "
+        envelheceu = f"  (registrada como {f['classe']})" if efetiva != f["classe"] else ""
+        p(f"  {marca} {f['id']}  {modelo.rotular_fonte(f)}{envelheceu}")
+    return 0
+
+
+def cmd_cliente_contexto(a) -> int:
+    """O que iria para um briefing deste cliente agora — canônico e referência."""
+    ctx = modelo.contexto_cliente(a.cliente, a.fonte or [])
+    cab(f"CONTEXTO · {modelo.slug(a.cliente)}")
+    p(f"  ACERVO             {ctx['base_externa'] or '(sem base externa)'}")
+    p("  SOURCE OF TRUTH")
+    for linha in ctx["fontes_canonicas"] or ["    (nada vigente registrado)"]:
+        p(f"    {linha}")
+    if ctx["referencias_nao_canonicas"]:
+        p("  REFERÊNCIA — não é verdade atual")
+        for linha in ctx["referencias_nao_canonicas"]:
+            p(f"    {linha}")
+    return 0
+
+
 def cmd_feedback(a) -> int:
     """Registra feedback do gestor, classificado — não vira regra eterna por descuido."""
     d = modelo.carregar(a.demanda)
@@ -776,6 +908,9 @@ def main(argv=None) -> int:
     ja.add_argument("--objetivo", required=True); ja.add_argument("--entrada")
     ja.add_argument("--saida"); ja.add_argument("--depende", action="append")
     ja.add_argument("--criterio", action="append"); ja.add_argument("--restricao", action="append")
+    ja.add_argument("--fonte", action="append",
+                    help="anexa uma fonte do cliente a este job. Só assim histórico e "
+                         "campanha anterior chegam ao especialista")
     ja.set_defaults(fn=cmd_job_add)
 
     je = js.add_parser("elegiveis", help="o que pode rodar agora"); je.add_argument("demanda")
@@ -858,6 +993,39 @@ def main(argv=None) -> int:
     c2 = cs.add_parser("anotar"); c2.add_argument("cliente")
     c2.add_argument("--secao", required=True); c2.add_argument("--texto", required=True)
     c2.set_defaults(fn=cmd_cliente_anotar)
+
+    c3 = cs.add_parser("resolver", help="nome falado -> cliente registrado")
+    c3.add_argument("cliente"); c3.set_defaults(fn=cmd_cliente_resolver)
+
+    cb = cs.add_parser("base", help="acervo externo do cliente")
+    cbs = cb.add_subparsers(dest="sub2", required=True)
+    cb1 = cbs.add_parser("definir"); cb1.add_argument("cliente")
+    cb1.add_argument("--fonte-externa", dest="fonte_externa", default="drive")
+    cb1.add_argument("--pasta-id", dest="pasta_id", required=True)
+    cb1.add_argument("--pasta-nome", dest="pasta_nome")
+    cb1.add_argument("--alias", action="append",
+                     help="variação de nome pela qual este cliente também é chamado")
+    cb1.set_defaults(fn=cmd_cliente_base_definir)
+    cb2 = cbs.add_parser("ver"); cb2.add_argument("cliente")
+    cb2.set_defaults(fn=cmd_cliente_base_ver)
+
+    cf = cs.add_parser("fonte", help="o que foi encontrado no acervo, classificado")
+    cfs = cf.add_subparsers(dest="sub2", required=True)
+    cf1 = cfs.add_parser("add"); cf1.add_argument("cliente")
+    cf1.add_argument("--classe", required=True,
+                     help=", ".join(modelo.CLASSES_FONTE))
+    cf1.add_argument("--titulo", required=True); cf1.add_argument("--resumo")
+    cf1.add_argument("--fonte-externa", dest="fonte_externa", default="drive")
+    cf1.add_argument("--ref", help="fileId na origem — o rastro de volta ao original")
+    cf1.add_argument("--link"); cf1.add_argument("--verificado-em", dest="verificado_em")
+    cf1.add_argument("--demanda"); cf1.set_defaults(fn=cmd_cliente_fonte_add)
+    cf2 = cfs.add_parser("listar"); cf2.add_argument("cliente")
+    cf2.set_defaults(fn=cmd_cliente_fonte_listar)
+
+    c4 = cs.add_parser("contexto", help="o que iria para o briefing deste cliente")
+    c4.add_argument("cliente")
+    c4.add_argument("--fonte", action="append", help="anexa uma fonte não canônica")
+    c4.set_defaults(fn=cmd_cliente_contexto)
 
     h = sub.add_parser("historico", help="event log da demanda"); h.add_argument("demanda")
     h.set_defaults(fn=cmd_historico)

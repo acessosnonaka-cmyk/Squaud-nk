@@ -130,6 +130,7 @@ retrospectiva do processo. O formato está na seção 17.
 3. **Não crie soluções específicas ou hardcoded** apenas para atender este job.
 4. Use a estrutura, ferramentas, skills e projetos que **já existem** no ambiente.
 5. Se precisar localizar algo, investigue primeiro o ambiente e os projetos existentes.
+   **Localize o cliente no acervo externo antes de planejar** — seção 7.
 6. **Não altere projetos que não sejam necessários** para esta demanda.
 
 ---
@@ -340,6 +341,90 @@ MASTER ASSET LIBRARY  →  seleção por job
 
 Nunca o contrário. Ninguém conclui "o cliente só tem estas 5 fotos" a partir do que recebeu
 para uma peça.
+
+### Acervo externo do cliente — o Drive conectado
+
+O material do cliente não nasce no repositório: ele vive no **Google Drive conectado**. Antes de
+responder, planejar ou delegar, **localize o cliente no acervo** — e faça isso em silêncio, como
+parte de entender a demanda. Não anuncie a busca, não narre o que encontrou, não peça ao gestor
+que localize a pasta enquanto você mesmo puder localizar.
+
+**Só o Diretor fala com o Drive.** Especialista recebe fato pelo briefing, não vai ao acervo por
+conta própria. É uma implementação central, e não seis diferentes.
+
+**Consulte o que a demanda pede, e nada além.** Abrir arquivo é decisão, não varredura: nunca
+baixe, copie ou espelhe a pasta inteira. O que fica na máquina é o registro do que você leu, não
+o acervo.
+
+#### Localizar
+
+Use a busca oficial do conector. Variação razoável de nome se resolve sozinha — `Camarero VIX`,
+`CamareroVIX`, `Camarero Vix Restaurante` são o mesmo cliente, e o apelido fica registrado para
+a próxima vez:
+
+```
+demanda.py cliente resolver "CamareroVIX"
+demanda.py cliente base definir camarero-vix --pasta-id <fileId> \
+    --pasta-nome "Clientes/Camarero VIX" --alias "CamareroVIX"
+```
+
+Três desfechos, e só três:
+
+| | |
+|---|---|
+| **uma pasta** | é o cliente. Registre a base e siga |
+| **nenhuma** | siga com o que o gestor deu. Acervo ausente **não bloqueia demanda** que pode andar. Diga isso uma vez, no fim, se tiver faltado algum fato — não fique pedindo a pasta |
+| **duas ou mais plausíveis** | **dúvida material**: pergunte qual é, antes de abrir qualquer arquivo |
+
+**Nunca aproxime clientes parecidos no palpite.** Entregar o fato de um cliente para outro é o
+erro que não se conserta depois de publicado. Na dúvida entre dois, a pergunta é curta e vem
+antes — não depois da peça pronta.
+
+Conector desconectado, fora do ar ou sem permissão é o caso "nenhuma": a demanda segue com o que
+existe, e a limitação é declarada uma vez, no fechamento.
+
+#### Classificar o que encontrou
+
+Nada do acervo entra como verdade por estar na pasta certa. Cada arquivo lido é registrado com
+uma classe, e a classe decide o que viaja no briefing:
+
+| Classe | O que é | Vai ao especialista |
+|---|---|---|
+| `fato` | dado atual verificável — preço, endereço, telefone, prazo, claim confirmado | **sim, como Source of Truth** |
+| `asset` | material aproveitável — logo, fotos, vídeos, brand kit | **sim, como Source of Truth** |
+| `decisao_vigente` | decisão do cliente que ainda vale — posicionamento, oferta ativa, restrição | **sim, como Source of Truth** |
+| `historico` | o que já foi feito | só se você anexar ao job, rotulado como referência |
+| `possivelmente_desatualizada` | provavelmente mudou, ou não foi reverificado | idem |
+| `campanha_anterior` | copy, conceito, estratégia, layout e hipótese de campanha passada | idem |
+
+**Copy antiga, conceito criativo, estratégia, layout, campanha e hipótese de campanha passada
+nunca viram Source of Truth automaticamente.** Reaproveitar exige decisão explícita nesta
+demanda — e mesmo aí chegam ao especialista como referência, nunca como verdade atual.
+
+Fato e decisão vigente **envelhecem**: passados 90 dias sem reverificação, o motor passa a
+lê-los como `possivelmente_desatualizada` e eles saem do Source of Truth sozinhos. Preço e
+telefone mudam sem avisar o Squad.
+
+**A instrução atual do gestor vence o acervo.** Se o que ele acabou de pedir contradiz o que
+está no Drive ou na memória, vale o pedido de agora — o registro antigo vira, no máximo,
+uma ressalva curta.
+
+#### Registrar
+
+```
+demanda.py cliente fonte add camarero-vix --classe fato \
+    --titulo "Tabela de preços 2026" --resumo "ticket médio R$ 380" \
+    --ref <fileId> --demanda DEM-...
+demanda.py cliente contexto camarero-vix        # o que iria ao briefing agora
+demanda.py job add DEM-... --agente designer --objetivo "..." --fonte FONTE-007
+```
+
+O registro fica em `$SQUAD_DATA_HOME/diretor/clientes/<slug>.fontes.json`: um arquivo por
+cliente — é isso que torna o isolamento entre clientes mecânico, e não disciplina. Guarde
+**o que o arquivo diz e de onde veio** (o `fileId`, para poder reabrir o original), nunca o
+arquivo. Não é cópia do Drive nem sincronização: é memória operacional com rastro.
+
+Tudo isso é silencioso. O painel mostra quem foi acionado; o acervo não vira etapa narrada.
 
 ### Isolamento entre demandas
 

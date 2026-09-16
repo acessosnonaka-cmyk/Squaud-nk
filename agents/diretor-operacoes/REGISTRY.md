@@ -169,8 +169,11 @@ argumento, claim, posicionamento ou CTA estratégico.
 | `~/.claude/lp-builder/clients/<slug>/index.json` | acervo triado — só existe se a ingestão rodou |
 | `~/.claude/projects/<projeto>/memory/` | claims verificados e claims sem lastro |
 | `$SQUAD_DATA_HOME/trafego/clients/<slug>/` | memória de mídia: guardrails, contexto de aquisição e histórico de campanha |
+| `$SQUAD_DATA_HOME/diretor/clientes/<slug>.fontes.json` | acervo externo do cliente (Drive): base, apelidos e fontes classificadas. Só `fato`, `asset` e `decisao_vigente` entram no briefing como verdade — histórico e campanha anterior viajam como referência, e só quando anexados ao job |
 
 `restrictions` e `tone.avoid` vencem sempre, inclusive contra o site do próprio cliente.
+Quem consulta o Drive é **só o Diretor** — especialista recebe fato pelo briefing e não vai ao
+acervo por conta própria. O protocolo está na seção 7 do prompt do Diretor.
 Entregas antigas (`~/projetos/copywriter/entregas/`, `~/.claude/art-builder/jobs/`) são **rastro
 de produção, não Source of Truth**. Ninguém cria banco paralelo.
 

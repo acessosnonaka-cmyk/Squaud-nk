@@ -98,6 +98,20 @@ MAX_TENTATIVAS = 3
 
 CLASSES_FEEDBACK = ["feedback_da_demanda", "preferencia_do_cliente", "regra_global"]
 
+# Fontes externas do cliente — o que o Diretor achou no Drive e decidiu guardar.
+#
+# A classe não é decoração: ela decide o que entra no briefing como Source of
+# Truth e o que entra apenas como referência. Copy antiga, conceito criativo e
+# campanha passada nunca viram verdade atual por terem o mesmo cliente.
+CLASSES_FONTE = ["fato", "asset", "decisao_vigente",
+                 "historico", "possivelmente_desatualizada", "campanha_anterior"]
+FONTES_CANONICAS = ("fato", "asset", "decisao_vigente")
+
+# Fato e decisão envelhecem. Passado este horizonte sem reverificação, o motor
+# rebaixa a fonte a "possivelmente_desatualizada" na leitura — o registro não
+# muda, a leitura sim. Preço, telefone e oferta mudam sem avisar o Squad.
+VALIDADE_FONTE_DIAS = 90
+
 # Modo de execução carimbado em todo briefing. SILENT é a interface do Squad
 # (seção 0 do prompt do Diretor): o especialista executa sem narrar etapa,
 # handoff ou progresso. Viaja no contrato, e não na lembrança do Diretor —
@@ -283,6 +297,125 @@ def proximo_requisito_id(demanda: dict) -> str:
 
 def proxima_alteracao_id(demanda: dict) -> str:
     return f"ALT-{len(demanda.get('alteracoes', [])) + 1:03d}"
+
+
+# --------------------------------------------------- contexto externo do cliente
+
+def caminho_fontes(cliente: str) -> pathlib.Path:
+    return dir_clientes() / f"{slug(cliente)}.fontes.json"
+
+
+def carregar_fontes(cliente: str) -> dict:
+    """Registro do cliente: base externa, apelidos e fontes consultadas.
+
+    Arquivo por cliente, e só isso: dois clientes nunca compartilham arquivo,
+    que é o que mantém o isolamento sem depender de disciplina de ninguém.
+    """
+    caminho = caminho_fontes(cliente)
+    if caminho.is_file():
+        return ler_json(caminho)
+    return {"cliente": slug(cliente), "base": None, "aliases": [], "fontes": []}
+
+
+def salvar_fontes(cliente: str, dados: dict) -> None:
+    dados["atualizado_em"] = agora()
+    gravar_json(caminho_fontes(cliente), dados)
+
+
+def clientes_registrados() -> list:
+    if not dir_clientes().is_dir():
+        return []
+    return [ler_json(c) for c in sorted(dir_clientes().glob("*.fontes.json"))]
+
+
+def resolver_cliente(nome: str) -> list:
+    """Do nome falado para o slug canônico, pelo slug ou por apelido registrado.
+
+    Devolve a lista de candidatos. Zero é seguir sem base; mais de um é dúvida
+    material — nunca se escolhe um cliente parecido no palpite.
+    """
+    alvo = slug(nome)
+    achados = []
+    for reg in clientes_registrados():
+        if reg.get("cliente") == alvo or alvo in [slug(a) for a in reg.get("aliases", [])]:
+            achados.append(reg)
+    return achados
+
+
+def classe_efetiva(fonte: dict, hoje: str | None = None) -> str:
+    """A classe como ela deve ser LIDA hoje, não como foi gravada."""
+    classe = fonte.get("classe", "historico")
+    if classe not in FONTES_CANONICAS or classe == "asset":
+        return classe
+    verificado = (fonte.get("verificado_em") or "")[:10]
+    if not verificado:
+        return "possivelmente_desatualizada"
+    ref = (hoje or agora())[:10]
+    try:
+        d0 = datetime.strptime(verificado, "%Y-%m-%d")
+        d1 = datetime.strptime(ref, "%Y-%m-%d")
+    except ValueError:
+        return "possivelmente_desatualizada"
+    return classe if (d1 - d0).days <= VALIDADE_FONTE_DIAS else "possivelmente_desatualizada"
+
+
+def achar_fonte(registro: dict, fonte_id: str) -> dict:
+    for f in registro.get("fontes", []):
+        if f["id"] == fonte_id:
+            return f
+    raise ErroDeEstado(f"fonte '{fonte_id}' não existe para o cliente {registro.get('cliente')}")
+
+
+def proxima_fonte_id(registro: dict) -> str:
+    return f"FONTE-{len(registro.get('fontes', [])) + 1:03d}"
+
+
+def rotular_fonte(fonte: dict, hoje: str | None = None) -> str:
+    """Uma linha legível, com a classe COMO SE LÊ HOJE e a procedência junto.
+
+    Procedência no mesmo rótulo é de propósito: especialista que recebe um dado
+    sem saber de onde veio não tem como duvidar dele.
+    """
+    partes = [f"[{classe_efetiva(fonte, hoje).upper()}] {fonte.get('titulo', '')}"]
+    if fonte.get("resumo"):
+        partes.append(f"— {fonte['resumo']}")
+    proc = []
+    if fonte.get("ref"):
+        proc.append(f"{fonte.get('fonte_externa', 'drive')}:{fonte['ref']}")
+    if fonte.get("verificado_em"):
+        proc.append(f"verificado em {fonte['verificado_em'][:10]}")
+    if proc:
+        partes.append("· " + " · ".join(proc))
+    return " ".join(partes)
+
+
+def contexto_cliente(cliente: str, anexadas: list | None = None,
+                     hoje: str | None = None) -> dict:
+    """O que do cliente entra no briefing, separado em duas pilhas.
+
+    CANÔNICO (fato, asset, decisão vigente) viaja sempre: é o "mesmo cliente,
+    reutilize fatos, assets e decisões vigentes".
+
+    NÃO CANÔNICO (histórico, campanha anterior, possivelmente desatualizada) só
+    viaja quando o Diretor anexa a fonte AO JOB, e ainda assim rotulado como
+    referência. É esta assimetria que impede a campanha passada de virar
+    verdade da demanda nova sem ninguém ter decidido isso.
+    """
+    reg = carregar_fontes(cliente)
+    anexadas = set(anexadas or [])
+    canonicas, referencias = [], []
+    for f in reg.get("fontes", []):
+        if classe_efetiva(f, hoje) in FONTES_CANONICAS:
+            canonicas.append(rotular_fonte(f, hoje))
+        elif f["id"] in anexadas:
+            referencias.append(rotular_fonte(f, hoje))
+    base = reg.get("base") or {}
+    return {
+        "base_externa": (f"{base.get('fonte', 'drive')}: {base.get('pasta_nome', '')}"
+                         f" ({base.get('pasta_id', '')})" if base else ""),
+        "fontes_canonicas": canonicas,
+        "referencias_nao_canonicas": referencias,
+    }
 
 
 def achar_requisito(demanda: dict, req_id: str) -> dict:

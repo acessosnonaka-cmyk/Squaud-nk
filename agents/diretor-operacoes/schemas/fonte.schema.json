@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Fonte externa de cliente",
+  "description": "Um arquivo do acervo externo do cliente (hoje o Google Drive) que o Diretor consultou e decidiu guardar. Vive em $SQUAD_DATA_HOME/diretor/clientes/<slug>.fontes.json, no array fontes. O registro é memória operacional com rastro — nunca cópia do acervo.",
+  "type": "object",
+  "required": ["id", "classe", "titulo"],
+  "properties": {
+    "id":             {"type": "string", "description": "FONTE-NNN"},
+    "classe":         {"type": "string", "enum": ["fato","asset","decisao_vigente","historico","possivelmente_desatualizada","campanha_anterior"], "description": "decide se a fonte entra no briefing como Source of Truth (fato, asset, decisao_vigente) ou apenas como referência"},
+    "titulo":         {"type": "string", "description": "como o arquivo se chama no acervo do cliente"},
+    "resumo":         {"type": "string", "description": "o que este arquivo diz, na medida em que importa para o Squad"},
+    "fonte_externa":  {"type": "string", "description": "de onde veio. 'drive' hoje"},
+    "ref":            {"type": "string", "description": "identificador do arquivo na origem — o fileId do Drive. É o rastro: permite reabrir o original"},
+    "link":           {"type": "string"},
+    "verificado_em":  {"type": "string", "description": "data da última conferência. Fato e decisão vigente envelhecem: passados 90 dias são LIDOS como possivelmente_desatualizada"},
+    "demanda":        {"type": "string", "description": "demanda em que a fonte foi encontrada"},
+    "registrado_em":  {"type": "string"}
+  }
+}
