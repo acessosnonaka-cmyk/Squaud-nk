@@ -22,12 +22,12 @@ externo a ele, não da própria boa vontade.
 
 | Lacuna | Efeito hoje |
 |---|---|
-| As 5 skills da conta claude.ai não estão em disco | O conhecimento embarcado é o de `agents/gestor-de-trafego/conhecimento/`; o acervo da conta segue no claude.ai |
-| Conector Meta ADS com OAuth expirado | Sem leitura automática de conta: os dados entram por exportação manual |
+| As 5 skills da conta não estão **neste repositório** | O conhecimento versionado é o de `agents/gestor-de-trafego/conhecimento/`. Elas são sincronizadas para a máquina pela conta (`~/.claude/skills/synced/`) e ficam invocáveis, mas continuam fora do git e fora do controle deste projeto |
+| Nenhum motor de dados | Não há código que leia, agregue ou cruze métrica. O conector do Meta responde no claude.ai; fora dele, o dado entra por exportação manual |
 | Sem integração web | O agente roda no Claude Code; o dashboard mostra o card, sem botão |
 
-O levantamento abaixo é de 2026-09-15 e continua válido como mapa do que existe fora do
-repositório.
+O levantamento abaixo é de 2026-09-15. **Revisado em 2026-09-16** — ver a nota de
+verificação em cada item que mudou.
 
 ---
 
@@ -52,9 +52,17 @@ Duas coisas reais apareceram. Nenhuma é um agente, e nenhuma é versionável aq
 
 ### 1. Cinco skills na conta claude.ai
 
-Registradas em `~/.claude/projects/-home-ffili/memory/roteamento-skills-conta.md`. **Não
-ficam em disco** e **não são invocáveis pelo Claude Code** — existem apenas dentro do
-claude.ai:
+> **Corrigido em 2026-09-16.** A afirmação original — "não ficam em disco, não são
+> invocáveis pelo Claude Code" — **está errada**. A conta sincroniza as skills para
+> `~/.claude/skills/synced/<org>_<conta>/`, e o Claude Code as carrega e invoca com
+> prefixo de origem (ex.: `Skill(anthropic-skills:trafego-gestao-nonaka)`). Verificado
+> por leitura de disco e pelo `manifest.json`, que traz `source: custom` e a data de
+> cada uma. São **27 skills** sincronizadas no total, não só estas cinco.
+>
+> O que continua verdadeiro: elas **não estão neste repositório**, não são versionadas
+> aqui, não passam por revisão do projeto e somem se a conta parar de sincronizá-las.
+> Por isso o item 2 do plano abaixo segue pendente — o objetivo nunca foi "estar em
+> disco", e sim **ser código do Squad**.
 
 | Skill | Cobre |
 |---|---|
@@ -76,9 +84,25 @@ O último log traz:
 authentication_error: OAuth token has been invalidated. Re-authentication is required.
 ```
 
-Ou seja: **existe, foi usado, e está com a autenticação expirada.** Como todo conector do
-claude.ai, ele não existe fora do claude.ai — nem no Claude Code com token de assinatura,
-nem numa aplicação própria (ver `docs/arquitetura-web.md` §5).
+> **Corrigido em 2026-09-16.** O token acima **foi renovado**. Verificação por leitura
+> real nesta data, com `ads_get_ad_accounts` (somente leitura): o conector respondeu com
+> as contas de anúncio da carteira, todas `ACTIVE`, `is_ads_mcp_enabled: true` e
+> `is_queryable: true` — ou seja, `ads_get_ad_entities` e os endpoints de insights também
+> estão ao alcance. **Leitura de conta deixou de ser uma lacuna.**
+
+O que **não** mudou, e continua decidindo a arquitetura: como todo conector do claude.ai,
+ele não existe fora do claude.ai — nem no Claude Code com token de assinatura, nem numa
+aplicação própria (ver `docs/arquitetura-web.md` §5). Então a leitura automática existe
+**na superfície onde o conector está montado**, e não no Squad NK Web.
+
+Duas regras seguem valendo, e não dependem do token:
+
+- **Escrita continua fechada.** Criar, subir, pausar, duplicar ou mexer em orçamento é
+  `REQUER_APROVACAO` no `policy.yaml`, com ou sem conector autenticado. O hook
+  `PreToolUse` também barra a forma crua (`curl -X POST` na Graph API) desde a correção
+  de 2026-09-16.
+- **Métrica sem leitura é invenção.** A regra nunca foi "não há acesso"; é "não estime o
+  que você não leu". Com acesso, ele lê e cita; sem acesso, declara a limitação.
 
 ---
 
@@ -123,17 +147,21 @@ Sugestão de recorte, para não criar cinco skills onde bastam três:
 `google-ads-keywords-nonaka` entra como referência dentro de uma delas, ou como quarta
 skill se o volume justificar.
 
-### 3. Acesso aos dados da campanha — ⏳ pendente
+### 3. Acesso aos dados da campanha — ⏳ parcial (era: pendente)
 
-Sem isso ele opina no escuro. Três caminhos, do mais barato ao mais robusto:
+**O segundo caminho da tabela deixou de ser hipótese** — o conector do Meta está
+autenticado e lê (verificado em 2026-09-16). Continua valendo o limite dele: só funciona
+na superfície onde o conector está montado.
 
-| Caminho | Custo | Limite |
-|---|---|---|
-| **Exportação manual** — o gestor humano baixa o CSV do Meta/Google e entrega ao agente | zero | trabalho manual a cada análise; sem acompanhamento contínuo |
-| **Reautenticar o conector Meta ADS** no claude.ai | zero | só funciona dentro do claude.ai; não serve ao Claude Code nem ao Squad NK Web |
-| **API oficial** (Meta Marketing API / Google Ads API) com credencial própria | gratuito em si, mas exige app, revisão e token | é trabalho de desenvolvimento, e guarda credencial de cliente — decisão de segurança sua |
+| Caminho | Custo | Situação em 2026-09-16 | Limite |
+|---|---|---|---|
+| **Exportação manual** — o gestor humano baixa o CSV do Meta/Google e entrega ao agente | zero | disponível | trabalho manual a cada análise; sem acompanhamento contínuo |
+| **Conector Meta ADS** no claude.ai | zero | **✅ autenticado e lendo** | só Meta (não cobre Google nem TikTok); não serve ao Squad NK Web |
+| **API oficial** (Meta Marketing API / Google Ads API) com credencial própria | gratuito em si, mas exige app, revisão e token | não iniciado | é trabalho de desenvolvimento, e guarda credencial de cliente — decisão de segurança sua |
 
-Para começar, a exportação manual basta e não custa nada.
+O que falta para fechar o item: **Google Ads e TikTok continuam sem leitura**, e nenhuma
+das três vias alimenta o `historico.md` sozinha — registrar o aprendizado segue sendo
+passo do agente, não do conector.
 
 ### 4. Registro no roteamento — ✅ feito
 
@@ -148,5 +176,8 @@ Para começar, a exportação manual basta e não custa nada.
 - Não afirmar que campanha foi criada, pausada, ajustada ou otimizada sem que isso tenha
   passado pelo portão e pela aprovação humana.
 - Não estimar CPA, CTR, ROAS ou verba sem leitura real da conta.
-- Não tratar as cinco skills da conta como já incorporadas: o conhecimento em disco é o
-  de `conhecimento/`, e o acervo da conta ainda é o próximo salto de qualidade dele.
+- Não tratar as cinco skills da conta como já incorporadas: o conhecimento **versionado**
+  é o de `conhecimento/`. Estarem sincronizadas e invocáveis na máquina não as torna
+  código do Squad — o acervo da conta ainda é o próximo salto de qualidade dele.
+- Não confundir **ler** com **poder mexer**: o conector do Meta autenticado libera leitura,
+  e nada mais. Toda escrita continua em `REQUER_APROVACAO`, job a job.

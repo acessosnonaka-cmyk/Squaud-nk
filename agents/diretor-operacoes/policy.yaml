@@ -57,7 +57,9 @@ classes:
           # forma de shell das mesmas ações, para o hook reconhecer o comando cru
           - "\\bmkfs\\b|\\bdd if=/dev/"
           - "git reset --hard"
-          - "chmod -R 777 /"
+          # Minúsculo de propósito: normalizar() aplica lower() antes de casar,
+          # então um padrão escrito "chmod -R" nunca dispararia. Assim pega -R e -r.
+          - "chmod -r 777 /"
       - id: fora-da-permissao
         motivo: "Dado de cliente só se acessa dentro do escopo da demanda."
         padroes:
@@ -92,7 +94,10 @@ classes:
           - "rsync .*@"
           - "\\bscp\\b .*@"
           - "npm publish|docker push|gh release create"
-          - "curl .*(-X (POST|PUT|DELETE)|--upload-file)"
+          # Minúsculo de propósito, pelo mesmo motivo do chmod acima: escrito
+          # "-X POST" este padrão nunca dispararia, e escrita em API externa
+          # (inclusive a Graph API do Meta) passaria batida pelo hook.
+          - "curl .*(-x (post|put|delete)|--upload-file)"
       - id: comunicacao-externa
         motivo: "Mensagem enviada não volta atrás."
         impacto: "O cliente recebe a comunicação."

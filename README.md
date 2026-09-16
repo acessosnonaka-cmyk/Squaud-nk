@@ -220,7 +220,16 @@ no repositório com o LICENSE de cada uma. Procedência completa em
 | Conector Google Drive do claude.ai | LP Builder (ingestão), Revisor (link de Drive) | conta, não máquina |
 | `rsync` + SSH | LP Builder, só ao publicar em VPS | não |
 
-Nenhum MCP server está configurado. Nenhum banco de dados é usado por estes cinco componentes.
+**Este repositório não configura nenhum MCP server** (`mcpServers` vazio), e nenhum banco de
+dados é usado por estes componentes.
+
+Isso não quer dizer que não haja conector: a **conta claude.ai** traz os seus, e eles aparecem
+na sessão sem passar por aqui. Em 2026-09-16 estavam conectados Canva, Gamma, ClickUp, Google
+Drive, Meta ADS e GitHub. Só dois são usados pelo Squad hoje — **Google Drive**, pelo
+`drive-baixar.sh` do Revisor, e **Meta ADS**, pelo Gestor de Tráfego, em leitura. Os demais
+existem na conta e **nenhum agente os aciona**. Conector de conta não é dependência deste
+repositório: não existe no Claude Code com token de assinatura, nem no Squad NK Web
+(`docs/arquitetura-web.md` §5).
 
 ---
 

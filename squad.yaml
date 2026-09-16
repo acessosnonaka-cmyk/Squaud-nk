@@ -158,7 +158,11 @@ agentes:
       - agents/gestor-de-trafego/skills/gestao-de-trafego
     motores: []
     conectores:
-      - "claude.ai Meta ADS"   # conector existe na conta; token OAuth expirado em 2026-09-02
+      # Verificado em 2026-09-16 por leitura real (ads_get_ad_accounts): autenticado,
+      # contas ACTIVE e consultáveis. O OAuth invalidado de 2026-09-02 foi renovado.
+      # Continua sendo conector de conta claude.ai: não existe no Claude Code com
+      # token de assinatura nem no Squad NK Web (ver docs/arquitetura-web.md §5).
+      - "claude.ai Meta ADS"   # leitura OK; escrita segue REQUER_APROVACAO no policy.yaml
     web: nao_integrado
     resumo: >-
       Mídia paga em Meta, Google e TikTok: planejamento, estrutura de campanha,

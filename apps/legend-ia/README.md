@@ -3,11 +3,11 @@
 Pipeline simples: pega um vídeo MP4 + um texto de CTA, transcreve o áudio,
 revisa a transcrição, queima legendas e o CTA no vídeo.
 
-## Requisitos já validados neste ambiente
+## Requisitos
 
-- FFmpeg com libx264, drawtext e subtitles (libass)
-- Python 3.14 em `venv/` na raiz do projeto
-- `faster-whisper` instalado no venv (modelo `base`, CPU)
+- FFmpeg com libx264 e subtitles (libass) — uma única passagem de render usa o filtro `ass`
+- Python 3.11+ em `venv/` na raiz do projeto, criado por `scripts/setup.sh`
+- `faster-whisper` instalado no venv (modelo `base`, CPU, `int8`, idioma fixo em `pt`)
 
 ## Uso
 
@@ -34,14 +34,24 @@ O vídeo original em `entrada de vídeo/` nunca é alterado.
 
 ## Presets visuais (`--preset`)
 
+São **quatro**, e cada um é uma linguagem visual completa: por papel (legenda, texto,
+headline, CTA) define fonte, peso, itálico, escala, contorno, sombra, blur e animação.
+Preset não é "trocar a fonte".
+
 ```bash
-venv/bin/python process_video.py 01.mp4 --cta "COMPRE AGORA" --preset pro
+venv/bin/python process_video.py 01.mp4 --cta "COMPRE AGORA" --cta-style impact
 ```
 
-- `classic` (padrão) — comportamento original, sem nenhuma alteração visual.
-  Usado automaticamente quando `--preset` não é informado.
-- `pro` — tipografia Ubuntu Sans (Bold para legenda/texto, ExtraBold para o
-  CTA), blocos de legenda menores e mais naturais, entrada curta (fade +
-  leve "pop" de escala) e saída curta em cada bloco, transição suave
-  (crossfade) entre blocos consecutivos, e uma animação de entrada própria
-  para o CTA. A safe zone (posições/margens) é a mesma dos dois presets.
+- `classic` (padrão) — DejaVu Sans, sem animação. Comportamento original, preservado
+  valor por valor. Usado quando `--preset` não é informado. **Nunca altere os números
+  de `classic` para ajustar outro preset.**
+- `editorial` — Lora (serifada, OFL), headline em itálico real, sombra suave com blur no
+  lugar de contorno grosso, movimento discreto (só fade). Para algo elegante/refinado.
+- `impact` — Anton (condensada ultra-bold, OFL), entrada com *overshoot* de escala
+  (90% → 103% → 100%). Para algo chamativo/publicitário. É o padrão de headline.
+- `pro` — legado, anterior à referência visual atual. Ubuntu Sans, com crossfade entre
+  blocos de legenda. Mantido só por compatibilidade; não use por padrão.
+
+A safe zone (posições/margens) é a mesma em todos. Cada operação aceita estilo próprio —
+`--subtitles-style`, `--cta-style`, `--text-style`, `--headline-style` — e isso é
+preferível a mudar o `--preset` global.
