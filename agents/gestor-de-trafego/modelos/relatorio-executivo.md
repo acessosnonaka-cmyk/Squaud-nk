@@ -11,7 +11,8 @@ Situação geral em 3-5 linhas, sem jargão.
 
 RESULTADOS
 Investimento | Leads/Vendas | CPL/CPA | CAC | Receita | ROAS/MER
-Comparação com o período anterior e com a meta.
+Comparação com o período anterior e com a meta. Quando o volume de conversões for pequeno,
+diga isso junto do número, não depois dele.
 
 O QUE FUNCIONOU
 Campanha/criativo/público + evidência.
@@ -20,7 +21,8 @@ O QUE NÃO FUNCIONOU
 Campanha/criativo/público + evidência.
 
 GARGALO PRINCIPAL
-Qual é, evidência, impacto estimado.
+Qual é, evidência (fato medido, com recorte e período), impacto estimado — e se a causa
+está confirmada ou ainda é hipótese. Hipótese vem com o teste que a resolve.
 
 INSIGHT
 Descoberta não óbvia do período (formato de insight.md).
