@@ -18,6 +18,7 @@ import json
 import os
 import pathlib
 import re
+import unicodedata
 from datetime import datetime, timezone
 
 if __package__ in (None, ""):                      # permite rodar por caminho direto
@@ -130,7 +131,16 @@ def agora() -> str:
 
 
 def slug(texto: str) -> str:
-    s = re.sub(r"[^a-z0-9]+", "-", (texto or "").lower()).strip("-")
+    """Nome falado -> identificador estável, com acento dobrado para a letra base.
+
+    Sem a normalização, "Vandário Garnet" virava `vand-rio-garnet` e "Vandario
+    Garnet" virava `vandario-garnet`: dois arquivos, duas memórias, o mesmo
+    cliente. Como é o slug que dá identidade ao cliente e isola um do outro,
+    acento não pode decidir quem é quem.
+    """
+    base = unicodedata.normalize("NFKD", texto or "")
+    base = "".join(c for c in base if not unicodedata.combining(c))
+    s = re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-")
     return s[:40] or "sem-nome"
 
 

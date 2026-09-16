@@ -111,6 +111,27 @@ for variacao in ("CamareroVIX", "Camarero VIX", "camarero vix restaurante", "CAM
     checar(f"3/variacao[{variacao}]", len(achados) == 1 and achados[0]["cliente"] == "camarero-vix",
            str([a["cliente"] for a in achados]))
 
+# ------------------------------------------------ 3b · acento não cria outro cliente
+
+# Um cliente escrito com e sem acento é o mesmo cliente. Quando não era, o
+# acervo dele nascia partido em dois arquivos e a segunda demanda não
+# enxergava o que a primeira tinha registrado.
+for par in [("Vandário Garnet", "Vandario Garnet"),
+            ("Açaí & Cia", "Acai & Cia"),
+            ("João Pão", "Joao Pao")]:
+    checar(f"3b/acento[{par[0]}]", modelo.slug(par[0]) == modelo.slug(par[1]),
+           f"{modelo.slug(par[0])} != {modelo.slug(par[1])}")
+checar("3b/legivel", modelo.slug("Vandário Garnet") == "vandario-garnet",
+       modelo.slug("Vandário Garnet"))
+checar("3b/nao-vira-traco", "-" not in modelo.slug("Açaí").replace("acai", ""),
+       modelo.slug("Açaí"))
+
+base("Vandário Garnet", "1VG", "Vandário Garnet - Nonaka ADS")
+checar("3b/resolve-sem-acento", len(modelo.resolver_cliente("Vandario Garnet")) == 1,
+       "cliente sem acento não achou o registro gravado com acento")
+checar("3b/um-arquivo-so",
+       modelo.caminho_fontes("Vandário Garnet") == modelo.caminho_fontes("VANDARIO GARNET"))
+
 # ------------------------------------------------ 4 · dois resultados ambíguos
 
 base("studio-nk-sao-paulo", "1SP", "Clientes/Studio NK São Paulo", ["Studio NK"])
