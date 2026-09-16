@@ -43,14 +43,19 @@ fi
 ok "dados do Copywriter em $DATA_HOME/copywriter/"
 
 step "1/8  Agentes  ->  $CLAUDE_HOME/agents"
-# Os agentes com prompt próprio, do roster de squad.yaml. Revisor de Arte e Gestor
-# de Tráfego não entram: são plugins, instalados pelo marketplace (passo final).
+# Os agentes com prompt próprio, do roster de squad.yaml. Symlink, não cópia: o
+# arquivo continua único, no clone. Revisor de Arte e Gestor de Tráfego também são
+# plugins do marketplace (passo final) e mesmo assim entram aqui: o plugin instala
+# skill, conhecimento e modelos, mas quem registra o subagente no Claude Code é o
+# link em ~/.claude/agents. Sem ele, Agent(subagent_type: "...") não encontra o
+# agente — e o Diretor cria job que ninguém executa.
 link "$CLAUDE_HOME/agents/diretor-de-operacoes.md" "$REPO/agents/diretor-operacoes/agents/diretor-de-operacoes.md"
 link "$CLAUDE_HOME/agents/copywriter.md"           "$REPO/agents/copywriter/agents/copywriter.md"
 link "$CLAUDE_HOME/agents/designer.md"             "$REPO/agents/design-ia/agents/designer.md"
 link "$CLAUDE_HOME/agents/lp-builder.md"           "$REPO/apps/lp-builder/agents/lp-builder.md"
 link "$CLAUDE_HOME/agents/legend-ia.md"            "$REPO/apps/legend-ia/agents/legend-ia.md"
 link "$CLAUDE_HOME/agents/revisor-de-criacao.md"   "$REPO/agents/revisor-arte/agents/revisor-de-criacao.md"
+link "$CLAUDE_HOME/agents/gestor-de-trafego.md"    "$REPO/agents/gestor-de-trafego/agents/gestor-de-trafego.md"
 
 step "2/8  Skills  ->  $CLAUDE_HOME/skills"
 link "$CLAUDE_HOME/skills/designer-ia"      "$REPO/agents/design-ia/skills/designer-ia"

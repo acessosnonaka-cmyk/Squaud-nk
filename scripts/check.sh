@@ -17,6 +17,34 @@ head_() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 have()  { command -v "$1" >/dev/null 2>&1; }
 file_()  { [ -f "$1" ]; }
 
+# Pillow e Playwright quebram render e QA em silêncio: o `import` passa e o job
+# morre depois, porque o Chromium que o Playwright resolve não existe nesta
+# máquina — a versão instalada espera outro build. Conferir o executável é o
+# único jeito de pegar isso antes do job, não durante.
+py_() { [ -x "$1" ] && echo "$1" || echo python3; }   # interpretador do venv, ou o do sistema
+
+chromium_de() {                                       # $1 = interpretador
+  "$1" - <<'PYEOF' 2>/dev/null
+from playwright.sync_api import sync_playwright
+with sync_playwright() as pw:
+    print(pw.chromium.executable_path)
+PYEOF
+}
+
+checar_playwright() {                                 # $1 = interpretador · $2 = rótulo
+  local py="$1" rotulo="$2" exe
+  if ! "$py" -c "import playwright" 2>/dev/null; then
+    yellow "playwright ausente ($rotulo) — '$py -m pip install playwright && $py -m playwright install chromium'"
+    return
+  fi
+  exe="$(chromium_de "$py")"
+  if [ -n "$exe" ] && [ -x "$exe" ]; then
+    green "playwright + chromium ($rotulo)"
+  else
+    red "playwright instalado, mas o Chromium que ele espera não existe ($rotulo${exe:+: $exe}) — rode '$py -m playwright install chromium'"
+  fi
+}
+
 head_ "Roster oficial (squad.yaml)"
 if file_ "$REPO/squad.yaml"; then
   n=$(grep -cE '^  - id: ' "$REPO/squad.yaml")
@@ -64,8 +92,7 @@ done
 for s in lp-ingestao lp-design-review lp-qa lp-publicar; do
   file_ "$REPO/apps/lp-builder/skills/$s/SKILL.md" && green "skill $s" || red "skill $s ausente"
 done
-python3 -c "import playwright" 2>/dev/null && green "playwright (QA/screenshot)" \
-  || yellow "playwright ausente — 'pip install playwright && python3 -m playwright install chromium'"
+checar_playwright "$(py_ "$REPO/apps/lp-builder/venv/bin/python")" "QA e screenshot"
 [ -L "$CLAUDE_HOME/skills/lp-qa" ] && green "skills ligadas em $CLAUDE_HOME" || yellow "rode scripts/setup.sh"
 
 head_ "2. DIRETOR DE OPERAÇÕES"
@@ -110,7 +137,9 @@ done
 [ -d "$REPO/agents/design-ia/engine/templates" ] && green "templates ($(ls "$REPO/agents/design-ia/engine/templates" | wc -l))" || red "templates ausentes"
 [ -d "$REPO/agents/design-ia/engine/fonts/pool" ] && green "pool de fontes ($(ls "$REPO/agents/design-ia/engine/fonts/pool" | wc -l))" || red "fontes ausentes"
 file_ "$REPO/agents/design-ia/skills/designer-ia/SKILL.md" && green "skill designer-ia" || red "skill ausente"
-python3 -c "import playwright" 2>/dev/null && green "playwright (render)" || yellow "playwright ausente — render não roda"
+checar_playwright python3 "render"
+python3 -c "import PIL" 2>/dev/null && green "Pillow (validate.py)" \
+  || red "Pillow ausente — validate.py não roda e a peça sai sem conferência. Rode: pip install Pillow"
 if ldconfig -p 2>/dev/null | grep -q libnspr4 || [ -f "$REPO/shared/runtime/lib/libnspr4.so" ]; then
   green "libs do Chromium (libnss3/libnspr4)"
 else

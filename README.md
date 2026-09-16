@@ -254,6 +254,7 @@ no repositório com o LICENSE de cada uma. Procedência completa em
 | Git | setup e plugin do Revisor | sim |
 | FFmpeg + ffprobe (libx264, libass) | Legend IA; medição técnica do Revisor | sim para vídeo |
 | Playwright + Chromium | render do Design IA, QA/screenshot do LP Builder | sim para arte e LP |
+| `Pillow` | `validate.py` do Design IA — conferência da peça renderizada | sim para arte |
 | `faster-whisper` | Legend IA | sim para transcrição |
 | Conector Google Drive do claude.ai | LP Builder (ingestão), Revisor (link de Drive) | conta, não máquina |
 | `rsync` + SSH | LP Builder, só ao publicar em VPS | não |
@@ -310,7 +311,8 @@ Dependências de sistema, se `check.sh` reclamar:
 
 ```bash
 sudo apt install ffmpeg python3-venv
-pip install playwright && python3 -m playwright install chromium
+pip install playwright Pillow && python3 -m playwright install chromium
+apps/lp-builder/venv/bin/python -m playwright install chromium   # o QA da LP roda no venv dele
 bash scripts/chromium-libs.sh          # libnss3/libnspr4, funciona sem root
 ```
 
