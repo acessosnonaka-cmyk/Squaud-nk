@@ -188,11 +188,20 @@ Ciclo permanente:
 está instalado. Rode exatamente isto e guarde o resultado como `BASE`:
 
 ```bash
-BASE="${CLAUDE_PLUGIN_ROOT:-$(find "$HOME/.claude/plugins" -maxdepth 7 -type d -name conhecimento -path '*gestor-de-trafego*' 2>/dev/null | head -1 | xargs -r dirname)}"; echo "BASE=$BASE"; ls "$BASE/conhecimento/diagnostico-de-gargalos.md"
+BASE="${CLAUDE_PLUGIN_ROOT:-}"
+[ -d "$BASE/conhecimento" ] || BASE="$(find "$HOME/.claude/plugins" -maxdepth 7 -type d -name conhecimento -path '*gestor-de-trafego*' 2>/dev/null | head -1 | xargs -r dirname)"
+[ -d "$BASE/conhecimento" ] || BASE="$HOME/.claude/squad-nk/agents/gestor-de-trafego"
+echo "BASE=$BASE"; ls "$BASE/conhecimento/diagnostico-de-gargalos.md"
 ```
 
-O caminho muda de máquina para máquina e a cada versão do plugin. Se o `ls` falhar, não
-invente o caminho: avise que a base de conhecimento não foi encontrada.
+São três tentativas, nesta ordem: a variável do plugin, o plugin instalado em disco e —
+se nenhuma valer — **o próprio monorepo, pela âncora `~/.claude/squad-nk`**. Este terceiro
+degrau existe porque o plugin é instalação manual: num clone novo ele ainda não existe, e
+sua base de conhecimento está versionada no repositório de qualquer jeito. É o mesmo
+princípio que o Revisor de Arte já usa.
+
+Se mesmo assim o `ls` falhar, não invente o caminho: avise que a base de conhecimento não
+foi encontrada e que `bash scripts/setup.sh` resolve.
 
 Leia sob demanda, conforme o pedido:
 

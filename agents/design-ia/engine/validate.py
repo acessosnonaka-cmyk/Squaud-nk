@@ -18,6 +18,15 @@ import pathlib
 import re
 import sys
 
+# Pillow é obrigatório aqui: sem ele TODA peça seria reprovada com "PNG invalido".
+# O helper compartilhado troca para o venv dos motores quando este interpretador
+# não tem a dependência — job.py chama este script com sys.executable, que pode
+# ser o python3 do sistema.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "shared" / "pylib"))
+import squadnk_browser  # noqa: E402
+
+squadnk_browser.garantir_pillow()
+
 # Contraste minimo, criterio WCAG AA. "Texto grande" = 24px normal ou 18.66px em negrito
 # (14pt bold); nele bastam 3.0:1. Texto corrido exige 4.5:1. Peca grafica nao e pagina
 # web, mas abaixo desses pisos a leitura em feed sofre de fato.

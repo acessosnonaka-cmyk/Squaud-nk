@@ -3,7 +3,7 @@
   "agent": "copywriter",
   "version": "1.0.0",
   "squad": "Legend AI",
-  "master_prompt": "~/projetos/copywriter/agents/copywriter.md",
+  "master_prompt": "~/.claude/squad-nk/agents/copywriter/agents/copywriter.md",
   "capabilities": [
     {
       "id": "copywriting.script",

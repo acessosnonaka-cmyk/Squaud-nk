@@ -20,9 +20,14 @@ Nunca otimize uma métrica inferior prejudicando uma métrica superior.
 1. Localize a base de conhecimento do plugin e a raiz de dados:
 
 ```bash
-BASE="${CLAUDE_PLUGIN_ROOT:-$(find "$HOME/.claude/plugins" -maxdepth 7 -type d -name conhecimento -path '*gestor-de-trafego*' 2>/dev/null | head -1 | xargs -r dirname)}"
+BASE="${CLAUDE_PLUGIN_ROOT:-}"
+[ -d "$BASE/conhecimento" ] || BASE="$(find "$HOME/.claude/plugins" -maxdepth 7 -type d -name conhecimento -path '*gestor-de-trafego*' 2>/dev/null | head -1 | xargs -r dirname)"
+[ -d "$BASE/conhecimento" ] || BASE="$HOME/.claude/squad-nk/agents/gestor-de-trafego"   # monorepo
 DATA="${SQUAD_DATA_HOME:-$HOME/.squad-nk}"; echo "BASE=$BASE  DATA=$DATA"
 ```
+
+O terceiro degrau é o monorepo: sem o plugin instalado, a base de conhecimento continua
+acessível pela âncora `~/.claude/squad-nk`. O agente nunca fica com `BASE` vazio.
 
 2. Leia a Source of Truth do cliente — canônica, nunca duplicada:
    `$DATA/art-builder/clients/<slug>/brand.json` (identidade, tom, `restrictions`) e a LP

@@ -14,7 +14,7 @@ Skill, motor e conector são **ferramentas** de um agente, nunca o agente inteir
 
 | Agente | Capabilities | Como acionar | Autoridade primária |
 |---|---|---|---|
-| **copywriter** | `copywriting.script`<br>`copywriting.social`<br>`copywriting.meta_ads`<br>`copywriting.landing_page` | `Agent(subagent_type: "copywriter")` · base `~/projetos/copywriter/` | copy, mensagem, promessa verbal, headline, argumento, CTA, narrativa verbal, roteiro |
+| **copywriter** | `copywriting.script`<br>`copywriting.social`<br>`copywriting.meta_ads`<br>`copywriting.landing_page` | `Agent(subagent_type: "copywriter")` · base `~/.claude/squad-nk/agents/copywriter/` | copy, mensagem, promessa verbal, headline, argumento, CTA, narrativa verbal, roteiro |
 | **designer** | `design.peca_grafica`<br>`design.direcao_de_arte` | `Agent(subagent_type: "designer")` · skill `designer-ia` · motor `agents/design-ia/engine/` | direção visual, composição, tipografia, layout, peça gráfica |
 | **legend-ia** | `video.edicao`<br>`video.motion` | `Agent(subagent_type: "legend-ia")` · skill `editar-video` · motor `apps/legend-ia/` | execução audiovisual, edição, motion, montagem |
 | **lp-builder** | `lp.arquitetura`<br>`lp.implementacao`<br>`lp.qa`<br>`lp.publicacao` | `Agent(subagent_type: "lp-builder")` · skills `lp-*` · motor `apps/lp-builder/engine/` | arquitetura da página, UX, composição, implementação, responsividade, interações |
@@ -88,8 +88,8 @@ argumento, claim, posicionamento ou CTA estratégico.
 | `$SQUAD_DATA_HOME/trafego/clients/<slug>/` | memória de mídia: guardrails, contexto de aquisição e histórico de campanha |
 
 `restrictions` e `tone.avoid` vencem sempre, inclusive contra o site do próprio cliente.
-Entregas antigas (`~/projetos/copywriter/entregas/`, `~/.claude/art-builder/jobs/`) são **rastro
-de produção, não Source of Truth**. Ninguém cria banco paralelo.
+Entregas antigas (`$SQUAD_DATA_HOME/copywriter/entregas/`, `~/.claude/art-builder/jobs/`) são
+**rastro de produção, não Source of Truth**. Ninguém cria banco paralelo.
 
 ## Revisão
 

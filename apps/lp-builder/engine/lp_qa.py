@@ -7,7 +7,15 @@ claims, autocritica) continua sendo do agente — ver skill lp-qa.
   lp_qa.py <url> [--out DIR]
 """
 import argparse, asyncio, json, os, pathlib, re, sys
-from playwright.async_api import async_playwright
+
+# Helper de portabilidade compartilhado com o motor do Design IA: acha um Python
+# com Playwright e um Chromium utilizável. parents[3] = raiz do clone, mesmo
+# quando este arquivo é alcançado pelo symlink em ~/.claude/lp-builder/.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "shared" / "pylib"))
+import squadnk_browser  # noqa: E402
+
+squadnk_browser.garantir_playwright()
+from playwright.async_api import async_playwright  # noqa: E402
 
 
 def _libs_chromium() -> None:
@@ -147,7 +155,7 @@ async def rodar(url, out):
     os.makedirs(out, exist_ok=True)
     rel = {'url': url}
     async with async_playwright() as p:
-        b = await p.chromium.launch()
+        b = await squadnk_browser.lancar_chromium_async(p.chromium)
         for nome, w, h in VIEWS:
             pg = await b.new_page(viewport={'width': w, 'height': h})
             erros, falhas = [], []

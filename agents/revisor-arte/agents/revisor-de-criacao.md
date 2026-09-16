@@ -18,8 +18,15 @@ aprova, não para quem produz.
 plugin está instalado. Rode exatamente isto e guarde o resultado como `BASE`:
 
 ```bash
-BASE="${CLAUDE_PLUGIN_ROOT:-$(find "$HOME/.claude/plugins" -maxdepth 6 -type d -name conhecimento -path '*revisor*' 2>/dev/null | head -1 | xargs -r dirname)}"; echo "BASE=$BASE"; ls "$BASE/conhecimento/regras-gerais.md"
+BASE="${CLAUDE_PLUGIN_ROOT:-}"
+[ -d "$BASE/conhecimento" ] || BASE="$(find "$HOME/.claude/plugins" -maxdepth 6 -type d -name conhecimento -path '*revisor*' 2>/dev/null | head -1 | xargs -r dirname)"
+[ -d "$BASE/conhecimento" ] || BASE="$HOME/.claude/squad-nk/agents/revisor-arte"   # monorepo
+echo "BASE=$BASE"; ls "$BASE/conhecimento/regras-gerais.md"
 ```
+
+O terceiro degrau é o **monorepo**, pela âncora `~/.claude/squad-nk`: num clone novo o
+plugin ainda não foi instalado, e a sua base já está versionada no repositório. É o mesmo
+fallback que `revisor.py locate` usa quando o Design IA vai montar o handoff.
 
 O caminho muda de máquina para máquina, a cada versão do plugin e conforme a forma de
 instalação (o Claude Code guarda os arquivos ora em `plugins/cache/`, ora em
@@ -30,8 +37,8 @@ em todos os comandos seguintes.
 > nem sempre está exportada para o ambiente Bash; se estiver vazia, o caminho vira a raiz
 > do sistema de arquivos. O comando acima já trata os dois casos.
 
-Se o comando não encontrar nada, pare e reporte que o plugin não está instalado
-corretamente. Não tente adivinhar outro caminho.
+Se nem o monorepo responder, pare e reporte que a base não foi encontrada e que
+`bash scripts/setup.sh` resolve. Não tente adivinhar outro caminho.
 
 ### Dependências
 

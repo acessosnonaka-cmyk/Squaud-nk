@@ -23,7 +23,12 @@ PKGS=(libnss3 libnspr4)
 ok()   { printf '  \033[32m✓\033[0m %s\n' "$1"; }
 warn() { printf '  \033[33m!\033[0m %s\n' "$1"; }
 
-if ldconfig -p 2>/dev/null | grep -q libnspr4; then
+# Substituição de comando, não pipe: sob `pipefail`, `ldconfig -p | grep -q` leva
+# SIGPIPE quando o grep sai antes do ldconfig terminar de escrever, e o teste dá
+# falso. Era por isso que este script reinstalava libs já presentes.
+tem_lib() { case "$(ldconfig -p 2>/dev/null || true)" in *"$1"*) return 0;; *) return 1;; esac; }
+
+if tem_lib libnspr4; then
   ok "libnss3/libnspr4 já estão no sistema"; exit 0
 fi
 ligar_engine() {

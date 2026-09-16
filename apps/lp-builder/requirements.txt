@@ -1,3 +1,17 @@
-# Motor do LP Builder. O QA renderiza a página em três viewports com Chromium.
-# Depois de instalar:  venv/bin/python -m playwright install chromium
+# Venv dos motores que dependem de navegador e de imagem.
+#
+# Apesar do caminho, este venv NÃO é só do LP Builder: o motor do Design IA o
+# reutiliza por meio de shared/pylib/squadnk_browser.py, em vez de duplicar
+# ~130 MB de Playwright. O caminho segue sendo apps/lp-builder/venv para não
+# quebrar apps/web/tools/lp.qa.yaml nem scripts/check.sh.
+#
+# Depois de instalar, o navegador é resolvido em tempo de execução: Chromium da
+# plataforma, do Playwright ou do sistema — ver squadnk_browser.py.
+
+# QA da LP em três viewports e render da peça do Design IA.
 playwright==1.62.0
+
+# validate.py (Design IA) abre o PNG e amostra cor de fundo para o contraste
+# WCAG; drive_ingest.py (LP Builder) monta o contact sheet e mede desfoque e
+# exposição. Sem Pillow, TODA peça renderizada é reprovada por "PNG invalido".
+Pillow>=10.0,<12

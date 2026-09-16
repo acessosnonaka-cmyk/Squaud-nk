@@ -23,6 +23,12 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent
+# Helper de portabilidade compartilhado com o LP Builder: acha um Python com
+# Playwright e um Chromium utilizável. ROOT.parents[2] = raiz do clone, mesmo
+# quando este arquivo é alcançado pelo symlink em ~/.claude/art-builder/.
+sys.path.insert(0, str(ROOT.parents[2] / "shared" / "pylib"))
+import squadnk_browser  # noqa: E402
+
 TEMPLATES = ROOT / "templates"
 FONTS = ROOT / "fonts"
 CLIENTS = ROOT / "clients"
@@ -331,6 +337,10 @@ def build_html(brief: dict) -> tuple[str, dict, dict, pathlib.Path]:
 
 
 def render(brief_path: str, out_path: str | None = None) -> dict:
+    # Antes de qualquer trabalho: se este interpretador não tem Playwright, o
+    # processo se re-executa no venv que tem. Feito aqui, nada foi escrito ainda.
+    squadnk_browser.garantir_playwright()
+
     brief = json.loads(pathlib.Path(brief_path).expanduser().read_text(encoding="utf-8"))
     html, fmt, meta, _ = build_html(brief)
 
@@ -346,14 +356,18 @@ def render(brief_path: str, out_path: str | None = None) -> dict:
     try:
         from playwright.sync_api import sync_playwright
     except ImportError as e:
-        raise RenderError("playwright nao instalado: pip3 install playwright") from e
+        raise RenderError("playwright nao instalado: rode bash scripts/setup.sh") from e
 
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(
-            env=chromium_env(),
-            args=["--no-sandbox", "--disable-dev-shm-usage",
-                  "--force-color-profile=srgb", "--font-render-hinting=none"],
-        )
+        try:
+            browser = squadnk_browser.lancar_chromium(
+                pw.chromium,
+                env=chromium_env(),
+                args=["--no-sandbox", "--disable-dev-shm-usage",
+                      "--force-color-profile=srgb", "--font-render-hinting=none"],
+            )
+        except squadnk_browser.BrowserIndisponivel as e:
+            raise RenderError(str(e)) from e
         page = browser.new_page(viewport={"width": fmt["w"], "height": fmt["h"]},
                                 device_scale_factor=fmt["scale"])
         page.goto(debug_html.as_uri())

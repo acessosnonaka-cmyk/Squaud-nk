@@ -17,6 +17,12 @@ head_() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 have()  { command -v "$1" >/dev/null 2>&1; }
 file_()  { [ -f "$1" ]; }
 
+# `ldconfig -p | grep -q X` mente sob `pipefail`: o grep sai no primeiro match,
+# o ldconfig ainda está escrevendo, leva SIGPIPE e devolve 141 — e o pipeline
+# inteiro vira falso. Dava 🔴 em máquina saudável em ~80% das execuções. A
+# substituição de comando lê a saída inteira: determinística, sempre igual.
+tem_lib() { case "$(ldconfig -p 2>/dev/null || true)" in *"$1"*) return 0;; *) return 1;; esac; }
+
 head_ "Roster oficial (squad.yaml)"
 if file_ "$REPO/squad.yaml"; then
   n=$(grep -cE '^  - id: ' "$REPO/squad.yaml")
@@ -53,8 +59,11 @@ done
 for s in lp-ingestao lp-design-review lp-qa lp-publicar; do
   file_ "$REPO/apps/lp-builder/skills/$s/SKILL.md" && green "skill $s" || red "skill $s ausente"
 done
-python3 -c "import playwright" 2>/dev/null && green "playwright (QA/screenshot)" \
-  || yellow "playwright ausente — 'pip install playwright && python3 -m playwright install chromium'"
+PYM="$REPO/apps/lp-builder/venv/bin/python"   # venv dos motores de navegador
+"$PYM" -c "import playwright" 2>/dev/null && green "playwright (QA/screenshot)" \
+  || yellow "playwright ausente — rode scripts/setup.sh"
+"$PYM" -c "import PIL" 2>/dev/null && green "Pillow (contact sheet, contraste)" \
+  || yellow "Pillow ausente — rode scripts/setup.sh"
 [ -L "$CLAUDE_HOME/skills/lp-qa" ] && green "skills ligadas em $CLAUDE_HOME" || yellow "rode scripts/setup.sh"
 
 head_ "2. DIRETOR DE OPERAÇÕES"
@@ -99,8 +108,16 @@ done
 [ -d "$REPO/agents/design-ia/engine/templates" ] && green "templates ($(ls "$REPO/agents/design-ia/engine/templates" | wc -l))" || red "templates ausentes"
 [ -d "$REPO/agents/design-ia/engine/fonts/pool" ] && green "pool de fontes ($(ls "$REPO/agents/design-ia/engine/fonts/pool" | wc -l))" || red "fontes ausentes"
 file_ "$REPO/agents/design-ia/skills/designer-ia/SKILL.md" && green "skill designer-ia" || red "skill ausente"
-python3 -c "import playwright" 2>/dev/null && green "playwright (render)" || yellow "playwright ausente — render não roda"
-if ldconfig -p 2>/dev/null | grep -q libnspr4 || [ -f "$REPO/shared/runtime/lib/libnspr4.so" ]; then
+# O Design IA reutiliza o venv do LP Builder via shared/pylib/squadnk_browser.py.
+"$REPO/apps/lp-builder/venv/bin/python" -c "import playwright" 2>/dev/null \
+  && green "playwright (render, venv compartilhado)" || yellow "playwright ausente — rode scripts/setup.sh"
+if "$REPO/apps/lp-builder/venv/bin/python" "$REPO/shared/pylib/squadnk_browser.py" 2>/dev/null \
+     | grep -q '^  OK .*chrom'; then
+  green "Chromium utilizável encontrado"
+else
+  yellow "nenhum Chromium detectado — rode scripts/setup.sh"
+fi
+if tem_lib libnspr4 || [ -f "$REPO/shared/runtime/lib/libnspr4.so" ]; then
   green "libs do Chromium (libnss3/libnspr4)"
 else
   red "libs do Chromium ausentes — render falha. Rode: bash scripts/chromium-libs.sh"
