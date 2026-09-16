@@ -43,7 +43,7 @@ um job — e o que ele promete ao especialista no briefing.
 |---|---|
 | **entrega** | roteiro de vídeo, copy de social, Meta Ads e copy de Landing Page |
 | **recebe** | objetivo, público, oferta, claims permitidos, canal, formato, restrições do brand kit |
-| **devolve** | copy pronta no formato do canal, com a classe factual de cada afirmação |
+| **devolve** | copy pronta no formato do canal, com a classe factual de cada afirmação. **Roteiro devolve também o PDF** — `engine/roteiro_pdf.py` fecha a entrega, e job de roteiro sem PDF nos artefatos está incompleto |
 | **não faz** | SEO, e-mail marketing, tráfego, design, vídeo, desenvolvimento de LP |
 | **depende de** | Source of Truth do cliente. Nada mais — é o primeiro da cadeia |
 | **revisão** | a dele é textual e própria. Copy isolada **não** vai ao Revisor de Arte |

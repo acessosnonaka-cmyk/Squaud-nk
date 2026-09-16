@@ -121,6 +121,7 @@ E=agents/diretor-operacoes/engine
 python3 $E/auditoria.py                     # o roster bate com o disco?
 python3 agents/diretor-operacoes/testes/teste-roteamento.py        # roteamento, contrato e travas
 python3 agents/diretor-operacoes/testes/teste-contexto-cliente.py  # acervo externo do cliente
+python3 agents/copywriter/testes/teste-roteiro-pdf.py             # PDF de roteiro
 ```
 
 A auditoria compara `squad.yaml` com os prompts, o frontmatter de cada um, skills, motores, o
@@ -275,7 +276,8 @@ no repositório com o LICENSE de cada uma. Procedência completa em
 | Python 3.11+ | LP Builder, Design IA, Legend IA | sim |
 | Git | setup e plugin do Revisor | sim |
 | FFmpeg + ffprobe (libx264, libass) | Legend IA; medição técnica do Revisor | sim para vídeo |
-| Playwright + Chromium | render do Design IA, QA/screenshot do LP Builder | sim para arte e LP |
+| Playwright + Chromium | render do Design IA, QA/screenshot do LP Builder, PDF de roteiro do Copywriter | sim para arte, LP e roteiro |
+| `Markdown` | `roteiro_pdf.py` do Copywriter — fecha a entrega de roteiro em PDF | sim para roteiro |
 | `Pillow` | `validate.py` do Design IA — conferência da peça renderizada | sim para arte |
 | `faster-whisper` | Legend IA | sim para transcrição |
 | Conector Google Drive do claude.ai | **Diretor** (acervo do cliente), LP Builder (ingestão), Revisor (link de Drive) | conta, não máquina |

@@ -130,6 +130,15 @@ else
   yellow "hook não registrado — veja agents/diretor-operacoes/README.md"
 fi
 
+head_ "2c. COPYWRITER — entrega de roteiro"
+file_ "$REPO/agents/copywriter/agents/copywriter.md" && green "agente" || red "agente ausente"
+file_ "$REPO/agents/copywriter/engine/roteiro_pdf.py" \
+  && green "engine/roteiro_pdf.py" || red "engine/roteiro_pdf.py ausente — roteiro não fecha em PDF"
+# Roteiro entrega PDF por regra. Sem markdown, o motor para no primeiro comando e a
+# entrega volta sem a peça — pegar aqui é mais barato que pegar na hora da gravação.
+python3 -c "import markdown" 2>/dev/null && green "Markdown (roteiro_pdf.py)" \
+  || red "Markdown ausente — roteiro_pdf.py não roda. Rode: pip install markdown"
+
 head_ "3. DESIGN IA"
 for f in render.py brand.py job.py artdirection.py revisor.py validate.py autofix.py assets.py selfcheck.py formats.json; do
   file_ "$REPO/agents/design-ia/engine/$f" && green "engine/$f" || red "engine/$f ausente"

@@ -62,7 +62,8 @@ agentes:
       - agents/copywriter/skills/caption-writer
       - agents/copywriter/skills/short-form-video-script
       - agents/copywriter/skills/landing-page-copy
-    motores: []
+    motores:
+      - agents/copywriter/engine        # roteiro_pdf: fecha a entrega de roteiro em PDF
     conectores: []
     web: nao_integrado
     resumo: "Roteiro de vídeo, copy de social, Meta Ads e Landing Page. A copy nasce aqui."

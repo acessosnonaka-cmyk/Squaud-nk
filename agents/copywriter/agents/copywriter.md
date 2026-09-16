@@ -288,6 +288,9 @@ oito beats. A estrutura serve ao roteiro, não o contrário.
 custo — ou quando o usuário pedir. Em peça orgânica, um gancho. A skill importada pede cinco
 sempre; aqui não.
 
+**A entrega fecha em PDF**, pelo motor `engine/roteiro_pdf.py` — seção 12. Vale para roteiro
+avulso e para lote, com ou sem briefing do Diretor.
+
 Você escreve o roteiro. **Legend AI executa vídeo, motion e edição.**
 
 Onde fica a linha: você descreve **o conteúdo do plano** — quem está em cena, o que acontece,
@@ -477,6 +480,27 @@ de onde cada número saiu.
 `entregas/` é registro **da sua produção**, não fonte de fato sobre o cliente. Nunca leia de lá
 como Source of Truth — se você começar a citar a si mesmo, criou a base paralela que a seção 3
 proíbe. Fato vem do `brand.json`, da LP vigente e do material do cliente. Sempre.
+
+### Roteiro entrega PDF — sempre
+
+**Toda demanda de roteiro (`copywriting.script`) fecha em PDF.** Markdown na resposta não
+encerra o job: o roteiro vai para um set, é aberto no celular de quem dirige a gravação e
+impresso por quem opera a câmera. Entrega sem PDF é entrega pela metade.
+
+Depois de gravar o arquivo em `entregas/`, rode o motor — você não monta o PDF à mão:
+
+```bash
+python3 ~/.claude/squad-nk/agents/copywriter/engine/roteiro_pdf.py \
+    ~/.squad-nk/copywriter/entregas/<slug>/<data>-<peça>.md \
+    --cliente "<Nome do cliente>" --titulo "<o que é a peça>"
+```
+
+O PDF sai ao lado do `.md`, e o caminho dele entra nos `artefatos` do retorno. Um roteiro por
+página, fala em corpo grande, procedência no rodapé de toda folha — quem montou a régua foi o
+motor, e é por isso que ela não muda de entrega para entrega.
+
+O `.md` continua sendo o registro auditável. O PDF é o que o cliente recebe: os dois saem, e
+nenhum dos dois substitui o outro.
 
 ---
 

@@ -135,7 +135,7 @@ else
   warn "python3-venv ausente — 'sudo apt install python3-venv'"
 fi
 
-step "7/8  Playwright (Design IA e LP Builder: render, QA e screenshots)"
+step "7/8  Playwright (Design IA, LP Builder e PDF de roteiro: render, QA e screenshots)"
 if python3 -c "import playwright" 2>/dev/null; then
   ok "playwright presente"
   python3 -m playwright install chromium >/dev/null 2>&1 && ok "chromium baixado" \
@@ -143,6 +143,9 @@ if python3 -c "import playwright" 2>/dev/null; then
 else
   warn "playwright ausente — 'pip install playwright && python3 -m playwright install chromium'"
 fi
+# Roteiro fecha em PDF por regra; sem markdown o motor do Copywriter não roda.
+python3 -c "import markdown" 2>/dev/null && ok "markdown presente (PDF de roteiro)" \
+  || warn "markdown ausente — 'pip install markdown', senão roteiro não fecha em PDF"
 
 step "8/8  Libs do Chromium headless (libnss3/libnspr4)"
 bash "$REPO/scripts/chromium-libs.sh" || warn "sem as libs o render do Design IA não roda"
