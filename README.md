@@ -314,13 +314,26 @@ O `.env` está no `.gitignore`. Nunca comite valor real.
 ```bash
 git clone git@github.com:acessosnonaka-cmyk/Squaud-nk.git
 cd Squaud-nk
+```
+
+**A camada de controle já está de pé aqui.** Abrindo o Claude Code neste clone, os 7 agentes,
+as 15 skills próprias e o hook `PreToolUse` carregam de `.claude/` — escopo de projeto, sem
+instalar nada. É o que faz o Squad existir num container novo do Claude Code Web, onde
+`~/.claude/` da sua máquina não chega. Demanda textual (Diretor → Copywriter) funciona assim.
+
+`setup.sh` instala a **camada de runtime** — o que executa bit:
+
+```bash
 bash scripts/setup.sh
 bash scripts/check.sh
 ```
 
-`setup.sh` liga os agentes e as skills ao Claude Code por symlink, prepara os motores em
-`~/.claude/art-builder` e `~/.claude/lp-builder`, clona o `humanizer` e monta o venv do Legend IA.
-É idempotente e não sobrescreve dado de cliente já existente.
+Ele prepara os motores em `~/.claude/art-builder` e `~/.claude/lp-builder`, clona o `humanizer`,
+monta o venv do Legend IA e mantém os symlinks de `~/.claude/` para quem usa o Squad de fora
+deste repositório. É idempotente e não sobrescreve dado de cliente já existente.
+
+`check.sh` responde às duas camadas em separado: **CONTROLE** vermelho é o Squad inexistente;
+**RUNTIME** amarelo é um motor que não roda, com o resto do Squad de pé.
 
 Faltam os plugins, que são manuais (uma vez por máquina). Cada um é instalado
 separadamente — instalar um não traz o outro:
@@ -428,9 +441,12 @@ seção 11 de [`docs/arquitetura-web.md`](docs/arquitetura-web.md).
 2. Skills próprias em `agents/<nome>/skills/<skill>/SKILL.md`; motor em `agents/<nome>/engine/`.
 3. Registre as capabilities em `agents/diretor-operacoes/REGISTRY.md` — sem isso o Diretor não o
    enxerga, e inventar dono de tarefa é proibido.
-4. Adicione o symlink em `scripts/setup.sh` e a verificação em `scripts/check.sh`.
-5. Documente o componente neste README.
-6. Commit único com prompt, REGISTRY, scripts e README juntos.
+4. Adicione o symlink de projeto — `ln -s ../../agents/<nome>/agents/<nome>.md
+   .claude/agents/<nome>.md`, relativo, a partir de `.claude/agents/` — senão o agente não
+   existe em container novo. Mesma coisa para cada skill, em `.claude/skills/`.
+5. Adicione o symlink em `scripts/setup.sh` e a verificação em `scripts/check.sh`.
+6. Documente o componente neste README.
+7. Commit único com prompt, REGISTRY, `.claude/`, scripts e README juntos.
 
 ## Como atualizar agentes
 
@@ -453,8 +469,9 @@ claude plugin marketplace update squad-legend-ai
 
 | Sintoma | Causa provável | Correção |
 |---|---|---|
-| Skill `lp-*` ou `designer-ia` não aparece | symlink não criado | `bash scripts/setup.sh` |
-| `Agent(diretor-de-operacoes)` não existe | `~/.claude/agents/` sem o symlink | `bash scripts/setup.sh` |
+| Skill `lp-*` ou `designer-ia` não aparece | symlink de projeto ausente ou quebrado | confira `.claude/skills/`; `bash scripts/check.sh` aponta qual |
+| `Agent(diretor-de-operacoes)` não existe | `.claude/agents/` não veio no clone (checkout sem symlink, p. ex. Windows sem `core.symlinks`) | `git config core.symlinks true && git checkout -- .claude` |
+| Squad sumiu em container novo do Claude Code Web | alguém contou com `~/.claude/`, que não viaja | a camada de controle é `.claude/` no repositório — commite lá |
 | Render da peça falha sem erro claro | Playwright/Chromium ausente | `pip install playwright && python3 -m playwright install chromium` |
 | Render falha com `libnspr4.so` / `libnss3.so` | libs do Chromium ausentes no host | `bash scripts/chromium-libs.sh` — resolve com ou sem root |
 | `revisor.py locate` não acha nada | plugin não instalado | `claude plugin install revisor-de-criacao@squad-legend-ai` ou exporte `DESIGNER_REVISOR_HOME` |
