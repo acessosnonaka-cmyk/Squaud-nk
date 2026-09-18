@@ -1,0 +1,1 @@
+../../agents/copywriter/agents/copywriter.md

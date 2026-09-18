@@ -1,0 +1,16 @@
+{
+  "$comment": "Configuracao de PROJETO do Squad NK. Versionada de proposito: e o que faz o Squad existir num container novo, sem setup.sh. Nao coloque nada pessoal aqui -- token, ID de conta, caminho de maquina, preferencia de tema. Isso e ~/.claude/settings.json, que e seu e nao entra no git.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/scripts/hook-pretooluse.py"
+          }
+        ]
+      }
+    ]
+  }
+}

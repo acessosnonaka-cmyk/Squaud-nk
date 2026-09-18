@@ -25,6 +25,30 @@ Um agente **não deixa de ser agente** por estar implementado hoje como skill ou
 isso é estado da representação técnica, não da arquitetura. Nunca apresente uma skill ou
 um motor como se fosse o agente inteiro.
 
+## Duas camadas, que falham separado
+
+O Squad tem uma camada de **controle** e uma de **runtime**. Elas quebram por motivos
+diferentes e não se substituem.
+
+| | **CAMADA A · CONTROLE** | **CAMADA B · RUNTIME** |
+|---|---|---|
+| O que é | quem existe, quem decide, quem faz o quê | o que executa bit |
+| Onde mora | `CLAUDE.md`, `.claude/agents/`, `.claude/skills/`, `.claude/settings.json`, `squad.yaml`, REGISTRY | Playwright, Chromium, ffmpeg, Pillow, venvs, `humanizer` |
+| Como chega | **só clonando o repositório** | `scripts/setup.sh` e instaladores |
+| Sem ela | não existe Squad: nem painel, nem Diretor, nem delegação | existe Squad, e os motores visuais não rodam |
+
+Tudo da camada A é **versionado e carregado sozinho**: `.claude/agents/` e
+`.claude/skills/` são symlinks relativos para o arquivo canônico — um arquivo só, sem
+cópia divergindo. Editar continua sendo no caminho canônico (`agents/…`, `apps/…`).
+
+**Demanda textual não depende da camada B.** Diretor → Copywriter escrevendo roteiro roda
+num container recém-clonado, sem Chromium e sem ffmpeg. Só o PDF final precisa de
+Playwright, e só o Designer e o Legend precisam dos motores visuais.
+
+**Runtime ausente é BLOQUEADO declarado, nunca desvio silencioso.** Faltando a dependência,
+o especialista diz o que falta e como instalar, e para. Não entrega por outro caminho, não
+improvisa, não entrega pela metade fingindo que está inteiro.
+
 ## Regras
 
 1. **Nada de segredo.** Nenhuma chave, token, cookie, `.env` ou credencial entra no repositório,
@@ -73,6 +97,7 @@ um motor como se fosse o agente inteiro.
 
 | Caminho | O que é |
 |---|---|
+| `.claude/` | **camada de controle versionada**: 7 agentes, skills próprias e `settings.json` com o hook. Symlinks relativos — o arquivo canônico é o de `agents/`/`apps/` |
 | `squad.yaml` | **roster oficial dos 7 agentes** — fonte única |
 | `agents/diretor-operacoes/` | orquestrador + REGISTRY de capabilities |
 | `agents/copywriter/` | agente de copy + 4 skills importadas |
@@ -87,13 +112,18 @@ um motor como se fosse o agente inteiro.
 
 ## Depois de clonar
 
+**O controle já está de pé.** Clonou, abriu o Claude Code: os 7 agentes, as skills próprias
+e o hook `PreToolUse` carregam de `.claude/`, sem rodar nada. Demanda textual funciona aqui.
+
+`setup.sh` instala a **camada B** — motores, dependências e os dados fora do git:
+
 ```bash
-bash scripts/setup.sh
-bash scripts/check.sh
+bash scripts/setup.sh    # runtime: Playwright, Chromium, ffmpeg, venvs, humanizer
+bash scripts/check.sh    # diagnostica CONTROLE e RUNTIME separados
 ```
 
-`setup.sh` liga o repositório ao Claude Code por symlink e é idempotente: não apaga dado de
-cliente já existente na máquina.
+`setup.sh` é idempotente e não apaga dado de cliente já existente na máquina. Ele também
+mantém os symlinks em `~/.claude/`, para quem usa o Squad fora deste repositório.
 
 ## Ao mexer num agente
 

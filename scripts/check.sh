@@ -7,11 +7,15 @@ set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLAUDE_HOME="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
-FAIL=0
+FAIL=0            # camada A - controle. Quebrou aqui, nao existe Squad.
+FALTA_RUNTIME=0   # camada B - motores. Quebrou aqui, o Squad existe e um motor nao roda.
 
 green() { printf '  \033[32m🟢 %s\033[0m\n' "$1"; }
 yellow(){ printf '  \033[33m🟡 %s\033[0m\n' "$1"; }
 red()   { printf '  \033[31m🔴 %s\033[0m\n' "$1"; FAIL=1; }
+# Dependencia de runtime ausente nao e vermelho: uma demanda textual roda sem ela.
+# Amarelo, contado a parte, e o motor que depende dela diz BLOQUEADO quando for acionado.
+dep()   { printf '  \033[33m🟡 %s\033[0m\n' "$1"; FALTA_RUNTIME=1; }
 head_() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 
 have()  { command -v "$1" >/dev/null 2>&1; }
@@ -34,16 +38,60 @@ PYEOF
 checar_playwright() {                                 # $1 = interpretador · $2 = rótulo
   local py="$1" rotulo="$2" exe
   if ! "$py" -c "import playwright" 2>/dev/null; then
-    yellow "playwright ausente ($rotulo) — '$py -m pip install playwright && $py -m playwright install chromium'"
+    dep "playwright ausente ($rotulo) — '$py -m pip install playwright && $py -m playwright install chromium'"
     return
   fi
   exe="$(chromium_de "$py")"
   if [ -n "$exe" ] && [ -x "$exe" ]; then
     green "playwright + chromium ($rotulo)"
   else
-    red "playwright instalado, mas o Chromium que ele espera não existe ($rotulo${exe:+: $exe}) — rode '$py -m playwright install chromium'"
+    dep "playwright instalado, mas o Chromium que ele espera não existe ($rotulo${exe:+: $exe}) — rode '$py -m playwright install chromium'"
   fi
 }
+
+head_ "CONTROLE DO SQUAD — só com o clone, sem setup.sh"
+# Esta seção responde "o Squad existe neste container?". Tudo aqui vem do clone e é
+# carregado pelo Claude Code sozinho. Vermelho aqui é o Squad inexistente: sem painel,
+# sem Diretor, sem delegação. Dependência de motor vem depois, contada à parte.
+file_ "$REPO/CLAUDE.md" && green "CLAUDE.md (roteamento e regras)" || red "CLAUDE.md ausente"
+n_ag=0
+for a in diretor-de-operacoes copywriter designer lp-builder legend-ia revisor-de-criacao gestor-de-trafego; do
+  alvo="$REPO/.claude/agents/$a.md"
+  if [ -f "$alvo" ]; then n_ag=$((n_ag+1))
+  elif [ -L "$alvo" ]; then red "agente de projeto $a aponta para arquivo que não existe"
+  else red "agente de projeto ausente: .claude/agents/$a.md"
+  fi
+done
+[ "$n_ag" -eq 7 ] && green "7 agentes de projeto em .claude/agents/" \
+  || red "$n_ag/7 agentes de projeto — em container novo o Squad não sobe"
+n_sk=0
+for s in "$REPO"/.claude/skills/*; do
+  [ -e "$s" ] || continue
+  if [ -f "$s/SKILL.md" ]; then n_sk=$((n_sk+1)); else red "skill de projeto quebrada: $(basename "$s")"; fi
+done
+[ "$n_sk" -ge 15 ] && green "$n_sk skills de projeto em .claude/skills/" \
+  || red "$n_sk skills de projeto — esperado 15"
+if file_ "$REPO/.claude/settings.json"; then
+  python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$REPO/.claude/settings.json" 2>/dev/null \
+    && green "settings.json de projeto (JSON válido)" || red "settings.json de projeto inválido"
+  grep -q 'CLAUDE_PROJECT_DIR' "$REPO/.claude/settings.json" \
+    && green "hook PreToolUse registrado por caminho portátil" \
+    || red "hook registrado com caminho não portátil — quebra em outra máquina"
+else
+  red ".claude/settings.json ausente — o hook não é registrado em container novo"
+fi
+# O hook tem de responder sem SQUAD_NK_HOME: é assim que ele roda num clone cru.
+if printf '{"tool_name":"Bash","tool_input":{"command":"%s"}}' "desabilitar a trava de aprovacao" \
+   | env -u SQUAD_NK_HOME python3 "$REPO/scripts/hook-pretooluse.py" 2>&1 | grep -q BLOQUEADO; then
+  green "hook barra ação da política sem depender de setup"
+else
+  red "hook não barra ação da política a partir do clone"
+fi
+if grep -q '/home/ffili\|/mnt/c/' "$REPO/.claude/settings.json" "$REPO/scripts/hook-pretooluse.py" 2>/dev/null; then
+  red "caminho absoluto de máquina na camada de controle"
+else
+  green "nenhum caminho absoluto de máquina no controle"
+fi
 
 head_ "Roster oficial (squad.yaml)"
 if file_ "$REPO/squad.yaml"; then
@@ -137,7 +185,7 @@ file_ "$REPO/agents/copywriter/engine/roteiro_pdf.py" \
 # Roteiro entrega PDF por regra. Sem markdown, o motor para no primeiro comando e a
 # entrega volta sem a peça — pegar aqui é mais barato que pegar na hora da gravação.
 python3 -c "import markdown" 2>/dev/null && green "Markdown (roteiro_pdf.py)" \
-  || red "Markdown ausente — roteiro_pdf.py não roda. Rode: pip install markdown"
+  || dep "Markdown ausente — roteiro_pdf.py não roda. Rode: pip install markdown"
 
 head_ "3. DESIGN IA"
 for f in render.py brand.py job.py artdirection.py revisor.py validate.py autofix.py assets.py selfcheck.py inspecao.py formats.json; do
@@ -156,11 +204,11 @@ grep -q "nao foi inspecionada" "$REPO/agents/design-ia/engine/job.py" \
   || red "portão de inspeção ausente — peça segue ao Revisor sem ninguém ter aberto o arquivo"
 checar_playwright python3 "render"
 python3 -c "import PIL" 2>/dev/null && green "Pillow (validate.py)" \
-  || red "Pillow ausente — validate.py não roda e a peça sai sem conferência. Rode: pip install Pillow"
+  || dep "Pillow ausente — validate.py não roda e a peça sai sem conferência. Rode: pip install Pillow"
 if ldconfig -p 2>/dev/null | grep -q libnspr4 || [ -f "$REPO/shared/runtime/lib/libnspr4.so" ]; then
   green "libs do Chromium (libnss3/libnspr4)"
 else
-  red "libs do Chromium ausentes — render falha. Rode: bash scripts/chromium-libs.sh"
+  dep "libs do Chromium ausentes — render falha. Rode: bash scripts/chromium-libs.sh"
 fi
 
 head_ "4. REVISOR DE ARTE"
@@ -224,5 +272,20 @@ else
 fi
 
 printf '\n'
-[ "$FAIL" -eq 0 ] && printf '\033[32mSem bloqueios.\033[0m\n' || printf '\033[31mHá itens 🔴 — veja acima.\033[0m\n'
+head_ "Veredito"
+[ "$FAIL" -eq 0 ] \
+  && printf '  \033[32m🟢 CONTROLE — o Squad existe: agentes, skills, roteamento e hook\033[0m\n' \
+  || printf '  \033[31m🔴 CONTROLE — veja os itens 🔴 acima; sem isso não há Squad\033[0m\n'
+[ "$FALTA_RUNTIME" -eq 0 ] \
+  && printf '  \033[32m🟢 RUNTIME — motores prontos: render, vídeo, QA e PDF\033[0m\n' \
+  || printf '  \033[33m🟡 RUNTIME — falta dependência de motor; demanda textual roda, motor visual reporta BLOQUEADO\033[0m\n'
+printf '\n'
+if [ "$FAIL" -eq 0 ] && [ "$FALTA_RUNTIME" -eq 0 ]; then
+  printf '\033[32mSem bloqueios.\033[0m\n'
+elif [ "$FAIL" -eq 0 ]; then
+  # Motor faltando não é o Squad quebrado. Sai 0 de propósito: o controle está de pé.
+  printf '\033[33mControle de pé. Rode scripts/setup.sh para os motores.\033[0m\n'
+else
+  printf '\033[31mHá itens 🔴 no controle — veja acima.\033[0m\n'
+fi
 exit "$FAIL"

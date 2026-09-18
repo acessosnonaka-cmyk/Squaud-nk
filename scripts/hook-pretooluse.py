@@ -70,8 +70,16 @@ def main() -> None:
     if GATE.match(comando):
         liberar()                      # é o próprio portão; ele decide
 
-    raiz = pathlib.Path(os.environ.get("SQUAD_NK_HOME")
-                        or (pathlib.Path.home() / ".claude" / "squad-nk"))
+    # O hook vive dentro do repositório, então o repositório é o pai do pai
+    # deste arquivo -- nenhum caminho de máquina, nenhuma dependência de setup.
+    # `resolve()` antes de subir: chamado pelo symlink de `~/.claude/`, o caminho
+    # real continua sendo o do clone. `SQUAD_NK_HOME` segue valendo como override
+    # explícito; `CLAUDE_PROJECT_DIR` não serve aqui porque num monorepo ele pode
+    # apontar acima do clone, e o que interessa é onde este arquivo está.
+    raiz = pathlib.Path(
+        os.environ.get("SQUAD_NK_HOME")
+        or pathlib.Path(__file__).resolve().parents[1]
+    )
     try:
         sys.path.insert(0, str(raiz / "agents" / "diretor-operacoes"))
         from engine import policy      # type: ignore
