@@ -5,17 +5,33 @@ O Diretor precisa saber quem ele pode acionar de verdade. Sem esta conferência,
 um agente some do disco, muda de nome ou perde o registro e o Diretor continua
 prometendo o trabalho dele — que é a pior falha possível numa orquestração.
 
+São duas camadas, e elas falham por motivos diferentes:
+
+* **repositório** — roster x prompts x skills x motores x REGISTRY x setup.sh.
+  Vale em qualquer máquina, inclusive em CI, onde `~/.claude` nem existe.
+* **máquina** — o prompt de cada agente chega mesmo ao Claude Code daqui? Um
+  clone perfeito onde o `setup.sh` nunca rodou tem repositório íntegro e nenhum
+  agente acionável. Auditar só a primeira camada e imprimir "SQUAD NK VALIDADO"
+  foi o que já levou o Diretor a prometer acionamento que a máquina não tinha.
+
 Roda com o python do sistema, não escreve nada, não toca em dado de cliente e
-não executa ação externa. Saída: 0 quando o Squad está íntegro, 2 quando existe
-bloqueio real. Um agente em estado `conceito` é bloqueio declarado, não erro:
-ele aparece como tal, e o motor recusa criar job para ele.
+não executa ação externa. Saída:
+
+    0   repositório íntegro e agentes registrados nesta máquina
+    1   repositório íntegro, instalação incompleta — rode scripts/setup.sh
+    2   bloqueio de repositório, ou agente em estado `conceito`
+
+Um agente em estado `conceito` é bloqueio declarado, não erro: ele aparece como
+tal, e o motor recusa criar job para ele.
 
     python3 agents/diretor-operacoes/engine/auditoria.py
     python3 agents/diretor-operacoes/engine/auditoria.py --curto
+    python3 agents/diretor-operacoes/engine/auditoria.py --repositorio  # só a 1ª camada
 """
 from __future__ import annotations
 
 import argparse
+import os
 import pathlib
 import sys
 
@@ -29,6 +45,15 @@ REPO = roster.REPO
 REGISTRY = REPO / "agents" / "diretor-operacoes" / "REGISTRY.md"
 SETUP = REPO / "scripts" / "setup.sh"
 MARKETPLACE = REPO / ".claude-plugin" / "marketplace.json"
+
+
+def claude_home() -> pathlib.Path:
+    """Onde o Claude Code procura agente e skill nesta máquina.
+
+    Lido a cada chamada, e não no import, porque o teste troca a variável em
+    tempo de execução para auditar uma instalação de mentira.
+    """
+    return pathlib.Path(os.environ.get("CLAUDE_CONFIG_DIR") or pathlib.Path.home() / ".claude")
 
 
 def frontmatter(caminho: pathlib.Path) -> dict:
@@ -150,12 +175,49 @@ def auditar() -> tuple[list, list, list]:
     return falhas, notas, linhas
 
 
+def instalacao(home: pathlib.Path | None = None) -> tuple[list, list]:
+    """A segunda camada: o roster chega ao Claude Code **nesta** máquina?
+
+    Devolve (pendências, linhas). Pendência aqui não é defeito do repositório:
+    é `scripts/setup.sh` que não rodou, ou rodou antes de o agente existir.
+    """
+    home = home or claude_home()
+    pendencias, linhas = [], []
+
+    ancora = home / "squad-nk"
+    if (ancora / "agents").is_dir():
+        linhas.append(f"  ⚓ âncora               ~/.claude/squad-nk -> {os.readlink(ancora) if ancora.is_symlink() else ancora}")
+    else:
+        pendencias.append("âncora ~/.claude/squad-nk ausente — os prompts citam esse caminho")
+        linhas.append("  ⚓ âncora               AUSENTE")
+
+    for a in roster.agentes():
+        if a.get("agente") == "conceito":
+            continue
+        ident = a.get("id") or "(sem id)"
+        sub = a.get("subagent_type")
+        if not sub:
+            continue
+        alvo = home / "agents" / f"{sub}.md"
+        if alvo.exists():
+            estado = "registrado"
+        else:
+            estado = "AUSENTE"
+            pendencias.append(f"{ident}: '{sub}' não está em {home}/agents — "
+                              "Agent(subagent_type) não encontra o agente")
+        linhas.append(f"  {a.get('emoji','?')} {ident:<20} {estado:<12} {sub}")
+    return pendencias, linhas
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="auditoria", description="Auditoria do roster do Squad NK")
     ap.add_argument("--curto", action="store_true", help="só o veredito")
+    ap.add_argument("--repositorio", action="store_true",
+                    help="audita só o repositório, sem olhar a instalação desta máquina")
     a = ap.parse_args(argv)
 
     falhas, notas, linhas = auditar()
+    pendencias, linhas_maquina = ([], []) if a.repositorio else instalacao()
     if not a.curto:
         print(f"\nAUDITORIA DO SQUAD NK · {roster.ARQUIVO.name} ({len(linhas)} agentes)")
         print("\n".join(linhas))
@@ -167,12 +229,27 @@ def main(argv=None) -> int:
             print("\nBLOQUEIOS DECLARADOS")
             for n in notas:
                 print(f"  ⏸ {n}")
+        if linhas_maquina:
+            print("\nINSTALAÇÃO NESTA MÁQUINA")
+            print("\n".join(linhas_maquina))
+        if pendencias:
+            print("\nNÃO CHEGA AO CLAUDE CODE DAQUI")
+            for p in pendencias:
+                print(f"  ⚠ {p}")
     if falhas:
         print("\nBLOQUEIO ENCONTRADO")
         return 2
     if notas:
         print("\nBLOQUEIO ENCONTRADO: " + "; ".join(notas))
         return 2
+    if pendencias:
+        print("\nREPOSITÓRIO ÍNTEGRO · INSTALAÇÃO INCOMPLETA NESTA MÁQUINA")
+        print("  rode: bash scripts/setup.sh")
+        print("  agente registrado depois que a sessão abriu só entra na sessão seguinte.")
+        return 1
+    if a.repositorio:
+        print("\nREPOSITÓRIO ÍNTEGRO (instalação desta máquina não auditada)")
+        return 0
     print("\nSQUAD NK VALIDADO")
     return 0
 

@@ -66,6 +66,11 @@ if file_ "$REPO/squad.yaml"; then
     else
       green "auditoria do roster: prompts, skills, motores, REGISTRY e setup.sh conferem"
     fi
+    # A auditoria tem duas camadas: '✗' é defeito do repositório, '⚠' é esta máquina
+    # sem setup.sh. Repositório íntegro com agente não registrado não é squad acionável.
+    # A âncora sai fora: ela tem seção própria logo abaixo, com mais detalhe.
+    printf '%s\n' "$saida" | grep '⚠' | grep -v 'âncora' \
+      | while read -r l; do yellow "${l#*⚠ }"; done
   fi
 else
   red "squad.yaml ausente — o roster oficial não existe"
@@ -106,7 +111,7 @@ done
   || yellow "$ligados/6 agentes registrados — rode scripts/setup.sh"
 
 head_ "2b. DIRETOR — camada operacional"
-for f in engine/modelo.py engine/demanda.py engine/policy.py policy.yaml; do
+for f in engine/modelo.py engine/demanda.py engine/policy.py engine/entrega_pdf.py policy.yaml; do
   file_ "$REPO/agents/diretor-operacoes/$f" && green "$f" || red "$f ausente"
 done
 for sc in demanda job briefing retorno; do
@@ -122,6 +127,18 @@ if python3 "$REPO/agents/diretor-operacoes/engine/demanda.py" listar >/dev/null 
   green "CLI de demandas responde"
 else
   red "CLI de demandas não executa"
+fi
+# O PDF da entrega usa o Chromium que existir na máquina, nunca um caminho fixo.
+if python3 - "$REPO" <<'PYEOF' >/dev/null 2>&1
+import sys, pathlib
+sys.path.insert(0, str(pathlib.Path(sys.argv[1]) / "agents" / "diretor-operacoes"))
+from engine import entrega_pdf
+entrega_pdf.chromium()
+PYEOF
+then
+  green "motor de entrega em PDF (chromium localizado)"
+else
+  yellow "entrega em PDF sem chromium — defina SQUAD_CHROMIUM no .env ou rode 'python3 -m playwright install chromium'"
 fi
 file_ "$REPO/scripts/hook-pretooluse.py" && green "hook PreToolUse presente" || red "hook ausente"
 if grep -q "hook-pretooluse" "$CLAUDE_HOME/settings.json" 2>/dev/null; then

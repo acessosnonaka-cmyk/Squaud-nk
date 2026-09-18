@@ -253,7 +253,7 @@ no repositório com o LICENSE de cada uma. Procedência completa em
 | Python 3.11+ | LP Builder, Design IA, Legend IA | sim |
 | Git | setup e plugin do Revisor | sim |
 | FFmpeg + ffprobe (libx264, libass) | Legend IA; medição técnica do Revisor | sim para vídeo |
-| Playwright + Chromium | render do Design IA, QA/screenshot do LP Builder | sim para arte e LP |
+| Playwright + Chromium | render do Design IA, QA/screenshot do LP Builder, PDF de entrega do Diretor | sim para arte, LP e PDF |
 | `Pillow` | `validate.py` do Design IA — conferência da peça renderizada | sim para arte |
 | `faster-whisper` | Legend IA | sim para transcrição |
 | Conector Google Drive do claude.ai | LP Builder (ingestão), Revisor (link de Drive) | conta, não máquina |
@@ -274,6 +274,7 @@ cp .env.example .env
 | Variável | Para quê |
 |---|---|
 | `SQUAD_DATA_HOME` | raiz dos dados de trabalho (padrão `~/.squad-nk`) |
+| `SQUAD_CHROMIUM` | Chromium do PDF de entrega; sem ela, descobre pelo Playwright ou pelo PATH |
 | `LP_PUBLISH_BASE_URL` | URL pública do preview; sem ela, `http://localhost:8090` |
 | `LP_PUBLISH_REMOTE_*` | host, user, path e chave do VPS de preview |
 | `DESIGNER_REVISOR_HOME` | aponta manualmente a instalação do Revisor de Arte |
@@ -321,7 +322,11 @@ bash scripts/chromium-libs.sh          # libnss3/libnspr4, funciona sem root
 ## Desenvolvimento local
 
 Edite sempre **no repositório**. `~/.claude/agents/*` e `~/.claude/skills/*` são symlinks para cá,
-então a mudança vale na hora, sem reinstalar nada.
+então **editar** um agente que já existe vale na hora, sem reinstalar nada.
+
+**Agente novo é outra história.** O symlink só nasce quando o `setup.sh` roda, e o Claude Code lê
+o registro de subagentes na abertura da sessão: `Agent(subagent_type: "...")` só encontra quem já
+estava registrado quando a sessão abriu. Rodou o `setup.sh` agora, abra uma sessão nova.
 
 ```bash
 bash scripts/check.sh          # diagnóstico: 🟢 pronto  🟡 falta instalar  🔴 quebrado

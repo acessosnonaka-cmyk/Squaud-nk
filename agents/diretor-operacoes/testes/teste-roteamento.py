@@ -21,7 +21,7 @@ sys.path.insert(0, str(RAIZ))
 TMP = tempfile.mkdtemp(prefix="squad-nk-teste-")
 os.environ["SQUAD_DATA_HOME"] = TMP
 
-from engine import auditoria, demanda, modelo, policy, roster   # noqa: E402
+from engine import auditoria, demanda, entrega_pdf, modelo, policy, roster   # noqa: E402
 
 falhas = []
 
@@ -81,6 +81,25 @@ checar("auditoria", not _falhas_roster, "; ".join(_falhas_roster))
 checar("auditoria/sem-bloqueio", not _notas, "; ".join(_notas))
 checar("auditoria/seis", len(modelo.agentes_acionaveis()) == 6, str(modelo.agentes_acionaveis()))
 checar("auditoria/gestor", "gestor-de-trafego" in modelo.agentes_acionaveis())
+
+# Repositório íntegro não quer dizer squad acionável: numa máquina onde o setup.sh
+# nunca rodou, nenhum agente chega ao Claude Code. Auditar só o repositório e dizer
+# "VALIDADO" já fez o Diretor prometer acionamento que a máquina não tinha.
+_home_vazio = pathlib.Path(TMP) / "claude-home-vazio"
+_home_vazio.mkdir(parents=True, exist_ok=True)
+_pendencias, _linhas_maquina = auditoria.instalacao(_home_vazio)
+checar("instalacao/vazia", len(_pendencias) == 8, f"{len(_pendencias)} pendências, esperado 8: âncora + 7 agentes")
+checar("instalacao/ancora", any("âncora" in x for x in _pendencias))
+checar("instalacao/linhas", len(_linhas_maquina) == 8, str(len(_linhas_maquina)))
+
+_home_cheio = pathlib.Path(TMP) / "claude-home-cheio"
+(_home_cheio / "agents").mkdir(parents=True, exist_ok=True)
+(_home_cheio / "squad-nk").symlink_to(roster.REPO)
+for _a in roster.agentes():
+    if _a.get("subagent_type"):
+        (_home_cheio / "agents" / f"{_a['subagent_type']}.md").write_text("", encoding="utf-8")
+checar("instalacao/completa", auditoria.instalacao(_home_cheio)[0] == [],
+       "; ".join(auditoria.instalacao(_home_cheio)[0]))
 
 # A regra do agente-conceito continua valendo para quem entrar amanhã, e é testada
 # contra um roster de mentira — o roster real não tem nenhum hoje.
@@ -251,6 +270,44 @@ try:
             checar("roster/parser", esperado == m.get(campo), f"{r['id']}.{campo}")
 except ImportError:
     pass
+
+# ------------------------------------------------------------ 5 · motor de entrega em PDF
+
+# O conversor é próprio: o que ele precisa aguentar é o markdown que o especialista
+# escreve numa entrega. Tabela de três trilhas, lista de ganchos e negrito.
+_html = entrega_pdf.converter("""## Roteiro 1 · Confiança
+
+Ângulo: **prova** com endereço.
+
+### Variantes de gancho
+
+1. Pergunte onde fica a fábrica.
+- item solto
+
+| Tempo | Fala |
+|---|---|
+| 0-3s | Pergunte onde fica. |
+
+| | |
+|---|---|
+| Cliente | Toraflex |
+""".split("\n"))
+checar("entrega-pdf/quebra", '<h2 class="quebra">Roteiro 1' in _html, _html[:120])
+checar("entrega-pdf/negrito", "<strong>prova</strong>" in _html)
+checar("entrega-pdf/ol", "<ol>" in _html and "<ul>" in _html)
+checar("entrega-pdf/tabela", _html.count("<table>") == 2, str(_html.count("<table>")))
+checar("entrega-pdf/thead", _html.count("<thead>") == 1,
+       "tabela sem cabeçalho não pode virar faixa vazia")
+checar("entrega-pdf/escape", "&" not in entrega_pdf.inline("a < b") or
+       "&lt;" in entrega_pdf.inline("a < b"))
+
+# Regra 2: entrega é dado de cliente e não pode ser gravada dentro do repositório.
+_md = pathlib.Path(TMP) / "entrega.md"
+_md.write_text("# Peça\n\nlinha\n", encoding="utf-8")
+checar("entrega-pdf/trava-git",
+       entrega_pdf.main([str(_md), "-o", str(roster.REPO / "peca.pdf")]) == 2,
+       "o motor aceitou gravar entrega dentro do repositório")
+checar("entrega-pdf/trava-git", not (roster.REPO / "peca.pdf").exists())
 
 # ------------------------------------------------------------ veredito
 

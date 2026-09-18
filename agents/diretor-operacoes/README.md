@@ -11,6 +11,8 @@ Este diretório contém só o que não pode depender de memória de conversa.
 | `engine/modelo.py` | estados, transições, validação, event log, grafo de dependências |
 | `engine/policy.py` | o **portão**: classifica a ação e só então executa (ou não) |
 | `engine/demanda.py` | CLI operacional: demandas, jobs, briefings, aprovações, feedback, retomada |
+| `engine/auditoria.py` | confere o roster em duas camadas: repositório e instalação desta máquina |
+| `engine/entrega_pdf.py` | markdown da entrega -> PDF do cliente. Recusa gravar dentro do git |
 | `schemas/*.json` | os quatro contratos: demanda, job, briefing, retorno |
 
 ## Onde ficam os dados
