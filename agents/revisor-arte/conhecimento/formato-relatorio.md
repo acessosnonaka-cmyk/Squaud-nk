@@ -67,6 +67,18 @@ Sem ressalva plantada, sem "porém" artificial.>
 | **Visual** | <sem problemas com impacto observável; o que está bem resolvido> |
 | **Técnica** | <ficha: dimensões, proporção, integridade; sem problema identificado> |
 
+## Piso de suficiência
+
+| | Resposta |
+|---|---|
+| **P1 · Específico** | <o que aqui é deste cliente e de mais ninguém> |
+| **P2 · Ideia visual** | <a decisão de composição além do arranjo padrão> |
+| **P3 · Motivo de parada** | <o que segura o olho primeiro> |
+
+<Bloco obrigatório, e obrigatório justamente aqui: é a peça sem defeito que o piso
+existe para pegar. Duas respostas negativas e esta peça não é ⭐⭐⭐⭐ — ver
+`criterios/criativos.md` §3.5.>
+
 ## Observações opcionais
 
 <Só se houver algo genuinamente útil. Marcar como **opcional — não é pendência**.
@@ -114,6 +126,16 @@ estrelas.
 |---|---|---|---|---|---|
 
 <Ou: `Nenhum identificado.`>
+
+## Piso de suficiência
+
+| | Resposta |
+|---|---|
+| **P1 · Específico** | <o que aqui é deste cliente e de mais ninguém> |
+| **P2 · Ideia visual** | <a decisão de composição além do arranjo padrão> |
+| **P3 · Motivo de parada** | <o que segura o olho primeiro> |
+
+<Duas negativas: base **G**, teto de ⭐⭐⭐. Três: teto de ⭐⭐.>
 
 ## Problemas técnicos
 

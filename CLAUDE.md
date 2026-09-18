@@ -47,6 +47,27 @@ um motor como se fosse o agente inteiro.
    A regra está na seção 0 de `agents/diretor-operacoes/agents/diretor-de-operacoes.md` e viaja
    nos briefings como `EXECUTION_MODE: SILENT`. Painel não é decoração: agente listado ali tem
    job de verdade.
+8. **Demanda de cliente entra pelo Diretor.** Pedido que vira entregável — peça, roteiro,
+   página, vídeo, campanha — é acionado com `Agent(diretor-de-operacoes)`, não executado
+   direto na sessão. É o Diretor que publica o painel de acionamento, monta o briefing com
+   `EXECUTION_MODE: SILENT` e fecha pelo gate. **Executar direto pula o painel, pula o gate
+   e pula a revisão** — e o gestor recebe algo que o squad nunca viu. Pergunta de uma linha
+   sobre o repositório não é demanda de cliente: essa é da sessão mesmo.
+9. **Entrega de roteiro é PDF.** Toda demanda de `copywriting.script` fecha pelo motor
+   `agents/copywriter/engine/roteiro_pdf.py`. Markdown na resposta não é entrega.
+10. **Pedido inviável se avisa antes de executar.** Percebendo que o pedido, do jeito que veio,
+   não produz o que o gestor quer — falta insumo, a ferramenta não faz aquilo, o pedido se
+   contradiz, o resultado seria reprovado na plataforma — diga **antes**, em duas linhas, com
+   o caminho que funciona. Executar sabendo que vai dar errado é retrabalho que o gestor paga
+   duas vezes. A regra completa está na seção 1.1 do Diretor.
+11. **Nada visual sai sem alguém ter aberto o arquivo.** Parecer `APROVADO` é opinião sobre a
+   peça, não a peça. Designer, Revisor e Diretor abrem o `.png` — o motor exige a inspeção
+   registrada (`job.py inspecionar`) antes de liberar o handoff.
+12. **Peça genérica é defeito, não questão de gosto.** O piso de suficiência
+   (`agents/revisor-arte/conhecimento/criterios/criativos.md` §3.5) vale nos dois lados:
+   o Designer responde as três perguntas em `art-direction.json` antes de renderizar — o motor
+   recusa compilar sem elas — e o Revisor as verifica na peça pronta. Peça sem defeito que
+   falha em duas das três não é aprovada.
 
 ## Layout
 

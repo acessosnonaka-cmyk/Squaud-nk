@@ -158,6 +158,12 @@ SCHEMA = """{
   "brand_role": "como a marca participa da peca",
   "cta_role": "qual acao a peca pede, ou por que nao pede nenhuma",
 
+  "suficiencia": {
+    "especifico": "o que nesta peca um concorrente do mesmo setor NAO poderia usar: um dado, um preco, uma data, um lugar, uma prova, a foto do proprio cliente, o jeito dele falar",
+    "ideia_visual": "a decisao de composicao que existe alem de fundo+headline+subtitulo+botao+logo: recorte, escala forcada, sobreposicao, grid quebrado, direcao de olhar, negativo, cor como codigo, tipografia como imagem",
+    "motivo_de_parada": "o elemento concreto que segura o olho nos primeiros instantes, e por que ele e mais forte que o feed em volta"
+  },
+
   "copy": {
     "eyebrow": "", "headline": "", "subheadline": "", "body": "", "caption": "", "cta": "",
     "headline_parts": [
@@ -311,12 +317,58 @@ def build_headline(ad: dict) -> tuple[str, bool]:
 
 # --------------------------------------------------------------------------- compile
 
+SUFICIENCIA_CAMPOS = {
+    "especifico": "o que nesta peca um concorrente do mesmo setor nao poderia usar",
+    "ideia_visual": "a decisao de composicao alem de fundo+headline+subtitulo+botao+logo",
+    "motivo_de_parada": "o elemento concreto que segura o olho primeiro",
+}
+
+# Respostas que nao respondem nada. Declarar generico e uma decisao legitima;
+# fingir que respondeu, nao.
+SUFICIENCIA_VAZIO = {
+    "", "-", "n/a", "na", "nao se aplica", "nao ha", "nenhum", "nenhuma", "nada",
+    "padrao", "arranjo padrao", "generico", "ok", "sim", "nao", "a definir", "tbd",
+}
+
+
+def validar_suficiencia(ad: dict) -> None:
+    """O piso de suficiencia, no ponto onde a peca ainda pode mudar.
+
+    As mesmas tres perguntas que o Revisor faz na peca pronta, feitas aqui antes
+    de existir peca. Nao julgam a resposta - exigem que ela exista e seja
+    especifica o bastante para alguem discordar dela.
+    """
+    suf = ad.get("suficiencia")
+    if not isinstance(suf, dict):
+        raise SystemExit(
+            "ERRO: art-direction.json sem o bloco 'suficiencia'. Antes de renderizar, "
+            "responda as tres perguntas do piso (veja: artdirection.py schema). "
+            "Peca que nao passa no piso e layout preenchido, nao criativo.")
+
+    faltando = []
+    for campo, pergunta in SUFICIENCIA_CAMPOS.items():
+        valor = str(suf.get(campo, "") or "").strip()
+        if valor.lower().rstrip(".") in SUFICIENCIA_VAZIO:
+            faltando.append(f"  - {campo}: {pergunta}")
+        elif len(valor) < 25:
+            faltando.append(f"  - {campo}: resposta curta demais para ser verificavel "
+                            f"({len(valor)} caracteres) - {pergunta}")
+
+    if faltando:
+        raise SystemExit("ERRO: piso de suficiencia nao respondido em art-direction.json:\n"
+                         + "\n".join(faltando)
+                         + "\n\nNao ha resposta certa, ha resposta concreta. Se a peca "
+                           "realmente nao tem o que responder, ela ainda nao esta pronta "
+                           "para renderizar - mude a peca, nao o texto.")
+
+
 def compile_ad(job_dir: pathlib.Path, version: int) -> dict:
     ad_path = job_dir / "art-direction.json"
     if not ad_path.is_file():
         raise SystemExit(f"ERRO: {ad_path} nao existe. Escreva a direcao de arte antes "
                          f"(veja: artdirection.py schema)")
     ad = json.loads(ad_path.read_text(encoding="utf-8"))
+    validar_suficiencia(ad)
     job = json.loads((job_dir / "job.json").read_text(encoding="utf-8"))
 
     snap = job_dir / "brand.snapshot.json"

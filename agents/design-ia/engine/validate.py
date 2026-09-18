@@ -28,6 +28,16 @@ LARGE_PX_BOLD = 18.66
 BOLD_WEIGHT = 700
 MIN_LEGIBLE_PX = 16.0
 
+# Piso de encolhimento do auto-fit. Abaixo disto a tipografia sai espremida e a
+# peca fica com cara de texto socado no molde -- era aviso, virou falha, porque
+# aviso nao impede nada e foi exatamente por aqui que peca espremida chegou ao
+# cliente.
+MIN_FIT_SCALE = 0.82
+
+# Sobreposicao tolerada entre dois blocos de texto, como fracao da menor caixa.
+# Acima disto as letras encostam ou se cruzam na tela.
+MAX_OVERLAP = 0.04
+
 
 def is_large_text(px: float, weight) -> bool:
     try:
@@ -79,6 +89,45 @@ def sample_bg(png: pathlib.Path, box) -> list | None:
         return list(im.crop((x0, y0, x1, y1)).resize((1, 1)).getpixel((0, 0)))
 
 
+def _area(box) -> float:
+    return max(0.0, box[2]) * max(0.0, box[3])
+
+
+def _intersecao(a, b) -> float:
+    """Area da sobreposicao de duas caixas [left, top, w, h]."""
+    ax2, ay2 = a[0] + a[2], a[1] + a[3]
+    bx2, by2 = b[0] + b[2], b[1] + b[3]
+    dx = min(ax2, bx2) - max(a[0], b[0])
+    dy = min(ay2, by2) - max(a[1], b[1])
+    return dx * dy if dx > 0 and dy > 0 else 0.0
+
+
+def colisoes(textos) -> list:
+    """Blocos de texto que se sobrepoem na tela.
+
+    O report ja mede a caixa de cada bloco depois do fit. Comparar as caixas duas
+    a duas e o unico jeito de pegar headline encostando em subtitulo ou CTA
+    passando por cima de assinatura -- defeito que o olho ve na hora e que nenhum
+    check de DOM anterior enxergava.
+    """
+    achadas = []
+    for i in range(len(textos)):
+        for j in range(i + 1, len(textos)):
+            a, b = textos[i], textos[j]
+            ca, cb = a.get("box"), b.get("box")
+            if not ca or not cb:
+                continue
+            inter = _intersecao(ca, cb)
+            menor = min(_area(ca), _area(cb))
+            if menor <= 0:
+                continue
+            frac = inter / menor
+            if frac > MAX_OVERLAP:
+                achadas.append({"a": a.get("el"), "b": b.get("el"),
+                                "fracao": round(frac, 3)})
+    return achadas
+
+
 def validate(png_path: str) -> dict:
     png = pathlib.Path(png_path).expanduser().resolve()
     fails: list[str] = []
@@ -122,13 +171,17 @@ def validate(png_path: str) -> dict:
         fails.append("texto estourou o bloco mesmo no tamanho minimo: " + ", ".join(fit["overflow"]))
     small = [i for s in fit.get("scopes", []) for i in s.get("sizes", []) if i["px"] < MIN_LEGIBLE_PX]
     if small:
-        warns.append("texto abaixo do piso de legibilidade: "
+        fails.append(f"texto abaixo do piso de legibilidade ({MIN_LEGIBLE_PX:.0f}px): "
                      + ", ".join(f"{i['el']}={i['px']}px" for i in small))
-    shrunk = [s for s in fit.get("scopes", []) if s.get("scale", 1) < 0.75]
+    shrunk = [s for s in fit.get("scopes", []) if s.get("scale", 1) < MIN_FIT_SCALE]
     if shrunk:
-        warns.append("auto-fit encolheu demais (" +
+        fails.append("tipografia espremida: o auto-fit encolheu abaixo de "
+                     f"{MIN_FIT_SCALE:.0%} em " +
                      ", ".join(f"{s['scope']}={s['scale']}" for s in shrunk) +
-                     "): copy provavelmente longa para o template")
+                     ". Encurte a copy ou troque a composicao -- nao entregue socado")
+    checks["fit_scale"] = {"ok": not shrunk,
+                           "scopes": [{"scope": s.get("scope"), "scale": s.get("scale")}
+                                      for s in fit.get("scopes", [])]}
     checks["text_overflow"] = {"ok": not fit.get("overflow"), "scopes": fit.get("scopes", [])}
 
     probe = rep.get("probe", {})
@@ -172,6 +225,13 @@ def validate(png_path: str) -> dict:
         if ratio < need:
             fails.append(f"contraste insuficiente em '{t['el']}': {ratio}:1 (minimo {need}:1)")
     checks["contrast"] = {"ok": all(c["ratio"] >= c["need"] for c in cres), "items": cres}
+
+    # 9. blocos de texto encostando ou se cruzando
+    col = colisoes(probe.get("text", []))
+    if col:
+        fails.append("blocos de texto se sobrepondo: " +
+                     ", ".join(f"{c['a']} x {c['b']} ({c['fracao']:.0%})" for c in col))
+    checks["collision"] = {"ok": not col, "items": col}
 
     return {"png": str(png), "ok": not fails, "fails": fails, "warns": warns, "checks": checks}
 

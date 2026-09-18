@@ -119,6 +119,22 @@ são **recursos de design**, não defeitos. Só viram problema se houver impacto
 *Avaliação visual é estimativa, não medição. Declarar confiança Média para julgamentos
 perceptivos. Não medir margens em pixels para transformar preferência em número.*
 
+## Evidência do piso de suficiência — obrigatória
+
+Além de procurar defeito, esta skill produz a evidência das três perguntas do piso
+(`criterios/criativos.md` §3.5). São descritivas, não avaliativas: a skill relata o que
+existe na peça; quem decide estrela é o Revisor.
+
+| # | O que reportar |
+|---|---|
+| **P1 · Especificidade** | Listar o que na peça é intransferível para um concorrente do mesmo setor — dado, preço, data, lugar, prova, foto do próprio cliente, jeito de falar. Nada intransferível → dizer "nada" |
+| **P2 · Ideia visual** | Nomear a decisão de composição que existe além do arranjo padrão (fundo + headline + subtítulo + botão + logo). Não havendo nenhuma → dizer "arranjo padrão preenchido" |
+| **P3 · Motivo de parada** | Nomear o elemento concreto que segura o olho primeiro. Não havendo → dizer "nenhum elemento se impõe" |
+
+Responder "nada" / "arranjo padrão" / "nenhum" **não é crítica nem preferência** — é
+constatação, e é contestável apontando o elemento que se deixou de ver. Este bloco sai
+em toda revisão visual, inclusive nas peças sem nenhum defeito. É nelas que ele importa.
+
 ## Saída esperada
 
 Para cada observação:

@@ -151,16 +151,72 @@ def cmd_render(a) -> int:
     entry.update({"png": str(png), "brief": str(brief_v), "validado": ok,
                   "autofit": rep.get("autofit", {}).get("scopes", []), "em": now_iso()})
 
+    # Prancha de inspecao: o render fica OLHAVEL antes de qualquer handoff.
+    insp = subprocess.run([sys.executable, str(ROOT / "inspecao.py"), "--png", str(png)],
+                          capture_output=True, text=True)
+    if insp.returncode == 0:
+        entry["inspecao_prancha"] = insp.stdout.strip()
+
     log(job, f"v{v} renderizada", checagem_tecnica="ok" if ok else "falhou")
     save_job(job_dir, job)
     print(png)
+    if entry.get("inspecao_prancha"):
+        print("PRANCHA DE INSPECAO: " + entry["inspecao_prancha"], file=sys.stderr)
+        print("Abra a prancha e rode: job.py inspecionar --job <dir> --version "
+              f"{v} --veredito ok|corrigir --parecer \"...\"", file=sys.stderr)
     print(val.stdout.strip(), file=sys.stderr)
     return 0 if ok else 1
+
+
+def cmd_inspecionar(a) -> int:
+    """Registra que o render final foi OLHADO, e o que se viu.
+
+    Nao ha como um programa obrigar alguem a olhar. O que da para fazer e travar
+    o handoff sem o registro do que foi visto -- e exigir observacao concreta,
+    nao 'ok'. Parecer generico aqui e o mesmo que nao ter olhado.
+    """
+    job_dir = pathlib.Path(a.job).expanduser().resolve()
+    job = load_job(job_dir)
+    v = a.version
+    png = job_dir / f"v{v}.png"
+    if not png.is_file():
+        print(f"ERRO: v{v} ainda nao foi renderizada", file=sys.stderr)
+        return 2
+    parecer = (a.parecer or "").strip()
+    if len(parecer) < 40:
+        print("ERRO: o parecer de inspecao precisa dizer o que voce VIU na peca "
+              "(composicao, enquadramento, hierarquia, acabamento). "
+              "Minimo de 40 caracteres, e 'ok' nao conta.", file=sys.stderr)
+        return 2
+    destino = job_dir / f"inspecao.v{v}.json"
+    destino.write_text(json.dumps({
+        "version": v, "veredito": a.veredito, "parecer": parecer,
+        "prancha": str(job_dir / f"v{v}.inspecao.png"), "em": now_iso(),
+    }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    log(job, f"v{v} inspecionada", veredito=a.veredito)
+    save_job(job_dir, job)
+    print(destino)
+    return 0
 
 
 def cmd_review(a) -> int:
     job_dir = pathlib.Path(a.job).expanduser().resolve()
     job = load_job(job_dir)
+
+    # Trava: o Revisor nao recebe peca que o proprio Designer nao olhou.
+    insp_p = job_dir / f"inspecao.v{a.version}.json"
+    if not insp_p.is_file():
+        print(f"ERRO: v{a.version} nao foi inspecionada. Abra "
+              f"v{a.version}.inspecao.png, olhe a peca e rode "
+              "'job.py inspecionar' antes do handoff.", file=sys.stderr)
+        return 2
+    insp = json.loads(insp_p.read_text(encoding="utf-8"))
+    if insp.get("veredito") != "ok":
+        print(f"ERRO: a inspecao de v{a.version} terminou em "
+              f"'{insp.get('veredito')}'. Corrija e renderize uma nova versao "
+              "antes de acionar o Revisor.", file=sys.stderr)
+        return 2
+
     r = subprocess.run([sys.executable, str(ROOT / "revisor.py"), "handoff",
                         "--job", str(job_dir), "--version", str(a.version)],
                        capture_output=True, text=True)
@@ -328,6 +384,14 @@ def main() -> int:
     for name, fn in (("render", cmd_render), ("review", cmd_review)):
         p = sub.add_parser(name); p.add_argument("--job", required=True)
         p.add_argument("--version", type=int, required=True); p.set_defaults(fn=fn)
+
+    p = sub.add_parser("inspecionar", help="registra o que voce viu no render final")
+    p.add_argument("--job", required=True)
+    p.add_argument("--version", type=int, required=True)
+    p.add_argument("--veredito", required=True, choices=["ok", "corrigir"])
+    p.add_argument("--parecer", required=True,
+                   help="o que voce VIU: composicao, enquadramento, hierarquia, acabamento")
+    p.set_defaults(fn=cmd_inspecionar)
 
     p = sub.add_parser("save-review"); p.add_argument("--job", required=True)
     p.add_argument("--version", type=int, required=True)

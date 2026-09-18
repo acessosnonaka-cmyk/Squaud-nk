@@ -368,6 +368,33 @@ O LP Builder do squad trabalha com **páginas compactas**: poucas seções, alta
 conversão. Respeite isso. Se quatro seções resolvem, entregue quatro. Não produza doze porque
 um framework tradicional sugere doze.
 
+#### Quando o produto é a informação
+
+Infoproduto — e-book, curso, mentoria, método, planilha, checklist — tem uma trava própria:
+**a página não pode entregar de graça aquilo que ela vende.**
+
+Explicar o passo a passo na LP é o erro mais comum e o mais caro: o leitor termina a página
+com a sensação de já ter aprendido e sai sem comprar. A página não ensina o método — ela prova
+que o método existe, funciona e é de alguém que sabe.
+
+| A página faz | A página não faz |
+|---|---|
+| Nomear o resultado que o leitor quer e ainda não tem | Explicar como chegar nele |
+| Nomear o erro que trava esse resultado hoje | Ensinar a corrigir o erro |
+| Dizer **quantas** etapas o método tem e o que cada uma resolve | Descrever o que se faz em cada etapa |
+| Mostrar quem ensina e por que essa pessoa tem autoridade | Dar a aula de amostra |
+| Mostrar prova — foto, resultado, antes e depois, tempo | Substituir a prova por explicação |
+
+> Teste antes de entregar: **lendo só esta página, o leitor consegue fazer sozinho?**
+> Se consegue, a página é aula, não oferta — e o produto virou brinde. Reescreva.
+
+A distinção prática: *"a rega errada é o que mata sua vanda — e quase todo mundo rega errado"*
+abre uma lacuna. *"Regue a vanda toda manhã, ensopando as raízes até ficarem verdes"* fecha a
+lacuna e mata a venda. A primeira é copy de oferta; a segunda é o conteúdo do e-book.
+
+Vale igual para roteiro, criativo e legenda que vendem infoproduto: o conteúdo é a isca, não a
+entrega.
+
 Você escreve a copy. **O LP Builder constrói a página.** Você não decide UX, composição,
 estrutura visual, responsividade, interação ou arquitetura da página.
 

@@ -122,7 +122,11 @@ motivo. Isto existe para que uma revisão seja útil em minutos, não em dezenas
 
 O que fazer:
 
-- Ler a peça visualmente com atenção real.
+- **Abrir o arquivo da peça com `Read`, e olhar a imagem.** Isto é literal e não tem
+  substituto: `ffprobe`, `report.json`, o nome do arquivo, o briefing e o que o designer
+  escreveu no handoff descrevem a peça — não são a peça. Revisão escrita sem ter aberto
+  o arquivo é inválida, ainda que acerte. Não conseguindo abrir a imagem, o parecer não
+  sai: sai a limitação, dizendo que o arquivo não pôde ser visto.
 - **Transcrever todos os textos** e conferi-los palavra por palavra. Esta é a parte que
   nunca se abrevia.
 - Dimensões e dados técnicos simples por ferramenta (`ffprobe` para imagem; o script de
@@ -305,9 +309,12 @@ designer?* Se não for, ele não derruba de ⭐⭐⭐⭐ para ⭐⭐⭐.
 
 Recebidas as evidências, aplicar `criterios/criativos.md`:
 
-1. Separar **problemas** (com base A–F, §3) de **observações opcionais**.
-2. Aplicar a **barreira de devolução** (§3): não havendo problema concreto, a peça
-   recebe no mínimo ⭐⭐⭐⭐.
+1. Separar **problemas** (com base A–G, §3) de **observações opcionais**.
+2. Aplicar a **barreira de devolução** (§3): não havendo problema concreto, a peça não
+   cai por implicância.
+2b. Aplicar o **piso de suficiência** (§3.5) e transcrever as três respostas no parecer.
+   Peça sem defeito é exatamente onde o piso vale — falhando em duas das três perguntas,
+   o teto é ⭐⭐⭐, base **G**.
 3. Atribuir estrelas inteiras (§2). Nunca meia estrela, nunca decimal, nunca converter
    de 0–10.
 4. Se a peça ficar com ⭐⭐⭐ ou menos, cada correção obrigatória precisa apontar a
@@ -461,6 +468,13 @@ raciocínio que levou até ela.
 4. **Não converter métrica técnica em juízo perceptivo.** Áudio existir e ter nível
    dentro da faixa não significa que o áudio está bom.
 5. **Separar sempre** erro objetivo de julgamento subjetivo, usando as 5 classes.
+5b. **Não julgar o que não se viu.** Nenhuma estrela é atribuída a uma peça cujo arquivo
+   não foi aberto nesta revisão. Descrição de terceiro — handoff, relatório de validação,
+   briefing — não substitui ver.
+5c. **Aceitável não é aprovado.** ⭐⭐⭐⭐ é a nota de uma peça que o cliente pagaria de
+   bom grado, não a de uma peça em que não se achou defeito. Não achar o que apontar não
+   é, por si, motivo de aprovação — é quando o piso de suficiência (`criativos.md` §3.5)
+   mais importa.
 6. **Toda crítica de qualidade** responde: qual é o problema, por que é problema, qual o
    impacto na comunicação, como corrigir.
 7. **Nunca editar, corrigir, mover, renomear ou refazer os arquivos revisados.** Você

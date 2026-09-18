@@ -140,12 +140,20 @@ python3 -c "import markdown" 2>/dev/null && green "Markdown (roteiro_pdf.py)" \
   || red "Markdown ausente — roteiro_pdf.py não roda. Rode: pip install markdown"
 
 head_ "3. DESIGN IA"
-for f in render.py brand.py job.py artdirection.py revisor.py validate.py autofix.py assets.py selfcheck.py formats.json; do
+for f in render.py brand.py job.py artdirection.py revisor.py validate.py autofix.py assets.py selfcheck.py inspecao.py formats.json; do
   file_ "$REPO/agents/design-ia/engine/$f" && green "engine/$f" || red "engine/$f ausente"
 done
 [ -d "$REPO/agents/design-ia/engine/templates" ] && green "templates ($(ls "$REPO/agents/design-ia/engine/templates" | wc -l))" || red "templates ausentes"
 [ -d "$REPO/agents/design-ia/engine/fonts/pool" ] && green "pool de fontes ($(ls "$REPO/agents/design-ia/engine/fonts/pool" | wc -l))" || red "fontes ausentes"
 file_ "$REPO/agents/design-ia/skills/designer-ia/SKILL.md" && green "skill designer-ia" || red "skill ausente"
+# Os dois portões de qualidade. Sumindo um deles, a peça volta a sair sem ninguém
+# ter olhado (inspeção) ou sem ter respondido por que ela existe (suficiência).
+grep -q "validar_suficiencia(ad)" "$REPO/agents/design-ia/engine/artdirection.py" \
+  && green "portão de suficiência (art-direction)" \
+  || red "portão de suficiência ausente — peça genérica volta a compilar"
+grep -q "nao foi inspecionada" "$REPO/agents/design-ia/engine/job.py" \
+  && green "portão de inspeção (handoff)" \
+  || red "portão de inspeção ausente — peça segue ao Revisor sem ninguém ter aberto o arquivo"
 checar_playwright python3 "render"
 python3 -c "import PIL" 2>/dev/null && green "Pillow (validate.py)" \
   || red "Pillow ausente — validate.py não roda e a peça sai sem conferência. Rode: pip install Pillow"
@@ -164,6 +172,9 @@ done
 [ "$reg" -eq 4 ] && green "4 skills registradas no Claude Code" \
   || yellow "$reg/4 skills registradas — rode scripts/setup.sh"
 [ -d "$REPO/agents/revisor-arte/conhecimento/criterios" ] && green "base de critérios" || red "critérios ausentes"
+grep -q "PISO DE SUFICIÊNCIA" "$REPO/agents/revisor-arte/conhecimento/criterios/criativos.md" \
+  && green "piso de suficiência na régua" \
+  || red "piso ausente — peça sem defeito volta a ser aprovada por não ter o que apontar"
 file_ "$REPO/.claude-plugin/marketplace.json" && green "marketplace do plugin" || red "marketplace ausente"
 python3 "$REPO/agents/design-ia/engine/revisor.py" locate >/dev/null 2>&1 \
   && green "plugin localizável na máquina" || yellow "plugin não instalado — 'claude plugin install revisor-de-criacao@squad-legend-ai'"
