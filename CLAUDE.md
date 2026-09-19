@@ -77,6 +77,8 @@ improvisa, não entrega pela metade fingindo que está inteiro.
    `EXECUTION_MODE: SILENT` e fecha pelo gate. **Executar direto pula o painel, pula o gate
    e pula a revisão** — e o gestor recebe algo que o squad nunca viu. Pergunta de uma linha
    sobre o repositório não é demanda de cliente: essa é da sessão mesmo.
+   **Delegar não é prometer:** o que o Diretor devolver é o que você entrega agora, e o que
+   ele não devolveu é estado a declarar — nunca um aviso para depois (regra 13).
 9. **Entrega de roteiro é PDF.** Toda demanda de `copywriting.script` fecha pelo motor
    `agents/copywriter/engine/roteiro_pdf.py`. Markdown na resposta não é entrega.
 10. **Pedido inviável se avisa antes de executar.** Percebendo que o pedido, do jeito que veio,
@@ -93,15 +95,17 @@ improvisa, não entrega pela metade fingindo que está inteiro.
    recusa compilar sem elas — e o Revisor as verifica na peça pronta. Peça sem defeito que
    falha em duas das três não é aprovada.
 
-13. **Não prometa aviso futuro.** Não existe execução em segundo plano para o gestor: a
-   sessão não volta sozinha depois que o turno fecha. "Aviso quando terminar", "te aviso
-   quando estiver pronto" e "assim que ficar pronto eu mando" são promessas que o Squad
-   não tem como cumprir — o gestor fica esperando um retorno que nunca chega. Fechando o
-   turno **sem a entrega na mão** — limite de turnos, de sessão, de ferramenta ou de
-   ambiente — declare o estado real em uma linha: **onde parou, o ID da demanda e do job,
-   e o que o gestor digita para retomar.** O motor já preserva o job; o que faltava era
-   dizer. Isso não é narração de etapa e não abre exceção na regra 7: é o fechamento do
-   turno, que sempre foi obrigatório — só não pode ser fechado com promessa.
+13. **Nunca prometa aviso futuro.** Não existe execução em segundo plano para o gestor:
+   quando `Agent(...)` retorna, o turno acaba — **não há "depois"**, e a sessão não volta
+   sozinha. *"Aviso quando terminar"*, *"vou avisar assim que sair"*, *"te aviso quando
+   estiver pronto"*, *"assim que ficar pronto eu mando"* e qualquer variação são proibidas
+   em **toda** mensagem, sem exceção: o gestor fica esperando um retorno que nunca chega.
+
+   Sem a entrega na mão ao fechar o turno — limite de turnos, de sessão, de ferramenta ou
+   de ambiente —, o fechamento é **estado real, em uma linha**: onde parou, o ID da demanda
+   e do job, e o que o gestor digita para retomar. O motor já preserva o job; o que faltava
+   era dizer. Não é narração de etapa e não abre exceção na regra 7 — é o fechamento do
+   turno, que sempre foi obrigatório. Só não pode ser fechado com promessa.
 
 ## Layout
 
