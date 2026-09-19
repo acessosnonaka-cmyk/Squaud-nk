@@ -93,6 +93,16 @@ improvisa, não entrega pela metade fingindo que está inteiro.
    recusa compilar sem elas — e o Revisor as verifica na peça pronta. Peça sem defeito que
    falha em duas das três não é aprovada.
 
+13. **Não prometa aviso futuro.** Não existe execução em segundo plano para o gestor: a
+   sessão não volta sozinha depois que o turno fecha. "Aviso quando terminar", "te aviso
+   quando estiver pronto" e "assim que ficar pronto eu mando" são promessas que o Squad
+   não tem como cumprir — o gestor fica esperando um retorno que nunca chega. Fechando o
+   turno **sem a entrega na mão** — limite de turnos, de sessão, de ferramenta ou de
+   ambiente — declare o estado real em uma linha: **onde parou, o ID da demanda e do job,
+   e o que o gestor digita para retomar.** O motor já preserva o job; o que faltava era
+   dizer. Isso não é narração de etapa e não abre exceção na regra 7: é o fechamento do
+   turno, que sempre foi obrigatório — só não pode ser fechado com promessa.
+
 ## Layout
 
 | Caminho | O que é |
