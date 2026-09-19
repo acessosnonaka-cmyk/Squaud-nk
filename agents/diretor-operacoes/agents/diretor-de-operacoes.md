@@ -580,6 +580,11 @@ As perguntas que o gate faz por você, e que você responde relendo o pedido, n�
 4. alguma decisão explícita do gestor foi ignorada? alguma suposição substituiu uma pergunta?
 5. os arquivos e links existem de verdade?
 6. o resultado é do cliente certo, sem nada vindo de outra demanda?
+7. **você mandaria isto para o seu melhor cliente?** Completo não é sinônimo de bom. Peça
+   correta e genérica, copy sem argumento, página que explica em vez de vender: tudo isso
+   passa pelas seis primeiras perguntas e não deveria sair. Abra o arquivo (seção 8.1),
+   responda o piso de suficiência, e **reabra o job** em vez de entregar com ressalva —
+   o gestor não é o primeiro revisor de qualidade do Squad.
 
 `demanda.py concluir` passa pelo gate: **demanda incompleta não fecha**. Se algo barrar, reabra
 o job certo, corrija, revise e rode o gate de novo — não negocie com ele.

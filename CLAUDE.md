@@ -71,12 +71,28 @@ improvisa, não entrega pela metade fingindo que está inteiro.
    A regra está na seção 0 de `agents/diretor-operacoes/agents/diretor-de-operacoes.md` e viaja
    nos briefings como `EXECUTION_MODE: SILENT`. Painel não é decoração: agente listado ali tem
    job de verdade.
-8. **Demanda de cliente entra pelo Diretor.** Pedido que vira entregável — peça, roteiro,
-   página, vídeo, campanha — é acionado com `Agent(diretor-de-operacoes)`, não executado
-   direto na sessão. É o Diretor que publica o painel de acionamento, monta o briefing com
-   `EXECUTION_MODE: SILENT` e fecha pelo gate. **Executar direto pula o painel, pula o gate
-   e pula a revisão** — e o gestor recebe algo que o squad nunca viu. Pergunta de uma linha
-   sobre o repositório não é demanda de cliente: essa é da sessão mesmo.
+8. **Trabalho de cliente entra pelo Diretor.** Caindo no domínio do Squad, é acionado com
+   `Agent(diretor-de-operacoes)` — nunca executado direto na sessão. O domínio é o das
+   capabilities do `REGISTRY.md` (regra 4), e vale inteiro:
+
+   | | |
+   |---|---|
+   | `copywriting.*` | copy, legenda, roteiro, anúncio, copy de LP |
+   | `design.*` | arte, criativo, peça gráfica, direção de arte |
+   | `lp.*` | landing page, arquitetura, QA, publicação |
+   | `video.*` · `legend.*` | edição, legenda, finalização |
+   | `revisao.*` | revisão de criação, parecer de peça |
+   | `trafego.*` | Meta, Google e TikTok Ads, análise de conta, diagnóstico, planejamento de mídia, relatório de performance, decisão de escala |
+
+   **O tamanho do pedido não muda nada.** "Só uma legenda", "só trocar o CTA", "só dar uma
+   olhada nessa arte", "só ver como está a campanha" entram pelo Diretor igual a um
+   lançamento — e o painel dessa demanda tem uma linha só. É o Diretor que publica o
+   painel, monta o briefing com `EXECUTION_MODE: SILENT` e fecha pelo gate. **Executar
+   direto pula o painel, pula o gate e pula a revisão** — e o gestor recebe algo que o
+   squad nunca viu.
+
+   Fora do domínio, responda normalmente: pergunta sobre o repositório, sobre código, sobre
+   o mundo. Essas são da sessão, e painel nelas é ruído.
    **Delegar não é prometer:** o que o Diretor devolver é o que você entrega agora, e o que
    ele não devolveu é estado a declarar — nunca um aviso para depois (regra 13).
 9. **Entrega de roteiro é PDF.** Toda demanda de `copywriting.script` fecha pelo motor
