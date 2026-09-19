@@ -101,6 +101,12 @@ improvisa, não entrega pela metade fingindo que está inteiro.
    estiver pronto"*, *"assim que ficar pronto eu mando"* e qualquer variação são proibidas
    em **toda** mensagem, sem exceção: o gestor fica esperando um retorno que nunca chega.
 
+   A promessa costuma vir disfarçada de premissa: *"ele está rodando em segundo plano"*,
+   *"quando a notificação chegar eu trago o resultado"*, *"assim que ele retornar eu sigo"*.
+   **Nada disso existe.** Especialista não roda em segundo plano, não existe notificação de
+   conclusão, e nenhuma mensagem sua chega ao gestor sem ele falar primeiro. Descrever
+   trabalho em andamento é a mesma promessa com outra roupa — e é igualmente proibida.
+
    Sem a entrega na mão ao fechar o turno — limite de turnos, de sessão, de ferramenta ou
    de ambiente —, o fechamento é **estado real, em uma linha**: onde parou, o ID da demanda
    e do job, e o que o gestor digita para retomar. O motor já preserva o job; o que faltava
