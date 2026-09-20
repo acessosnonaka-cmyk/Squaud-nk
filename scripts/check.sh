@@ -80,6 +80,10 @@ if file_ "$REPO/.claude/settings.json"; then
 else
   red ".claude/settings.json ausente — o hook não é registrado em container novo"
 fi
+file_ "$REPO/scripts/hook-stop.py" && green "hook Stop presente" || red "hook Stop ausente"
+grep -q '"Stop"' "$REPO/.claude/settings.json" 2>/dev/null \
+  && green "hook Stop registrado no settings de projeto" \
+  || red "hook Stop nao registrado — promessa de background volta a passar"
 # O hook tem de responder sem SQUAD_NK_HOME: é assim que ele roda num clone cru.
 if printf '{"tool_name":"Bash","tool_input":{"command":"%s"}}' "desabilitar a trava de aprovacao" \
    | env -u SQUAD_NK_HOME python3 "$REPO/scripts/hook-pretooluse.py" 2>&1 | grep -q BLOQUEADO; then
