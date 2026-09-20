@@ -330,6 +330,57 @@ SUFICIENCIA_VAZIO = {
     "padrao", "arranjo padrao", "generico", "ok", "sim", "nao", "a definir", "tbd",
 }
 
+# ---------------------------------------------------------------- piso: ideia visual
+#
+# Achado da prova do Bloco 2: `ideia_visual` respondido com "headline centralizada
+# sobre fundo solido da cor primaria, com o botao logo abaixo" compilou. O gate
+# conferia existencia e tamanho da resposta -- nao conferia se ela E uma decisao.
+# Aquela frase e a legenda do arranjo padrao: descreve ONDE cada slot ficou.
+#
+# A regra abaixo e deliberadamente enviesada para deixar passar. So barra quando a
+# resposta fala de slot/posicao E nao nomeia nenhuma operacao sobre a peca. Resposta
+# que nao cita slot nenhum passa; resposta que cita slot mas nomeia uma operacao
+# passa. O que nao passa e a legenda pura -- que e o unico caso com reproducao.
+#
+# Isto NAO e um medidor de criatividade e nao privilegia fotografia: solucao
+# tipografica, editorial ou de espaco entra na lista de operacoes em pe de igualdade.
+
+SLOTS_PADRAO = (
+    "fundo", "background", "headline", "titulo", "título", "subtitulo", "subtítulo",
+    "subheadline", "botao", "botão", "cta", "logo", "logotipo", "wordmark", "assinatura",
+    "eyebrow", "rodape", "rodapé", "centralizad", "alinhad", "abaixo", "acima",
+    "embaixo", "em cima", "ao lado", "no meio", "no topo",
+)
+
+# Alguma coisa acontece com a peca, nao apenas dentro das caixas dela. A lista nao
+# precisa ser exaustiva: precisa ser dificil de satisfazer por acidente e facil de
+# satisfazer por quem de fato decidiu algo.
+OPERACOES = (
+    # enquadramento e escala
+    "recorte", "recortad", "crop", "escala", "sangria", "sangra", "invade", "invadind",
+    "estour", "sai do quadro", "fora do quadro", "corta o quadro", "bleed", "close",
+    "plano fechado", "plano aberto", "perspectiva", "silhueta", "mascara", "máscara",
+    # composicao e espaco
+    "sobrepo", "sobrepos", "camada", "profundidade", "grid", "coluna", "negativ",
+    "diagonal", "assimetr", "moldura", "vazado", "respiro", "espaco em branco",
+    "espaço em branco", "margem larga", "leitura em z", "tensao", "tensão",
+    # tipografia como recurso, nao como slot
+    "tipografia como", "letra como", "numero como", "número como", "palavra como",
+    "hierarquia invertida", "peso tipografico", "peso tipográfico", "contraste de escala",
+    "caixa alta como", "editorial",
+    # material proprio do cliente
+    "acervo", "foto do cliente", "foto do produto", "elemento da marca", "grafismo",
+    "padrao grafico", "padrão gráfico", "selo", "textura", "colagem", "duotone",
+    "repeticao", "repetição", "ritmo", "direcao de olhar", "direção de olhar", "olhar",
+)
+
+
+def _so_descreve_o_padrao(valor: str) -> bool:
+    """A resposta situa os slots do template e nao nomeia operacao nenhuma."""
+    v = valor.lower()
+    return (any(s in v for s in SLOTS_PADRAO)
+            and not any(o in v for o in OPERACOES))
+
 
 def validar_suficiencia(ad: dict) -> None:
     """O piso de suficiencia, no ponto onde a peca ainda pode mudar.
@@ -353,6 +404,14 @@ def validar_suficiencia(ad: dict) -> None:
         elif len(valor) < 25:
             faltando.append(f"  - {campo}: resposta curta demais para ser verificavel "
                             f"({len(valor)} caracteres) - {pergunta}")
+        elif campo == "ideia_visual" and _so_descreve_o_padrao(valor):
+            faltando.append(
+                "  - ideia_visual: isso descreve ONDE os slots ficaram, nao uma decisao "
+                "de composicao. Dizer que a headline esta centralizada sobre o fundo com "
+                "o botao abaixo e a legenda do arranjo padrao -- e exatamente o que o "
+                "piso existe para rejeitar. Nomeie o que acontece com o QUADRO: recorte, "
+                "escala forcada, sobreposicao, grid quebrado, negativo, direcao de olhar, "
+                "sangria, tipografia como imagem")
 
     if faltando:
         raise SystemExit("ERRO: piso de suficiencia nao respondido em art-direction.json:\n"

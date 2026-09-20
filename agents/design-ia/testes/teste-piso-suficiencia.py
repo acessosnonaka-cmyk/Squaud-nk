@@ -80,6 +80,36 @@ sobrio = {
 }
 checar("7/sobrio-passa", bloqueia({"suficiencia": sobrio}) is None)
 
+# ------------------------------------------------ 7b · legenda de template nao e ideia
+#     Achado da prova do Bloco 2: a resposta que DESCREVE onde cada slot ficou
+#     passava no piso. "headline centralizada sobre fundo solido, botao abaixo"
+#     e a legenda do arranjo padrao -- exatamente o que o piso existe para
+#     rejeitar. Agora so passa quem nomeia o que acontece com o QUADRO.
+legenda_de_template = [
+    "headline centralizada sobre fundo solido da cor primaria, com o botao logo abaixo",
+    "fundo azul, titulo em cima, subtitulo no meio, botao e logo no rodape",
+    "texto alinhado a esquerda sobre o fundo da cor da marca, assinatura no rodape",
+    "eyebrow acima, headline ao centro, CTA abaixo e wordmark embaixo",
+    "composicao centralizada: titulo, subtitulo e botao um sobre o outro no fundo chapado",
+]
+for i, v in enumerate(legenda_de_template, 1):
+    ad = {"suficiencia": dict(BOM, ideia_visual=v)}
+    msg = bloqueia(ad) or ""
+    checar(f"7b/legenda[{i}]-bloqueia", msg != "", v[:60])
+    checar(f"7b/legenda[{i}]-explica", "decisao de composicao" in msg, msg[:90])
+
+#     E o inverso: citar um slot nao condena a resposta, desde que haja movimento.
+com_movimento = [
+    "a headline invade a foto pela esquerda, sangrando no corte do quadro",
+    "o prato ocupa dois tercos do quadro em plano fechado e o preco entra dentro da foto",
+    "o numero 25 vira imagem, recortado pela borda superior, e o texto ocupa o negativo",
+    "hierarquia invertida - o dado vem maior que a chamada, com respiro assimetrico",
+    "o grafismo da marca atravessa o quadro em diagonal e separa preco de servico",
+    "tipografia como imagem, em caixa alta vazada sobre a textura do acervo",
+]
+for i, v in enumerate(com_movimento, 1):
+    checar(f"7b/movimento[{i}]-passa", bloqueia({"suficiencia": dict(BOM, ideia_visual=v)}) is None, v[:60])
+
 # ------------------------------------------------ 8 · o compilador chama o piso
 fonte = (RAIZ / "engine" / "artdirection.py").read_text(encoding="utf-8")
 checar("8/compile-chama-o-piso", "validar_suficiencia(ad)" in fonte)
