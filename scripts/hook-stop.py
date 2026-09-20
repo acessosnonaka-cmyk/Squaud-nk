@@ -140,10 +140,13 @@ MOTIVO = (
     "notificação de conclusão, e nenhuma mensagem sua chega ao gestor sem ele falar "
     "primeiro (CLAUDE.md, regra 13).\n\n"
     "Sinais encontrados:\n{sinais}\n\n"
-    "Reescreva o fechamento como ESTADO REAL, em uma linha: o que ficou pronto de "
-    "fato, onde parou, o DEMAND_ID e o JOB_ID quando existirem, e o que o gestor "
-    "digita para retomar. Não invente que um job terminou, não remova entrega que "
-    "realmente existe, e não transforme isto em narração de processo."
+    "APAGUE a oração que promete — não basta pôr uma ressalva ao lado dela. "
+    "'Aviso quando a resposta chegar, mas sem retorno automático' continua sendo a "
+    "mesma promessa, e será barrado de novo.\n\n"
+    "No lugar dela, ESTADO REAL em uma linha: o que ficou pronto de fato, onde parou, "
+    "o DEMAND_ID e o JOB_ID quando existirem, e o que o gestor digita para retomar. "
+    "Não invente que um job terminou, não remova entrega que realmente existe, e não "
+    "transforme isto em narração de processo."
 )
 
 

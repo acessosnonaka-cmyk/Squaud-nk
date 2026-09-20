@@ -137,6 +137,9 @@ motivo = d.get("hookSpecificOutput", {}).get("reason", "")
 checar("contrato/motivo-manda-estado-real", "ESTADO REAL" in motivo)
 checar("contrato/motivo-preserva-ids", "DEMAND_ID" in motivo and "JOB_ID" in motivo)
 checar("contrato/motivo-proibe-inventar", "Não invente" in motivo)
+# Observado no corte-3 da bateria: a primeira reescrita manteve a promessa e so
+# acrescentou uma ressalva ao lado. O motivo tem de mandar remover a oracao.
+checar("contrato/motivo-manda-remover", "APAGUE" in motivo)
 
 # Segunda passada no mesmo turno nunca bloqueia — trava de loop.
 rc, out = rodar({"hook_event_name": "Stop", "stop_hook_active": True,
