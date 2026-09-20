@@ -84,6 +84,15 @@ improvisa, não entrega pela metade fingindo que está inteiro.
    | `revisao.*` | revisão de criação, parecer de peça |
    | `trafego.*` | Meta, Google e TikTok Ads, análise de conta, diagnóstico, planejamento de mídia, relatório de performance, decisão de escala |
 
+   **Quem decide é o Diretor; quem dispara é a sessão.** A plataforma não deixa um subagente
+   iniciar outro, então o Diretor planeja — demanda, jobs, dependências, briefings, painel — e
+   a sessão executa o que ele autorizou: lê `demanda.py job elegiveis`, chama
+   `Agent(<especialista>)` com o briefing daquele job, persiste o retorno com
+   `demanda.py job concluir` (mais o motor do especialista, quando houver) e só então lê os
+   próximos elegíveis. A sessão é runtime, não um segundo Diretor: não escolhe especialista,
+   não muda escopo, não reabre job e não entrega — a liberação final é do Diretor, pelo gate.
+   Retorno que ficou só na conversa não existe para o motor, e o gate trata como ausente.
+
    **O tamanho do pedido não muda nada.** "Só uma legenda", "só trocar o CTA", "só dar uma
    olhada nessa arte", "só ver como está a campanha" entram pelo Diretor igual a um
    lançamento — e o painel dessa demanda tem uma linha só. É o Diretor que publica o
