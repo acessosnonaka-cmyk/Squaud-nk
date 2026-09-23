@@ -363,6 +363,8 @@ python3 $E/demanda.py job elegiveis DEM-...         # o que já pode rodar
 ```
 
 Publique o painel com os jobs que você **criou de verdade** (seção 0.2) e devolva o controle.
+O painel vai **na primeira linha do seu retorno**, sozinho, antes de qualquer explicação — é o
+que a sessão repassa ao gestor tal como está. Enterrado no meio do relatório, ele não chega.
 Você volta duas vezes: quando um retorno exigir decisão sua — correção, reabertura, dúvida
 material — e no fim, para o gate.
 

@@ -66,11 +66,18 @@ improvisa, não entrega pela metade fingindo que está inteiro.
    vira REQUEST_CHECKLIST com dono por requisito, e `demanda.py concluir` só fecha depois do
    FINAL_REQUEST_GATE. Quem tem executor de verdade é o que `engine/auditoria.py` valida —
    agente em estado `conceito` não recebe job.
-7. **A interface do Squad é silenciosa.** O Diretor publica um painel com quem foi realmente
-   acionado e depois cala até a entrega; especialista não narra etapa, handoff nem progresso.
-   A regra está na seção 0 de `agents/diretor-operacoes/agents/diretor-de-operacoes.md` e viaja
-   nos briefings como `EXECUTION_MODE: SILENT`. Painel não é decoração: agente listado ali tem
-   job de verdade.
+7. **A interface do Squad é silenciosa, e começa pelo painel.** O Diretor publica um painel com
+   quem foi realmente acionado e depois cala até a entrega; especialista não narra etapa,
+   handoff nem progresso. A regra está na seção 0 de
+   `agents/diretor-operacoes/agents/diretor-de-operacoes.md` e viaja nos briefings como
+   `EXECUTION_MODE: SILENT`. Painel não é decoração: agente listado ali tem job de verdade.
+
+   **O painel é da sessão repassar, não do Diretor publicar sozinho.** Rodando como subagente,
+   o que ele "publica" sai dentro do hand-back e não chega ao gestor. Então a sessão **abre a
+   resposta com o painel que o Diretor devolveu**, verbatim, antes de qualquer outra linha —
+   antes de comentário, de prévia de achado, de aviso de ressalva. Demanda acionada sem painel
+   visível é o mesmo que Squad não acionado: o gestor não tem como saber quem está trabalhando
+   no material dele.
 8. **Trabalho de cliente entra pelo Diretor.** Caindo no domínio do Squad, é acionado com
    `Agent(diretor-de-operacoes)` — nunca executado direto na sessão. O domínio é o das
    capabilities do `REGISTRY.md` (regra 4), e vale inteiro:
