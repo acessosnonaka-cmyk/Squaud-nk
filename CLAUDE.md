@@ -100,6 +100,12 @@ improvisa, não entrega pela metade fingindo que está inteiro.
    não muda escopo, não reabre job e não entrega — a liberação final é do Diretor, pelo gate.
    Retorno que ficou só na conversa não existe para o motor, e o gate trata como ausente.
 
+   **A saída tem comando: `demanda.py entregar <ID>`.** É o ponto canônico, e ele recusa
+   enquanto a demanda não estiver formalmente fechada pelo Diretor. Não é formalidade: o
+   motor recalcula o gate na hora da entrega, e o hook `Stop` não deixa o turno fechar com
+   demanda executada e não liberada. Job concluído não é demanda liberada, e requisito
+   marcado não é entrega autorizada.
+
    **O tamanho do pedido não muda nada.** "Só uma legenda", "só trocar o CTA", "só dar uma
    olhada nessa arte", "só ver como está a campanha" entram pelo Diretor igual a um
    lançamento — e o painel dessa demanda tem uma linha só. É o Diretor que publica o

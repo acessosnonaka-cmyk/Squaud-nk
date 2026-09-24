@@ -472,6 +472,25 @@ def bloqueados_por_dependencia(demanda: dict) -> list:
     return saida
 
 
+def dependencias_abertas(demanda: dict, job: dict) -> list:
+    """As dependências deste job que ainda não estão CONCLUIDO, com o estado de cada uma.
+
+    `elegiveis()` responde "o que pode rodar agora" para quem perguntar. Isto
+    responde "este job pode andar?" para o próprio comando que vai movê-lo —
+    e comando crítico protege a própria invariante em vez de confiar que
+    alguém consultou a listagem antes.
+    """
+    por_id = {j["id"]: j for j in demanda.get("jobs", [])}
+    abertas = []
+    for dep in job.get("dependencias") or []:
+        alvo = por_id.get(dep)
+        if alvo is None:
+            abertas.append((dep, "NAO_EXISTE"))
+        elif alvo["status"] != "CONCLUIDO":
+            abertas.append((dep, alvo["status"]))
+    return abertas
+
+
 def validar_dependencias(demanda: dict, deps: list, job_id: str) -> None:
     ids = {j["id"] for j in demanda.get("jobs", [])}
     for d in deps:

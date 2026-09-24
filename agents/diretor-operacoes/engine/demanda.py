@@ -122,6 +122,16 @@ def _mudar_status(a, novo: str, motivo_campo: str | None = None) -> int:
     motivo = getattr(a, "motivo", "") or ""
     if motivo_campo:
         d[motivo_campo] = motivo
+    if novo == "CONCLUIDA":
+        # CONCLUIDA não é um rótulo que se aplica: é o que sobra quando nada
+        # trava. Recalculado aqui, e não só em cmd_concluir, para que nenhum
+        # caminho futuro consiga chegar a este estado por fora do gate.
+        trava = avaliar_gate(d)
+        if trava:
+            p(formatar_gate(d, trava))
+            raise modelo.ErroDeEstado(
+                f"{d['id']} não pode ir para CONCLUIDA: {len(trava)} condição(ões) aberta(s). "
+                "O estado final decorre do gate, não o contrário.")
     modelo.transitar(d, novo, motivo=motivo)
     if novo == "CONCLUIDA":
         d["concluida_em"] = modelo.agora()
@@ -287,11 +297,32 @@ def formatar_briefing(b: dict) -> str:
     return "\n".join(linhas)
 
 
+def _barrar_por_dependencia(d: dict, j: dict, verbo: str) -> None:
+    """Dependência é trava, não sugestão.
+
+    O grafo existe para que o job dependente receba os artefatos do anterior.
+    Deixar `iniciar` e `concluir` passarem com dependência aberta faz o briefing
+    sair sem esses artefatos — que é exatamente o que a aresta existia para
+    impedir. A checagem mora aqui, em cada comando, e não na listagem de
+    elegíveis: ninguém é obrigado a ter consultado a listagem antes.
+    """
+    abertas = modelo.dependencias_abertas(d, j)
+    if not abertas:
+        return
+    linhas = "\n".join(f"    {dep}  {estado}" for dep, estado in abertas)
+    raise modelo.ErroDeEstado(
+        f"{j['id']} ({j['agente']}) não pode {verbo}: dependência aberta.\n"
+        f"  job solicitado: {j['id']} — {(j.get('objetivo') or '')[:70]}\n"
+        f"  dependências abertas ({len(abertas)}):\n{linhas}\n"
+        "  Conclua a dependência primeiro, ou remova a aresta conscientemente.")
+
+
 def cmd_job_iniciar(a) -> int:
     d = modelo.carregar(a.demanda)
     j = modelo.achar_job(d, a.job)
     if j["status"] not in ("PENDENTE", "FALHOU"):
         raise modelo.ErroDeEstado(f"{j['id']} está {j['status']}; só se inicia PENDENTE ou FALHOU")
+    _barrar_por_dependencia(d, j, "iniciar")
     j["tentativas"] = j.get("tentativas", 0) + 1
     if j["tentativas"] > j.get("max_tentativas", modelo.MAX_TENTATIVAS):
         j["status"] = "BLOQUEADO"
@@ -319,7 +350,9 @@ def cmd_job_concluir(a) -> int:
     if j["status"] == "CONCLUIDO":
         p(f"  {j['id']} já está CONCLUIDO — nada refeito.")
         return 0
+    _barrar_por_dependencia(d, j, "concluir")
 
+    antes = {x["id"] for x in modelo.elegiveis(d)}
     retorno = modelo.ler_json(pathlib.Path(a.retorno)) if a.retorno else {
         "status": a.status, "resumo": a.resumo or "",
         "artefatos": a.artefato or [], "decisoes": a.decisao or [],
@@ -357,9 +390,14 @@ def cmd_job_concluir(a) -> int:
     modelo.registrar_evento(d["id"], evento, agente=j["agente"], job=j["id"],
                             resumo=retorno.get("resumo") or retorno.get("pendencia", ""))
     p(f"  {j['id']} -> {j['status']}")
-    prontos = modelo.elegiveis(d)
-    if prontos:
-        p("  liberou: " + ", ".join(f"{x['id']} ({x['agente']})" for x in prontos))
+    # "liberou" é o delta, não a foto: job que já estava elegível antes não foi
+    # liberado por este. Dizer que foi induz o runtime a achar que respeitou a
+    # ordem quando não respeitou.
+    depois = {x["id"] for x in modelo.elegiveis(d)}
+    liberados = [x for x in modelo.elegiveis(d)
+                 if x["id"] in (depois - antes) and j["id"] in (x.get("dependencias") or [])]
+    if liberados:
+        p("  liberou: " + ", ".join(f"{x['id']} ({x['agente']})" for x in liberados))
     return 0
 
 
@@ -513,6 +551,41 @@ def avaliar_gate(d: dict) -> list:
     for x in d.get("aprovacoes", []):
         if x["status"] == "PENDENTE":
             trava.append(f"{x['id']} espera aprovação humana: {x['acao'][:60]}")
+    trava += _revisoes_faltando(d)
+    return trava
+
+
+# Extensões que caracterizam peça pronta para o olho de alguém. A regra olha o
+# artefato, não o nome do agente: transcrição em .json do Legend é insumo e não
+# precisa de parecer; o .mp4 finalizado precisa. Job de copy, LP e tráfego não
+# produz nada desta lista e segue sem Revisor, como sempre foi.
+EXT_PECA = (".png", ".jpg", ".jpeg", ".webp", ".mp4", ".mov")
+AGENTE_REVISOR = "revisor-de-criacao"
+
+
+def _revisoes_faltando(d: dict) -> list:
+    """Peça visual concluída sem parecer de Revisor vinculado a ela.
+
+    Parecer que existe mas não está preso ao job que produziu a peça não conta:
+    o gate precisa saber qual parecer olhou qual peça.
+    """
+    jobs = d.get("jobs", [])
+    revisores = [j for j in jobs if j["agente"] == AGENTE_REVISOR]
+    trava = []
+    for j in jobs:
+        if j["agente"] == AGENTE_REVISOR or j["status"] != "CONCLUIDO":
+            continue
+        arte = [a for a in ((j.get("resultado") or {}).get("artefatos") or [])
+                if str(a).lower().endswith(EXT_PECA)]
+        if not arte:
+            continue
+        ligados = [r for r in revisores if j["id"] in (r.get("dependencias") or [])]
+        if not ligados:
+            trava.append(f"{j['id']} ({j['agente']}) entregou peça ({len(arte)} arquivo(s)) "
+                         f"e nenhum job de {AGENTE_REVISOR} depende dele: revisão obrigatória ausente")
+        elif not any(r["status"] == "CONCLUIDO" for r in ligados):
+            estados = ", ".join(f"{r['id']} {r['status']}" for r in ligados)
+            trava.append(f"{j['id']} ({j['agente']}) entregou peça e a revisão não terminou: {estados}")
     return trava
 
 
@@ -561,6 +634,72 @@ def cmd_concluir(a) -> int:
         p(formatar_gate(d, trava))
         return 2
     return _mudar_status(a, "CONCLUIDA", None)
+
+
+# ------------------------------------------- ponto canônico de saída do Squad
+
+def condicoes_de_entrega(d: dict) -> list:
+    """Tudo que precisa ser verdade antes de a demanda sair para o gestor.
+
+    O gate diz que a demanda PODE fechar. Isto diz que ela JÁ fechou, pelas mãos
+    do Diretor, e que o fechamento continua de pé agora — não em algum momento
+    do passado. Recalculado a cada chamada de propósito: estado gravado ontem
+    não prova nada sobre o arquivo de hoje.
+    """
+    falta = []
+    if d["status"] != "CONCLUIDA":
+        falta.append(f"demanda está {d['status']}, não CONCLUIDA — o Diretor ainda não liberou")
+    if not d.get("concluida_em"):
+        falta.append("demanda sem 'concluida_em': não há registro de quando o gate liberou")
+    falta += [f"gate reabriu: {x}" for x in avaliar_gate(d)]
+    return falta
+
+
+def cmd_entregar(a) -> int:
+    """A saída. Nada do Squad chega ao gestor sem passar por aqui.
+
+    Existe porque a entrega era o único passo sem mecanismo: a sessão escrevia o
+    texto e pronto. Reproduzido em sessão nova — demanda PLANEJADA, concluida_em
+    nulo, legenda entregue assim mesmo. Prompt já tinha sido tentado; agora a
+    liberação tem comando, tem verificação e tem registro.
+    """
+    d = modelo.carregar(a.demanda)
+    falta = condicoes_de_entrega(d)
+    if falta:
+        p(f"\n═══ ENTREGA BARRADA · {d['id']} ═══")
+        p("PEDIDO ORIGINAL (imutável)")
+        p("  " + (d.get("descricao") or "").strip().replace("\n", "\n  "))
+        p(f"NÃO ENTREGA — {len(falta)} condição(ões) aberta(s):")
+        for x in falta:
+            p(f"  ✗ {x}")
+        p("Nada foi liberado. Feche pelo Diretor (`demanda.py concluir`) antes de entregar.")
+        p("═" * 62)
+        return 2
+
+    artefatos = []
+    for j in d.get("jobs", []):
+        for art in ((j.get("resultado") or {}).get("artefatos") or []):
+            artefatos.append((j["id"], j["agente"], art))
+
+    d["entregue_em"] = modelo.agora()
+    d.setdefault("entregas", []).append(
+        {"em": d["entregue_em"], "artefatos": [x[2] for x in artefatos]})
+    modelo.salvar(d)
+    modelo.registrar_evento(d["id"], "DEMANDA_ENTREGUE",
+                            resumo=f"{len(artefatos)} artefato(s) liberado(s)")
+
+    p(f"\n═══ ENTREGA LIBERADA · {d['id']} ═══")
+    p(f"  fechada pelo Diretor em {d['concluida_em']}")
+    p(f"  liberada para entrega em {d['entregue_em']}")
+    p(f"  requisitos: {len(d.get('requisitos', []))} · jobs: {len(d.get('jobs', []))}")
+    if artefatos:
+        p("  artefatos:")
+        for jid, ag, art in artefatos:
+            p(f"    {jid} ({ag})  {art}")
+    else:
+        p("  artefatos: nenhum registrado (entrega textual)")
+    p("═" * 62)
+    return 0
 
 
 # --------------------------------------------------------------- aprovações
@@ -893,6 +1032,10 @@ def main(argv=None) -> int:
     cc = sub.add_parser("concluir", help="fecha a demanda — passa pelo FINAL_REQUEST_GATE")
     cc.add_argument("demanda"); cc.add_argument("--motivo", default="")
     cc.set_defaults(fn=cmd_concluir)
+
+    en = sub.add_parser("entregar", help="ponto canônico de saída — libera a entrega ao gestor")
+    en.add_argument("demanda")
+    en.set_defaults(fn=cmd_entregar)
 
     for nome, estado, campo in [("bloquear", "BLOQUEADA", "bloqueio"),
                                 ("cancelar", "CANCELADA", None), ("revisar", "EM_REVISAO", None)]:

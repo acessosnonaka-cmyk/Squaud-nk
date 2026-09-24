@@ -22,7 +22,10 @@ a negação desarma o sinal: "não existe aviso depois" é exatamente a frase ce
 """
 from __future__ import annotations
 
+import datetime as dt
 import json
+import os
+import pathlib
 import re
 import sys
 
@@ -150,6 +153,80 @@ MOTIVO = (
 )
 
 
+# ------------------------------------------ demanda executada e não liberada
+
+# Janela de atenção. Demanda parada há dias é assunto de faxina, não de trava de
+# turno: travar para sempre por causa dela só ensinaria a ignorar o hook.
+JANELA_HORAS = 24
+
+MOTIVO_ENTREGA = """A demanda abaixo terminou de executar e NÃO foi liberada pelo Diretor.
+
+{demandas}
+
+Isto foi reproduzido em sessão nova: todos os jobs CONCLUIDO, demanda em
+PLANEJADA, `concluida_em` nulo -- e a entrega saiu assim mesmo. Marcar requisito
+não é fechar, e job concluído não é demanda liberada.
+
+Antes de fechar o turno, faça uma das três, pelo motor:
+
+  1. Devolva ao Diretor para o FINAL_REQUEST_GATE. Ele confere o artefato contra
+     o pedido original, marca os requisitos com evidência e roda:
+         demanda.py concluir <ID>
+     e só então a saída:
+         demanda.py entregar <ID>
+
+  2. Se falta algo que só o gestor humano tem, declare e pare:
+         demanda.py bloquear <ID> --motivo "..."
+
+  3. Se a demanda não deve seguir:
+         demanda.py cancelar <ID> --motivo "..."
+
+Não descreva a entrega como se ela estivesse liberada. Se o turno acaba aqui,
+feche com o estado real em uma linha: o ID, onde parou e o que o gestor digita
+para retomar."""
+
+
+def _raiz_demandas() -> pathlib.Path:
+    base = os.environ.get("SQUAD_DATA_HOME") or (pathlib.Path.home() / ".squad-nk")
+    return pathlib.Path(base) / "diretor" / "demandas"
+
+
+def demandas_executadas_sem_liberacao() -> list:
+    """Demandas cujos jobs acabaram e que ninguém fechou.
+
+    É a assinatura exata do defeito, e só ela: demanda em andamento com job
+    pendente não casa, demanda fechada não casa, demanda bloqueada ou cancelada
+    não casa. Sem jobs também não casa -- plano ainda em pé não é entrega.
+    """
+    raiz = _raiz_demandas()
+    if not raiz.is_dir():
+        return []
+    limite = dt.datetime.now().astimezone() - dt.timedelta(hours=JANELA_HORAS)
+    achadas = []
+    for arq in sorted(raiz.glob("DEM-*/demanda.json")):
+        try:
+            d = json.loads(arq.read_text(encoding="utf-8"))
+        except Exception:
+            continue                  # arquivo pela metade não trava a sessão
+        if d.get("status") in ("CONCLUIDA", "CANCELADA", "BLOQUEADA"):
+            continue
+        jobs = d.get("jobs") or []
+        if not jobs or any(j.get("status") != "CONCLUIDO" for j in jobs):
+            continue
+        try:
+            quando = dt.datetime.fromisoformat(d.get("atualizada_em") or d.get("criada_em"))
+            if quando.tzinfo is None:
+                quando = quando.astimezone()
+            if quando < limite:
+                continue
+        except Exception:
+            pass                      # data ilegível: melhor avisar do que calar
+        achadas.append(f"  {d.get('id')}  status={d.get('status')}  "
+                       f"{len(jobs)} job(s) CONCLUIDO, concluida_em="
+                       f"{d.get('concluida_em') or 'None'}")
+    return achadas
+
+
 def main() -> int:
     try:
         entrada = json.load(sys.stdin)
@@ -161,14 +238,21 @@ def main() -> int:
         return 0
 
     sinais = achados(entrada.get("last_assistant_message") or "")
-    if not sinais:
+    if sinais:
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "Stop",
+            "decision": "block",
+            "reason": MOTIVO.format(sinais="\n".join(f"  - {s}" for s in sinais)),
+        }}, ensure_ascii=False))
         return 0
 
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": "Stop",
-        "decision": "block",
-        "reason": MOTIVO.format(sinais="\n".join(f"  - {s}" for s in sinais)),
-    }}, ensure_ascii=False))
+    abertas = demandas_executadas_sem_liberacao()
+    if abertas:
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "Stop",
+            "decision": "block",
+            "reason": MOTIVO_ENTREGA.format(demandas="\n".join(abertas)),
+        }}, ensure_ascii=False))
     return 0
 
 

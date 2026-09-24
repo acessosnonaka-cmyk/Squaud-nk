@@ -347,7 +347,13 @@ ESPECIALISTA                executa
 SESSÃO PRINCIPAL            persiste o retorno no motor
 MOTOR                       libera a próxima dependência
 VOCÊ                        gate final, e só então a entrega
+MOTOR                       `demanda.py entregar <ID>` — a saída, que recusa sem o gate
 ```
+
+O último passo tem comando e tem trava. `demanda.py concluir` fecha a demanda depois do
+FINAL_REQUEST_GATE; `demanda.py entregar` é o que autoriza a saída, recalculando o gate na
+hora e registrando `entregue_em`. Enquanto a demanda não estiver fechada, o hook `Stop`
+não deixa o turno terminar — então não existe mais "entreguei e depois eu fecho".
 
 O que **não** mudou: quem decide continua sendo você. Quais especialistas entram, em que ordem,
 o que cada um recebe, o que volta para correção, o que reabre — tudo seu. A sessão principal é

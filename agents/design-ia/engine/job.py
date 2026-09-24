@@ -45,6 +45,56 @@ def slugify(s: str) -> str:
     return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", s.lower())).strip("-") or "peca"
 
 
+# --------------------------------------------------- o veredito vem do parecer
+
+# Status que colocam arquivo na area de entrega. So estes exigem revisao, e so
+# estes copiam PNG para output/ -- peca parada ou bloqueada nao e entrega e nao
+# tem por que aparecer na pasta de onde se manda ao cliente.
+STATUS_DE_ENTREGA = ("aprovada", "entregue-com-ressalva")
+
+# Ordem importa: o mais restritivo vence. Um parecer que diz "reprovado" e cita
+# "aprovado" numa frase de contexto continua sendo reprovacao.
+VEREDITOS = (
+    ("REPROVADO", (r"\breprovad[oa]s?\b",)),
+    ("AJUSTES_NECESSARIOS", (r"\bajustes?\s+(?:necessari[oa]s?|obrigatori[oa]s?)\b",
+                             r"\brevisar\s+e\s+reenviar\b")),
+    ("APROVADO_COM_RESSALVA", (r"\baprovad[oa]s?\s+com\s+ressalvas?\b",)),
+    ("APROVADO", (r"\baprovad[oa]s?\b",)),
+)
+
+
+def _sem_acento(s: str) -> str:
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFD", s)
+                   if unicodedata.category(c) != "Mn")
+
+
+def veredito_do_parecer(texto: str) -> str | None:
+    """Le o status no texto que o Revisor escreveu.
+
+    Deliberadamente NAO ha argumento de linha de comando para informar o
+    veredito: quem finaliza nao pode ser quem declara que foi aprovado. O
+    veredito tem de sair do parecer persistido, que e a palavra da autoridade
+    que olhou a peca. Parecer sem status legivel nao serve como evidencia.
+    """
+    # Só o TEXTO perde acento e caixa. O padrão fica como está: `.upper()` num
+    # regex troca \b por \B, que é a negação da fronteira de palavra, e o
+    # casamento passa a nunca acontecer.
+    t = _sem_acento(texto or "")
+    for nome, padroes in VEREDITOS:
+        for pad in padroes:
+            if re.search(pad, t, re.IGNORECASE):
+                return nome
+    return None
+
+
+def revisao_da_versao(job: dict, version: int) -> dict | None:
+    for e in job.get("versions", []):
+        if e.get("version") == version and e.get("review"):
+            return e
+    return None
+
+
 def load_job(job_dir: pathlib.Path) -> dict:
     return json.loads((job_dir / "job.json").read_text(encoding="utf-8"))
 
@@ -235,15 +285,26 @@ def cmd_save_review(a) -> int:
     job_dir = pathlib.Path(a.job).expanduser().resolve()
     job = load_job(job_dir)
     txt = sys.stdin.read() if a.stdin else pathlib.Path(a.file).expanduser().read_text(encoding="utf-8")
+
+    veredito = veredito_do_parecer(txt)
+    if veredito is None:
+        print("ERRO: nao consegui ler o status neste parecer. O Revisor precisa dizer, "
+              "em palavras, se a peca esta APROVADA, APROVADA COM RESSALVA, se pede "
+              "AJUSTES NECESSARIOS ou se esta REPROVADA. Sem status legivel o parecer "
+              "nao vale como evidencia para finalizar.", file=sys.stderr)
+        return 2
+
     dest = job_dir / f"review-v{a.version}.md"
     dest.write_text(txt, encoding="utf-8")
 
     entry = next((e for e in job["versions"] if e["version"] == a.version), None)
     if entry is not None:
         entry["review"] = str(dest)
-    log(job, f"parecer v{a.version} recebido", arquivo=str(dest))
+        entry["review_veredito"] = veredito
+        entry["review_em"] = now_iso()
+    log(job, f"parecer v{a.version} recebido", arquivo=str(dest), veredito=veredito)
     save_job(job_dir, job)
-    print(dest)
+    print(f"{dest}\nveredito: {veredito}")
     return 0
 
 
@@ -277,6 +338,54 @@ def cmd_next_cycle(a) -> int:
     return 0
 
 
+def _barreira_de_entrega(job_dir: pathlib.Path, job: dict, version: int) -> list:
+    """O que falta para esta versao poder entrar na area de entrega.
+
+    Reproduzido antes desta trava: `review` recusava a peca nao inspecionada e
+    `finalize --status aprovada` passava mesmo assim, copiando o PNG para
+    output/. O portao estava no caminho do handoff e faltava no caminho da
+    saida, que e justamente o que chega ao cliente.
+
+    Nada aqui aceita como prova: texto de conversa, argumento de linha de
+    comando, `--note`, afirmacao do Designer ou a mera existencia do arquivo.
+    So estado persistido.
+    """
+    falta = []
+
+    insp_p = job_dir / f"inspecao.v{version}.json"
+    if not insp_p.is_file():
+        falta.append(f"v{version} nao tem inspecao registrada — abra v{version}.inspecao.png "
+                     f"e rode 'job.py inspecionar'")
+    else:
+        try:
+            insp = json.loads(insp_p.read_text(encoding="utf-8"))
+        except Exception as e:
+            falta.append(f"inspecao.v{version}.json ilegivel ({e})")
+            insp = {}
+        # Ausencia de veredito nao e aprovacao tacita: arquivo de inspecao sem o
+        # campo nao prova que alguem olhou e achou bom.
+        if insp.get("veredito") != "ok":
+            falta.append(f"a inspecao de v{version} esta em "
+                         f"'{insp.get('veredito') or '(sem veredito)'}', nao em 'ok'")
+
+    entry = revisao_da_versao(job, version)
+    if entry is None:
+        falta.append(f"v{version} nao tem parecer do Revisor persistido — rode "
+                     f"'job.py review' e depois 'job.py save-review'")
+    else:
+        review_p = pathlib.Path(entry["review"])
+        if not review_p.is_file():
+            falta.append(f"o parecer registrado nao existe em disco: {review_p}")
+        veredito = entry.get("review_veredito")
+        if not veredito:
+            falta.append(f"o parecer de v{version} foi salvo sem status legivel — "
+                         "regrave com 'job.py save-review'")
+        elif veredito in ("REPROVADO", "AJUSTES_NECESSARIOS"):
+            falta.append(f"o Revisor devolveu {veredito} para v{version}: peca reprovada "
+                         "nao entra na area de entrega")
+    return falta
+
+
 def cmd_finalize(a) -> int:
     job_dir = pathlib.Path(a.job).expanduser().resolve()
     job = load_job(job_dir)
@@ -285,18 +394,34 @@ def cmd_finalize(a) -> int:
         print(f"ERRO: {src} nao existe", file=sys.stderr)
         return 2
 
-    dest_dir = OUTPUT / job["client"]
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    dest = dest_dir / f"{slugify(job['name'])}.png"
-    shutil.copy2(src, dest)
+    entrega = a.status in STATUS_DE_ENTREGA
+    if entrega:
+        falta = _barreira_de_entrega(job_dir, job, a.version)
+        if falta:
+            print(f"ERRO: v{a.version} nao pode ser finalizada como '{a.status}'. "
+                  f"{len(falta)} condicao(oes) aberta(s):", file=sys.stderr)
+            for x in falta:
+                print(f"  - {x}", file=sys.stderr)
+            print("Nenhum arquivo foi copiado para a area de entrega. Para encerrar o job "
+                  "sem entregar, use --status parada ou bloqueada-decisao-humana.",
+                  file=sys.stderr)
+            return 2
+
+    dest = None
+    if entrega:
+        dest_dir = OUTPUT / job["client"]
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / f"{slugify(job['name'])}.png"
+        shutil.copy2(src, dest)
 
     job["status"] = a.status
     job["final_version"] = a.version
-    job["final_png"] = str(dest)
+    job["final_png"] = str(dest) if dest else None
     job["nota_final"] = a.note
-    log(job, "finalizado", status=a.status, versao=a.version, entregue=str(dest), nota=a.note)
+    log(job, "finalizado", status=a.status, versao=a.version,
+        entregue=str(dest) if dest else "(nao entregue)", nota=a.note)
     save_job(job_dir, job)
-    print(dest)
+    print(dest if dest else f"{job['status']} — nada copiado para a area de entrega")
     return 0
 
 
