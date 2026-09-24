@@ -42,10 +42,15 @@ falhas = []
 feitos = []
 
 
+VERBOSO = "-v" in sys.argv
+
+
 def checar(nome: str, condicao: bool, detalhe: str = "") -> None:
     feitos.append(nome)
     if not condicao:
         falhas.append(f"{nome}{' · ' + detalhe if detalhe else ''}")
+    if VERBOSO:
+        print(f"  {'ok  ' if condicao else 'FALHA'} {nome}")
 
 
 class Args:
