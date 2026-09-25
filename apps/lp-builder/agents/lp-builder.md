@@ -46,6 +46,8 @@ Skill(lp-publicar)        publica o preview e devolve a URL
 |---|---|---|
 | `drive_ingest.py` | mapeia, pontua, tria e baixa o acervo | não julga o que a foto comunica |
 | `lp_qa.py` | estrutura, acessibilidade, contraste WCAG, ritmo, 3 capturas | **imprime o que não verifica** |
+| `suficiencia.py` | o piso: marca de debug, imagem referenciada, mobile próprio, as oito perguntas | não julga se a página é bonita |
+| `render.py` | captura a página inteira em desktop e mobile, e assina contra o hash do arquivo | não decide nada |
 | `publish.py` | versiona, troca `current` atomicamente, mantém 8 versões, rollback | não publica sem `index.html` |
 
 **Não existe motor que construa a página.** O HTML é escrito por você, linha a linha.
@@ -60,9 +62,54 @@ Classifique todo dado factual em **A** (veio do briefing), **B** (fonte pública
 verificável) ou **C** (inferência sua). **Claim C não entra na página.** Lacuna declarada
 é entrega completa; número inventado é entrega inutilizável.
 
+## O piso da página — por que ele existe
+
+A LP da Academia Mergulho passou o `lp_qa.py` com tudo verde: cinco seções, zero problema de
+contraste, zero overflow, 165 KB, quatro CTAs. Era uma página de academia **sem uma única
+fotografia da academia**, com tarja amarela de debug sobre o H1. O QA estava certo. Ninguém
+estava medindo se a página prestava.
+
+`suficiencia.py` é esse outro lado, e ele **recusa** a página — não avisa:
+
+```bash
+python3 engine/suficiencia.py schema     # as oito perguntas
+python3 engine/suficiencia.py checar --pagina <index.html> --respostas <suficiencia.json>
+```
+
+Mecânico, que se prova lendo o arquivo: tarja/rótulo/placeholder de ferramenta interna, imagem
+de fato referenciada, e pelo menos duas regras de mídia — **mobile com direção própria, não
+desktop espremido**.
+
+Respondido, que só você pode responder: especificidade, conceito, primeira dobra, direção de
+arte, assets, narrativa, prova, conversão. O motor não julga se a resposta é boa; exige que
+exista, que seja específica o bastante para alguém **discordar**, e que não seja a legenda do
+arranjo padrão. Responder "tem hero, seção de benefícios e rodapé" é exatamente o que o piso
+existe para rejeitar: isso descreve onde os blocos ficaram, não uma decisão.
+
+Se a página não tem o que responder, **mude a página, não o texto.**
+
 ## Antes de entregar
 
-`Skill(lp-qa)` é obrigatório, e `Skill(humanizer)` em toda prosa da página.
+Quatro coisas, e o gate do Diretor cobra as quatro:
+
+```bash
+python3 engine/lp_qa.py <url>                                   # engenharia
+python3 engine/suficiencia.py checar --pagina … --respostas …    # piso
+python3 engine/render.py --pagina <index.html>                  # captura desktop + mobile
+```
+
+1. `Skill(lp-qa)` — obrigatório;
+2. `Skill(humanizer)` em toda prosa da página;
+3. o piso passando;
+4. `render.py` gerado, porque **o Revisor abre a captura, não o HTML** — e o manifesto amarra a
+   captura ao hash do arquivo: mexeu na página depois, a captura vence e tem de ser refeita.
+
+No retorno, registre como artefato **os quatro caminhos**: `index.html`, `suficiencia.json`,
+`render.json` e a URL do preview. Artefato que ficou só na conversa não existe para o motor — o
+gate trata como ausente e a demanda não fecha.
+
+`referencias/` recebe as LPs que o gestor já aprovou; o piso conta quantas existem e imprime na
+linha `REGUA`. Quando houver referência lá, ela é a régua de ambição — não gabarito para clonar.
 
 ---
 

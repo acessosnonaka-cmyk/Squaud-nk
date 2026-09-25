@@ -138,9 +138,17 @@ have node    && green "node $(node -v)" || yellow "node ausente (opcional)"
 have claude  && green "claude code" || yellow "claude code não está no PATH"
 
 head_ "1. LP BUILDER"
-for f in publish.py lp_qa.py drive_ingest.py; do
+for f in publish.py lp_qa.py drive_ingest.py suficiencia.py render.py; do
   file_ "$REPO/apps/lp-builder/engine/$f" && green "engine/$f" || red "engine/$f ausente"
 done
+# Os dois portões que o lp_qa.py nunca foi: piso de suficiência e captura assinada.
+# Sumindo um deles, volta a sair página com tarja de debug que ninguém abriu.
+grep -q "_piso_lp_faltando(d)" "$REPO/agents/diretor-operacoes/engine/demanda.py" \
+  && green "portão da LP no gate (piso + captura + Revisor)" \
+  || red "portão da LP ausente no gate — página volta a sair sem ninguém ter olhado"
+[ -f "$REPO/apps/lp-builder/referencias/README.md" ] \
+  && green "referencias/ ($(ls "$REPO/apps/lp-builder/referencias" | grep -cv '\.md$') referência(s) aprovada(s))" \
+  || yellow "apps/lp-builder/referencias/ ausente — a régua de ambição não tem onde morar"
 for s in lp-ingestao lp-design-review lp-qa lp-publicar; do
   file_ "$REPO/apps/lp-builder/skills/$s/SKILL.md" && green "skill $s" || red "skill $s ausente"
 done

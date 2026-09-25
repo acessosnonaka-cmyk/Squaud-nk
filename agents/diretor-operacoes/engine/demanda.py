@@ -239,6 +239,7 @@ def cmd_briefing(a) -> int:
         "base_externa": ctx["base_externa"],
         "fontes_canonicas": ctx["fontes_canonicas"],
         "referencias_nao_canonicas": ctx["referencias_nao_canonicas"],
+        "nao_estabelecido": ctx.get("nao_estabelecido") or [],
         "tentativa": j.get("tentativas", 0) + 1, "gerado_em": modelo.agora(),
         "execution_mode": modelo.EXECUTION_MODE_PADRAO,
     }
@@ -288,6 +289,12 @@ def formatar_briefing(b: dict) -> str:
         linhas.append("REFERÊNCIA (NÃO É VERDADE ATUAL — o pedido original e a instrução "
                       "atual prevalecem)\n                   "
                       + "\n                   ".join(b["referencias_nao_canonicas"]))
+    if b.get("nao_estabelecido"):
+        linhas.append("NÃO ESTABELECIDO   (ninguém verificou, ou não deu para acessar. "
+                      "NÃO é ausência e NÃO é fato.\n"
+                      "                   Precisando disto para produzir, peça a verificação "
+                      "em vez de assumir)\n                   "
+                      + "\n                   ".join(b["nao_estabelecido"]))
     if b.get("feedback_anterior"):
         linhas.append("JÁ REPROVADO ANTES " + "\n                   ".join(b["feedback_anterior"]))
     linhas.append(f"TENTATIVA          {b['tentativa']}")
@@ -551,15 +558,28 @@ def avaliar_gate(d: dict) -> list:
     for x in d.get("aprovacoes", []):
         if x["status"] == "PENDENTE":
             trava.append(f"{x['id']} espera aprovação humana: {x['acao'][:60]}")
+    for c in d.get("consultas", []):
+        if c["status"] == "PENDENTE":
+            trava.append(f"{c['id']} ({c['agente']}) pediu dado de {c['fonte']} e não recebeu: "
+                         f"{c['pergunta'][:60]}")
     trava += _revisoes_faltando(d)
+    trava += _piso_lp_faltando(d)
     return trava
 
 
 # Extensões que caracterizam peça pronta para o olho de alguém. A regra olha o
 # artefato, não o nome do agente: transcrição em .json do Legend é insumo e não
-# precisa de parecer; o .mp4 finalizado precisa. Job de copy, LP e tráfego não
+# precisa de parecer; o .mp4 finalizado precisa. Job de copy e de tráfego não
 # produz nada desta lista e segue sem Revisor, como sempre foi.
 EXT_PECA = (".png", ".jpg", ".jpeg", ".webp", ".mp4", ".mov")
+
+# Página é peça. Ficou de fora até a LP da Academia Mergulho sair com tarja de
+# debug sobre o H1 e sem uma única fotografia: o QA da LP mede engenharia e
+# passou tudo verde, o gate conferia conformidade com a Source of Truth e a SoT
+# estava errada, e ninguém nunca olhou a página. Desde então .html exige parecer
+# de Revisor igual a um .png — e, diferente do .png, exige também o piso de
+# suficiência e a captura assinada (ver _piso_lp_faltando).
+EXT_PAGINA = (".html", ".htm")
 AGENTE_REVISOR = "revisor-de-criacao"
 
 
@@ -576,7 +596,7 @@ def _revisoes_faltando(d: dict) -> list:
         if j["agente"] == AGENTE_REVISOR or j["status"] != "CONCLUIDO":
             continue
         arte = [a for a in ((j.get("resultado") or {}).get("artefatos") or [])
-                if str(a).lower().endswith(EXT_PECA)]
+                if str(a).lower().endswith(EXT_PECA + EXT_PAGINA)]
         if not arte:
             continue
         ligados = [r for r in revisores if j["id"] in (r.get("dependencias") or [])]
@@ -586,6 +606,105 @@ def _revisoes_faltando(d: dict) -> list:
         elif not any(r["status"] == "CONCLUIDO" for r in ligados):
             estados = ", ".join(f"{r['id']} {r['status']}" for r in ligados)
             trava.append(f"{j['id']} ({j['agente']}) entregou peça e a revisão não terminou: {estados}")
+    return trava
+
+
+ENGINE_LP = pathlib.Path(__file__).resolve().parents[3] / "apps" / "lp-builder" / "engine"
+
+
+def _motores_lp():
+    """(suficiencia, render) do LP Builder, ou (None, None) se o runtime não está aqui.
+
+    O Diretor não implementa o piso da LP — ele o cobra. O piso mora no agente
+    que constrói a página, e o gate só se recusa a fechar sem ele.
+    """
+    try:
+        import importlib.util as iu
+        mods = []
+        for nome in ("suficiencia", "render"):
+            spec = iu.spec_from_file_location(f"lp_{nome}", ENGINE_LP / f"{nome}.py")
+            if spec is None or spec.loader is None:
+                return None, None
+            m = iu.module_from_spec(spec)
+            spec.loader.exec_module(m)
+            mods.append(m)
+        return mods[0], mods[1]
+    except Exception:
+        return None, None
+
+
+def _piso_lp_faltando(d: dict) -> list:
+    """Página concluída sem piso de suficiência ou sem captura assinada.
+
+    Três coisas que o lp_qa.py nunca mediu e que o gestor pagou:
+      1. a página existe no disco onde o job disse que existe;
+      2. ela passa o piso de suficiência (marca de debug, imagem, mobile próprio,
+         e as oito perguntas respondidas de forma que dê para discordar);
+      3. existe captura desktop + mobile da VERSÃO ATUAL do arquivo, e o parecer
+         do Revisor cita essa captura.
+
+    Nada aqui é opinião sobre a página — é a prova de que alguém olhou a página
+    certa. O julgamento continua sendo do Revisor.
+    """
+    jobs = d.get("jobs", [])
+    revisores = [j for j in jobs if j["agente"] == AGENTE_REVISOR]
+    trava = []
+    for j in jobs:
+        if j["agente"] == AGENTE_REVISOR or j["status"] != "CONCLUIDO":
+            continue
+        arts = [str(x) for x in ((j.get("resultado") or {}).get("artefatos") or [])]
+        paginas = [a for a in arts if a.lower().endswith(EXT_PAGINA)]
+        if not paginas:
+            continue
+
+        piso, render = _motores_lp()
+        if piso is None:
+            trava.append(f"{j['id']} entregou página e o piso da LP não pôde ser verificado: "
+                         f"{ENGINE_LP} ausente. Runtime que falta é BLOQUEADO declarado, "
+                         "não passagem livre — rode bash scripts/setup.sh")
+            continue
+
+        for pag in paginas:
+            alvo = pathlib.Path(pag).expanduser()
+            if not alvo.is_file():
+                trava.append(f"{j['id']} declarou a página {pag} e ela não está no disco: "
+                             "artefato que só existe no retorno não existe")
+                continue
+
+            respostas = [a for a in arts if a.lower().endswith("suficiencia.json")]
+            if not respostas:
+                trava.append(f"{j['id']} entregou {alvo.name} sem suficiencia.json: as oito "
+                             "perguntas do piso da LP não foram respondidas "
+                             "(suficiencia.py schema)")
+            else:
+                falhas, _ = piso.checar_mecanico(alvo.read_text(encoding="utf-8", errors="replace"))
+                try:
+                    falhas += piso.checar_respostas(
+                        modelo.ler_json(pathlib.Path(respostas[0]).expanduser()))
+                except Exception as e:
+                    falhas.append(f"suficiencia.json ilegível: {str(e)[:80]}")
+                for f in falhas[:6]:
+                    trava.append(f"{j['id']} piso da LP · {f[:150]}")
+
+            mans = [a for a in arts if a.lower().endswith("render.json")]
+            if not mans:
+                trava.append(f"{j['id']} entregou {alvo.name} sem render.json: sem captura "
+                             "desktop e mobile ninguém pode ter visto a página "
+                             "(render.py --pagina)")
+                continue
+            for pb in render.verificar(pathlib.Path(mans[0]).expanduser()):
+                trava.append(f"{j['id']} captura · {pb[:150]}")
+
+            vistos = [r for r in revisores if j["id"] in (r.get("dependencias") or [])
+                      and r["status"] == "CONCLUIDO"]
+            for r in vistos:
+                ra = [str(x).lower() for x in ((r.get("resultado") or {}).get("artefatos") or [])]
+                rt = ((r.get("resultado") or {}).get("resumo") or "").lower() + " " + " ".join(ra)
+                if not any(k in rt for k in ("render.json", "desktop.png", "mobile.png",
+                                             "desktop", "mobile")):
+                    trava.append(f"{r['id']} deu parecer sobre {alvo.name} sem citar a captura "
+                                 "desktop ou mobile: parecer que não nomeia o que abriu é "
+                                 "parecer sobre o HTML")
     return trava
 
 
@@ -615,8 +734,152 @@ def formatar_gate(d: dict, trava: list) -> str:
     else:
         linhas.append("LIBERADO: todo requisito tem estado, todo job terminou, "
                       "nenhuma aprovação pendente.")
+    sem_dado = [c for c in d.get("consultas", []) if c["status"] == "SEM_DADO"]
+    if sem_dado:
+        # Não trava — mas o Diretor não entrega sem saber sobre o que NÃO se sabe.
+        linhas.append("LACUNA DECLARADA — dado que o Squad pediu e não existe:")
+        for c in sem_dado:
+            linhas.append(f"  ○ {c['id']} [{c['fonte']}] {c['pergunta'][:52]}"
+                          f"  · {(c.get('observacao') or '')[:60]}")
+        linhas.append("  Isto entra na entrega como lacuna, não sai calado.")
     linhas.append("═" * 62)
     return "\n".join(linhas)
+
+
+# ------------------------------------------- consulta: o especialista pergunta
+
+# A plataforma não dá conector MCP a subagente. Provado na autópsia: o Gestor de
+# Tráfego fez zero chamadas ao Meta em todas as execuções, porque a declaração
+# dele é `Read, Grep, Glob, Bash, Write, Edit, WebSearch, WebFetch, Skill`.
+# Resultado: ele analisava o que o runtime tivesse colado, e o teto analítico
+# dele era o teto da minha extração.
+#
+# Isto inverte a direção. O especialista escreve QUAL corte precisa e POR QUE,
+# o runtime executa o conector como I/O e devolve o dado bruto. Quem escolhe a
+# análise continua sendo o especialista; quem tem a tomada continua sendo o
+# runtime. Nenhum dos dois faz o trabalho do outro.
+FONTES_CONSULTA = ["meta_ads", "google_ads", "tiktok_ads", "ga4", "drive", "crm", "outra"]
+
+
+def cmd_consulta_abrir(a) -> int:
+    d = modelo.carregar(a.demanda)
+    j = modelo.achar_job(d, a.job)
+    if a.fonte not in FONTES_CONSULTA:
+        raise modelo.ErroDeEstado(f"fonte inválida. Use: {', '.join(FONTES_CONSULTA)}")
+    if len((a.pergunta or "").strip()) < 25:
+        raise modelo.ErroDeEstado(
+            "a consulta precisa dizer O QUE se quer descobrir, não só qual tabela puxar.\n"
+            "  'quero ver os anúncios' não é pergunta; 'a queda de CTR está concentrada em\n"
+            "  algum anúncio ou é geral' é. Mínimo de 25 caracteres.")
+    if not (a.corte or "").strip():
+        raise modelo.ErroDeEstado(
+            "--corte é obrigatório: diga o recorte técnico que responde a pergunta "
+            "(nível, campos, período, quebra, filtro). É isto que o runtime executa.")
+
+    consultas = d.setdefault("consultas", [])
+    c = {
+        "id": f"CONSULTA-{len(consultas) + 1:03d}",
+        "job": j["id"], "agente": j["agente"], "fonte": a.fonte,
+        "pergunta": a.pergunta.strip(), "corte": a.corte.strip(),
+        "hipotese": (a.hipotese or "").strip(),
+        "status": "PENDENTE", "aberta_em": modelo.agora(),
+        "resposta_em": None, "arquivo": None, "observacao": None,
+    }
+    consultas.append(c)
+    modelo.salvar(d)
+    modelo.registrar_evento(d["id"], "CONSULTA_ABERTA", agente=j["agente"], job=j["id"],
+                            resumo=f"{c['id']} [{a.fonte}] {c['pergunta'][:100]}")
+    p(f"  {c['id']} aberta em {a.fonte} — o runtime executa e devolve o dado bruto.")
+    p("  Não conclua o job em cima de palpite enquanto ela estiver PENDENTE.")
+    return 0
+
+
+def cmd_consulta_pendentes(a) -> int:
+    demandas = [modelo.carregar(a.demanda)] if a.demanda else modelo.listar()
+    achou = False
+    for d in demandas:
+        for c in d.get("consultas", []):
+            if c["status"] != "PENDENTE":
+                continue
+            achou = True
+            p(f"\n  {d['id']} · {c['id']} · {c['fonte']}  (pedida por {c['agente']}, {c['job']})")
+            p(f"     pergunta: {c['pergunta']}")
+            p(f"     corte:    {c['corte']}")
+            if c.get("hipotese"):
+                p(f"     hipótese: {c['hipotese']}")
+    if not achou:
+        p("  nenhuma consulta pendente")
+    return 0
+
+
+def cmd_consulta_responder(a) -> int:
+    d = modelo.carregar(a.demanda)
+    for c in d.get("consultas", []):
+        if c["id"] != a.consulta:
+            continue
+        if c["status"] != "PENDENTE":
+            raise modelo.ErroDeEstado(f"{c['id']} já está {c['status']}")
+        # SEM_DADO é o caminho honesto quando a fonte não tem conector — GA4,
+        # TikTok, CRM e WhatsApp não têm, e isso não vai mudar por esforço. Mas
+        # ausência também se prova: sem dizer o que se tentou, "não deu" é
+        # indistinguível de "não tentei", e é assim que lacuna vira hipótese
+        # silenciosa. Mesma doutrina do --busca da fonte de cliente.
+        if a.sem_dado:
+            just = (a.observacao or "").strip()
+            if len(just) < 40:
+                raise modelo.ErroDeEstado(
+                    "--sem-dado exige --observacao dizendo O QUE FOI TENTADO e por que não "
+                    "há dado: conector inexistente, conta sem permissão, período fora do "
+                    "retido, evento não instrumentado.\n"
+                    "  Sem isso, 'não deu' é indistinguível de 'não tentei' — e o "
+                    "especialista não tem como saber se a lacuna é da fonte ou do runtime.\n"
+                    "  Mínimo de 40 caracteres.")
+            c["status"] = "SEM_DADO"
+            c["arquivo"] = str(pathlib.Path(a.arquivo).expanduser().resolve()) if a.arquivo else None
+            c["observacao"] = just
+            c["resposta_em"] = modelo.agora()
+            modelo.salvar(d)
+            modelo.registrar_evento(d["id"], "CONSULTA_RESPONDIDA", job=c["job"],
+                                    resumo=f"{c['id']} -> SEM_DADO ({just[:60]})")
+            p(f"  {c['id']} -> SEM_DADO · {just[:90]}")
+            p(f"  Redispare {c['agente']} no {c['job']}: a lacuna viaja DECLARADA, "
+              "não vira hipótese.")
+            return 0
+
+        if not a.arquivo:
+            raise modelo.ErroDeEstado(
+                "--arquivo é obrigatório: o dado bruto tem de chegar em arquivo.\n"
+                "  Sem dado nenhum? Use --sem-dado --observacao \"<o que foi tentado>\".")
+        arq = pathlib.Path(a.arquivo).expanduser()
+        if not arq.is_file():
+            raise modelo.ErroDeEstado(
+                f"o dado bruto precisa existir em disco: {arq} não existe.\n"
+                "  Resposta que fica só na conversa não chega ao especialista.")
+        c["status"] = "RESPONDIDA"
+        c["arquivo"] = str(arq.resolve())
+        c["observacao"] = a.observacao or ""
+        c["resposta_em"] = modelo.agora()
+        modelo.salvar(d)
+        modelo.registrar_evento(d["id"], "CONSULTA_RESPONDIDA", job=c["job"],
+                                resumo=f"{c['id']} -> RESPONDIDA ({arq.name})")
+        p(f"  {c['id']} -> RESPONDIDA · {arq}")
+        p(f"  Redispare {c['agente']} no {c['job']} com este arquivo no briefing.")
+        return 0
+    raise modelo.ErroDeEstado(f"consulta '{a.consulta}' não existe em {d['id']}")
+
+
+def cmd_consulta_listar(a) -> int:
+    d = modelo.carregar(a.demanda)
+    cs = d.get("consultas", [])
+    if not cs:
+        p("  nenhuma consulta nesta demanda")
+        return 0
+    for c in cs:
+        p(f"  {c['id']} {c['status']:<11} {c['fonte']:<11} {c['job']} ({c['agente']})")
+        p(f"     {c['pergunta'][:96]}")
+        if c.get("arquivo"):
+            p(f"     dado: {c['arquivo']}")
+    return 0
 
 
 def cmd_gate(a) -> int:
@@ -852,12 +1115,35 @@ def cmd_cliente_base_ver(a) -> int:
 def cmd_cliente_fonte_add(a) -> int:
     if a.classe not in modelo.CLASSES_FONTE:
         raise modelo.ErroDeEstado(f"classe inválida. Use: {', '.join(modelo.CLASSES_FONTE)}")
+    estado = (getattr(a, "estado", None) or "ENCONTRADO").upper()
+    if estado not in modelo.ESTADOS_EVIDENCIA:
+        raise modelo.ErroDeEstado(
+            f"estado de evidência inválido. Use: {', '.join(modelo.ESTADOS_EVIDENCIA)}")
+    busca = (getattr(a, "busca", None) or "").strip()
+
+    # A trava. Afirmar que algo não existe é afirmação material: muda o que o
+    # especialista pode fazer. Ela só entra no registro com a busca descrita.
+    texto = f"{a.titulo} {a.resumo or ''}"
+    if modelo.afirma_ausencia(texto):
+        if estado == "ENCONTRADO":
+            raise modelo.ErroDeEstado(
+                "esta fonte afirma que algo NÃO existe, e está marcada ENCONTRADO.\n"
+                "  Ausência não é achado. Use --estado NAO_ENCONTRADO_APOS_BUSCA (com --busca),\n"
+                "  ou NAO_VERIFICADO se ninguém procurou, ou INDISPONIVEL se não dá para olhar.")
+        if estado == "NAO_ENCONTRADO_APOS_BUSCA" and len(busca) < 40:
+            raise modelo.ErroDeEstado(
+                "NAO_ENCONTRADO_APOS_BUSCA exige --busca dizendo o que foi feito: onde se\n"
+                "  procurou, com que termo ou filtro, quantos resultados vieram e o que\n"
+                "  foi aberto. Mínimo de 40 caracteres, e 'procurei' não conta.\n"
+                "  Sem isso, o estado correto é NAO_VERIFICADO — que não vira fato.")
+
     reg = modelo.carregar_fontes(a.cliente)
     reg["cliente"] = modelo.slug(a.cliente)
     fonte = {
         "id": modelo.proxima_fonte_id(reg), "classe": a.classe, "titulo": a.titulo,
         "resumo": a.resumo or "", "fonte_externa": a.fonte_externa,
         "ref": a.ref or "", "link": a.link or "",
+        "estado_evidencia": estado, "busca": busca,
         "verificado_em": a.verificado_em or modelo.agora()[:10],
         "demanda": a.demanda or "", "registrado_em": modelo.agora(),
     }
@@ -868,8 +1154,11 @@ def cmd_cliente_fonte_add(a) -> int:
     modelo.salvar_fontes(a.cliente, reg)
     if a.demanda:
         modelo.registrar_evento(a.demanda, "FONTE_REGISTRADA",
-                                resumo=f"[{fonte['classe']}] {fonte['titulo'][:120]}")
+                                resumo=f"[{fonte['classe']}·{estado}] {fonte['titulo'][:110]}")
     p(fonte["id"])
+    if estado not in modelo.EVIDENCIA_UTILIZAVEL:
+        p(f"  {estado}: não entra no briefing como Source of Truth. "
+          "O especialista vai receber isto como informação não estabelecida.")
     return 0
 
 
@@ -1037,6 +1326,27 @@ def main(argv=None) -> int:
     en.add_argument("demanda")
     en.set_defaults(fn=cmd_entregar)
 
+    co = sub.add_parser("consulta", help="o especialista pede dado; o runtime executa o conector")
+    cos = co.add_subparsers(dest="sub", required=True)
+    co1 = cos.add_parser("abrir", help="especialista pede um corte de dado")
+    co1.add_argument("demanda"); co1.add_argument("job")
+    co1.add_argument("--fonte", required=True, help=", ".join(FONTES_CONSULTA))
+    co1.add_argument("--pergunta", required=True, help="o que se quer descobrir, não a tabela")
+    co1.add_argument("--corte", required=True, help="nível, campos, período, quebra, filtro")
+    co1.add_argument("--hipotese", help="o que este corte confirma ou derruba")
+    co1.set_defaults(fn=cmd_consulta_abrir)
+    co2 = cos.add_parser("pendentes", help="o que o runtime tem de executar")
+    co2.add_argument("demanda", nargs="?"); co2.set_defaults(fn=cmd_consulta_pendentes)
+    co3 = cos.add_parser("responder", help="devolve o dado bruto ao especialista")
+    co3.add_argument("demanda"); co3.add_argument("consulta")
+    co3.add_argument("--arquivo", help="o dado bruto em disco (obrigatório sem --sem-dado)")
+    co3.add_argument("--observacao", help="com --sem-dado: o que foi tentado, mín. 40 caracteres")
+    co3.add_argument("--sem-dado", dest="sem_dado", action="store_true",
+                     help="não há o dado: fonte sem conector, sem permissão, sem instrumentação")
+    co3.set_defaults(fn=cmd_consulta_responder)
+    co4 = cos.add_parser("listar"); co4.add_argument("demanda")
+    co4.set_defaults(fn=cmd_consulta_listar)
+
     for nome, estado, campo in [("bloquear", "BLOQUEADA", "bloqueio"),
                                 ("cancelar", "CANCELADA", None), ("revisar", "EM_REVISAO", None)]:
         s = sub.add_parser(nome, help=f"demanda -> {estado}")
@@ -1161,6 +1471,11 @@ def main(argv=None) -> int:
     cf1.add_argument("--fonte-externa", dest="fonte_externa", default="drive")
     cf1.add_argument("--ref", help="fileId na origem — o rastro de volta ao original")
     cf1.add_argument("--link"); cf1.add_argument("--verificado-em", dest="verificado_em")
+    cf1.add_argument("--estado", default="ENCONTRADO",
+                     help="evidência: " + ", ".join(modelo.ESTADOS_EVIDENCIA))
+    cf1.add_argument("--busca",
+                     help="o que foi feito para procurar: onde, com que termo, quantos "
+                          "resultados, o que foi aberto. Obrigatório para afirmar ausência")
     cf1.add_argument("--demanda"); cf1.set_defaults(fn=cmd_cliente_fonte_add)
     cf2 = cfs.add_parser("listar"); cf2.add_argument("cliente")
     cf2.set_defaults(fn=cmd_cliente_fonte_listar)

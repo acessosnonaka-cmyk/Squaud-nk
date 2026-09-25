@@ -127,6 +127,13 @@ improvisa, não entrega pela metade fingindo que está inteiro.
 11. **Nada visual sai sem alguém ter aberto o arquivo.** Parecer `APROVADO` é opinião sobre a
    peça, não a peça. Designer, Revisor e Diretor abrem o `.png` — o motor exige a inspeção
    registrada (`job.py inspecionar`) antes de liberar o handoff.
+
+   **Página é peça.** A LP da Academia Mergulho saiu com tarja de debug sobre o H1 porque o
+   `lp_qa.py` mede engenharia e ninguém abriu a página. Desde então `.html` fecha por três
+   coisas, e o gate recusa cada uma: o piso de `apps/lp-builder/engine/suficiencia.py`, a
+   captura desktop + mobile de `render.py` — assinada contra o hash do arquivo, então mexer
+   na página invalida o parecer — e um job de Revisor concluído que **nomeie a captura que
+   abriu**. Parecer de LP que não cita o render é parecer sobre o HTML.
 12. **Peça genérica é defeito, não questão de gosto.** O piso de suficiência
    (`agents/revisor-arte/conhecimento/criterios/criativos.md` §3.5) vale nos dois lados:
    o Designer responde as três perguntas em `art-direction.json` antes de renderizar — o motor
@@ -166,7 +173,7 @@ improvisa, não entrega pela metade fingindo que está inteiro.
 | `apps/legend-ia/` | agente **Legend IA**: skill `editar-video` + motor `process_video.py` |
 | `shared/skills/` | skills de terceiros instaladas por script (não versionadas) |
 | `scripts/` | `setup.sh` (instala) e `check.sh` (diagnostica) |
-| `docs/` | inventário da migração e arquitetura web |
+| `docs/` | inventário da migração, arquitetura web e [`conectores.md`](docs/conectores.md) — quais conectores existem e por que nenhum agente alcança um |
 
 ## Depois de clonar
 

@@ -24,6 +24,7 @@
     "base_externa":       {"type": "string", "description": "acervo externo do cliente usado nesta demanda (hoje o Drive). Vazio quando não há base ou o conector está indisponível — ausência não bloqueia a demanda"},
     "fontes_canonicas":   {"type": "array", "description": "SOURCE OF TRUTH do cliente: fato, asset e decisão vigente. Viaja sempre"},
     "referencias_nao_canonicas": {"type": "array", "description": "histórico, campanha anterior e dado possivelmente desatualizado anexados a este job. São referência, NUNCA verdade atual: o pedido original e a instrução atual prevalecem"},
+    "nao_estabelecido":   {"type": "array", "description": "fontes canônicas cuja evidência é NAO_VERIFICADO, INDISPONIVEL ou AMBIGUO. Não são fato e não são ausência: ninguém verificou. O especialista que precisar de uma delas pede a verificação em vez de assumir"},
     "tentativa":          {"type": "integer"},
     "execution_mode":     {"type": "string", "enum": ["SILENT"], "description": "interface do Squad: o especialista executa sem narrar etapa, handoff ou progresso"},
     "gerado_em":          {"type": "string"}

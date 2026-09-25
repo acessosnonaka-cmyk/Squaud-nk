@@ -113,6 +113,50 @@ FONTES_CANONICAS = ("fato", "asset", "decisao_vigente")
 # muda, a leitura sim. Preço, telefone e oferta mudam sem avisar o Squad.
 VALIDADE_FONTE_DIAS = 90
 
+# ------------------------------------------------- estado de evidência da fonte
+#
+# A falha que isto existe para impedir, reproduzida na LP da Academia Mergulho:
+# a busca no Drive parou nos dois primeiros documentos, o runtime escreveu "não
+# existe fotografia própria" na Source of Truth, e o LP Builder construiu uma
+# página inteira -- corretamente -- sobre uma ausência que era falsa. As fotos
+# estavam em duas pastas que apareceram na primeira listagem e ninguém abriu.
+#
+# Classe diz o que a fonte É. Estado de evidência diz QUANTO se procurou antes
+# de afirmar. São eixos diferentes, e confundi-los foi o defeito.
+ESTADOS_EVIDENCIA = [
+    "ENCONTRADO",                 # o material está lá, e o ref aponta para ele
+    "NAO_ENCONTRADO_APOS_BUSCA",  # procurou-se de verdade e não há. Exige prova da busca
+    "NAO_VERIFICADO",             # ninguém procurou. NUNCA é ausência
+    "INDISPONIVEL",               # a fonte existe e não dá para acessar agora
+    "AMBIGUO",                    # achou algo que não dá para afirmar nem negar
+]
+# Só estes chegam ao especialista como Source of Truth. Os outros viajam no
+# briefing num bloco separado, rotulados, para o especialista saber que a
+# informação não foi estabelecida -- e não para ele acreditar.
+EVIDENCIA_UTILIZAVEL = ("ENCONTRADO", "NAO_ENCONTRADO_APOS_BUSCA")
+
+# Vocabulário de afirmação negativa material. Não é estilo: é o gatilho que
+# obriga a declarar a busca. "Não há acervo fotográfico" muda o que o Designer
+# e o LP Builder podem fazer, então precisa de lastro.
+NEGACAO_MATERIAL = (
+    r"\bn[ãa]o\s+(existe|existem|h[áa]|tem|possui|foi\s+encontrad|houve|dispomos|consta)",
+    r"\b(inexistente|ausente|ausencia|aus[êe]ncia|indispon[íi]vel)\b",
+    r"\bnenhum[ao]?\b",
+    r"\bsem\s+(acervo|foto|fotografia|imagem|logo|material|hist[óo]rico|prova|depoimento|identidade|preco|pre[çc]o)",
+    r"\bzero\s+(foto|imagem|material|acervo|prova)",
+)
+
+
+def afirma_ausencia(texto: str) -> bool:
+    """A fonte está afirmando que algo NÃO existe?
+
+    Usado para decidir quando exigir prova de busca. Falso positivo aqui custa
+    uma linha de justificativa; falso negativo custou uma landing page inteira.
+    """
+    t = (texto or "").lower()
+    return any(re.search(p, t) for p in NEGACAO_MATERIAL)
+
+
 # Modo de execução carimbado em todo briefing. SILENT é a interface do Squad
 # (seção 0 do prompt do Diretor): o especialista executa sem narrar etapa,
 # handoff ou progresso. Viaja no contrato, e não na lembrança do Diretor —
@@ -410,13 +454,27 @@ def contexto_cliente(cliente: str, anexadas: list | None = None,
     viaja quando o Diretor anexa a fonte AO JOB, e ainda assim rotulado como
     referência. É esta assimetria que impede a campanha passada de virar
     verdade da demanda nova sem ninguém ter decidido isso.
+
+    E existe uma terceira pilha, criada depois da LP da Academia Mergulho:
+    NÃO ESTABELECIDO. Fonte canônica cuja evidência é NAO_VERIFICADO,
+    INDISPONIVEL ou AMBIGUO sai da Source of Truth e vai para esta pilha, com o
+    estado colado. O especialista precisa saber a diferença entre "procuramos e
+    não há" e "ninguém olhou" — foi confundir as duas que produziu uma landing
+    page inteira sobre uma ausência falsa.
     """
     reg = carregar_fontes(cliente)
     anexadas = set(anexadas or [])
-    canonicas, referencias = [], []
+    canonicas, referencias, nao_estabelecido = [], [], []
     for f in reg.get("fontes", []):
+        estado = f.get("estado_evidencia", "ENCONTRADO")
         if classe_efetiva(f, hoje) in FONTES_CANONICAS:
-            canonicas.append(rotular_fonte(f, hoje))
+            if estado in EVIDENCIA_UTILIZAVEL:
+                rotulo = rotular_fonte(f, hoje)
+                if estado == "NAO_ENCONTRADO_APOS_BUSCA":
+                    rotulo += f"  [ausência verificada: {(f.get('busca') or '')[:110]}]"
+                canonicas.append(rotulo)
+            else:
+                nao_estabelecido.append(f"[{estado}] {rotular_fonte(f, hoje)}")
         elif f["id"] in anexadas:
             referencias.append(rotular_fonte(f, hoje))
     base = reg.get("base") or {}
@@ -425,6 +483,7 @@ def contexto_cliente(cliente: str, anexadas: list | None = None,
                          f" ({base.get('pasta_id', '')})" if base else ""),
         "fontes_canonicas": canonicas,
         "referencias_nao_canonicas": referencias,
+        "nao_estabelecido": nao_estabelecido,
     }
 
 

@@ -12,6 +12,8 @@
     "fonte_externa":  {"type": "string", "description": "de onde veio. 'drive' hoje"},
     "ref":            {"type": "string", "description": "identificador do arquivo na origem — o fileId do Drive. É o rastro: permite reabrir o original"},
     "link":           {"type": "string"},
+    "estado_evidencia": {"type": "string", "enum": ["ENCONTRADO","NAO_ENCONTRADO_APOS_BUSCA","NAO_VERIFICADO","INDISPONIVEL","AMBIGUO"], "description": "quanto se procurou antes de afirmar. Eixo diferente da classe: classe diz o que a fonte É, estado diz o que se sabe. Só ENCONTRADO e NAO_ENCONTRADO_APOS_BUSCA viajam como Source of Truth; os demais vão ao briefing no bloco NÃO ESTABELECIDO"},
+    "busca":          {"type": "string", "description": "obrigatório para afirmar ausência: onde se procurou, com que termo ou filtro, quantos resultados vieram e o que foi aberto. É a prova que transforma 'não achei' em 'não há'"},
     "verificado_em":  {"type": "string", "description": "data da última conferência. Fato e decisão vigente envelhecem: passados 90 dias são LIDOS como possivelmente_desatualizada"},
     "demanda":        {"type": "string", "description": "demanda em que a fonte foi encontrada"},
     "registrado_em":  {"type": "string"}

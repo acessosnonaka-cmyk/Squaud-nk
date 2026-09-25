@@ -343,12 +343,28 @@ Então a execução física mudou de lugar, e só ela:
 ```
 VOCÊ                        entende, decide, cria demanda, jobs, dependências e briefings
 SESSÃO PRINCIPAL            lê os jobs elegíveis e dispara Agent(especialista)
-ESPECIALISTA                executa
+ESPECIALISTA                executa — e pede dado de plataforma por `consulta abrir`
+SESSÃO PRINCIPAL            executa o conector da consulta e devolve o dado bruto em arquivo
+ESPECIALISTA                analisa o dado que voltou
 SESSÃO PRINCIPAL            persiste o retorno no motor
 MOTOR                       libera a próxima dependência
 VOCÊ                        gate final, e só então a entrega
 MOTOR                       `demanda.py entregar <ID>` — a saída, que recusa sem o gate
 ```
+
+**Nenhum especialista tem conector.** Meta Ads, Google Ads, GA4 e Drive vivem na sessão, e um
+subagente não alcança as ferramentas dela — dá para conferir em uma linha, no `tools:` de cada
+agente. Por isso o dado de plataforma passa pela **consulta**: o especialista declara a pergunta,
+o corte e a hipótese que o dado pode derrubar, o runtime executa o conector e devolve o arquivo.
+Consulta `PENDENTE` trava o gate, então demanda não fecha com dado pedido e não recebido:
+
+```bash
+python3 $E/demanda.py consulta pendentes DEM-...   # o que o runtime tem de executar
+python3 $E/demanda.py consulta responder DEM-... CONSULTA-001 --arquivo <caminho>
+```
+
+Sem isso, o especialista analisa o resumo do briefing achando que analisou a conta — e é assim
+que sai relatório de tráfego que não sobrevive ao primeiro print da plataforma.
 
 O último passo tem comando e tem trava. `demanda.py concluir` fecha a demanda depois do
 FINAL_REQUEST_GATE; `demanda.py entregar` é o que autoriza a saída, recalculando o gate na
@@ -510,9 +526,29 @@ nem como "inspiração".
 **Copy isolada não vai ao Revisor de Arte.** Ele responde principalmente pelo resultado **visual**.
 O Copywriter faz a própria revisão textual pelo Master Prompt dele.
 
-Quando a copy vira **criativo, vídeo ou Landing Page**, o resultado final passa pelo QA apropriado:
-Revisor de Arte para peça e vídeo, `lp-qa` para Landing Page. Reprovação com correção objetiva você
-manda corrigir; reprovação que depende de decisão humana você escala.
+Quando a copy vira **criativo, vídeo ou Landing Page**, o resultado final passa pelo QA apropriado.
+Reprovação com correção objetiva você manda corrigir; reprovação que depende de decisão humana você
+escala.
+
+**Landing Page tem TRÊS portões, e eles medem coisas diferentes.** Tratar o `lp-qa` como o
+portão único já custou uma entrega: a LP da Academia Mergulho passou o QA com tudo verde — cinco
+seções, zero problema de contraste, zero overflow, quatro CTAs — e saiu com tarja amarela de
+debug sobre o H1, sem uma única fotografia da academia. O QA estava certo e a página era
+inaceitável, porque o QA mede engenharia e mais nada.
+
+| Portão | Mede | Recusa |
+| --- | --- | --- |
+| `engine/lp_qa.py` | engenharia: estrutura, contraste, overflow, peso, a11y, formulário | página quebrada |
+| `engine/suficiencia.py` | piso: marca de debug, imagem referenciada, mobile com direção própria, e as oito perguntas respondidas de forma que dê para discordar | página genérica ou não acabada |
+| `revisor-de-criacao` | julgamento sobre a página, com as capturas abertas | página que passa nos dois e ainda não presta |
+
+O Revisor **abre o render, não o HTML**. `engine/render.py --pagina <index.html>` captura a
+página inteira em desktop e mobile e assina a captura contra o hash do arquivo: mudou a página
+depois, o parecer anterior não vale mais e o motor sabe disso. Parecer de LP que não nomeia a
+captura que abriu é parecer sobre código — o gate recusa.
+
+O gate cobra os três: `.html` sem `suficiencia.json`, sem `render.json` válido ou sem job de
+Revisor concluído e ligado a ele não fecha demanda.
 
 ### 8.1 · Você abre o arquivo antes de entregar
 
