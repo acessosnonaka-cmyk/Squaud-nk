@@ -19,6 +19,20 @@ Duas naturezas de checagem aqui, e elas nao se substituem:
              especifica o bastante para alguem discordar, e nao seja a legenda
              do arranjo padrao. Mesma logica do piso do Designer.
 
+O QUE ESTE PISO NAO MEDE, e nao vai medir:
+
+  Sobreposicao. Na LP da Marcenaria Vigo, este piso PASSOU (7 imagens, 2 regras de
+  midia, 0 marca de debug), o lp_qa passou com tudo verde, e a barra fixa de WhatsApp
+  cobria metade do card "30 dias / da aprovacao do 3D a montagem" no mobile. Quem pegou
+  foi o Revisor, abrindo a captura. O recuo negativo que faz a barra de numeros atravessar
+  a emenda no desktop e correto no desktop e so vira defeito no mobile, onde outro elemento
+  passa a recebe-lo -- nao ha leitura estatica de CSS que decida isso sem renderizar e olhar.
+
+  Entao a divisao de trabalho e esta, e ela e deliberada: o piso garante que a pagina
+  chegue ao Revisor sem marca de ferramenta interna, com imagem de verdade, com mobile
+  pensado e com as oito respostas dadas. Quem julga se a pagina presta e quem abre o PNG.
+  Piso passado nao e pagina aprovada, e o gate exige os dois.
+
 Uso:
     suficiencia.py schema
     suficiencia.py checar --pagina <index.html> --respostas <suficiencia.json>
