@@ -573,13 +573,20 @@ def avaliar_gate(d: dict) -> list:
 # produz nada desta lista e segue sem Revisor, como sempre foi.
 EXT_PECA = (".png", ".jpg", ".jpeg", ".webp", ".mp4", ".mov")
 
-# Página é peça. Ficou de fora até a LP da Academia Mergulho sair com tarja de
-# debug sobre o H1 e sem uma única fotografia: o QA da LP mede engenharia e
-# passou tudo verde, o gate conferia conformidade com a Source of Truth e a SoT
-# estava errada, e ninguém nunca olhou a página. Desde então .html exige parecer
-# de Revisor igual a um .png — e, diferente do .png, exige também o piso de
-# suficiência e a captura assinada (ver _piso_lp_faltando).
+# Página do LP Builder é peça. Ficou de fora até a LP da Academia Mergulho sair
+# com tarja de debug sobre o H1 e sem uma única fotografia: o QA da LP mede
+# engenharia e passou tudo verde, o gate conferia conformidade com a Source of
+# Truth e a SoT estava errada, e ninguém nunca olhou a página. Desde então a LP
+# exige parecer de Revisor igual a um .png — e, diferente do .png, exige também o
+# piso de suficiência e a captura assinada (ver _piso_lp_faltando).
+#
+# AGENTE_LP é a fronteira, e ela custou caro para ser descoberta: a primeira
+# versão desta regra olhava só a extensão, e travou a entrega de um relatório de
+# tráfego porque o painel de decisão do Gestor também é .html. Exigir "qual é o
+# conceito da primeira dobra" de um dashboard interno é o motor pedindo a coisa
+# errada com muita convicção. O piso da LP é o piso de quem constrói LP.
 EXT_PAGINA = (".html", ".htm")
+AGENTE_LP = "lp-builder"
 AGENTE_REVISOR = "revisor-de-criacao"
 
 
@@ -595,8 +602,9 @@ def _revisoes_faltando(d: dict) -> list:
     for j in jobs:
         if j["agente"] == AGENTE_REVISOR or j["status"] != "CONCLUIDO":
             continue
+        exts = EXT_PECA + (EXT_PAGINA if j["agente"] == AGENTE_LP else ())
         arte = [a for a in ((j.get("resultado") or {}).get("artefatos") or [])
-                if str(a).lower().endswith(EXT_PECA + EXT_PAGINA)]
+                if str(a).lower().endswith(exts)]
         if not arte:
             continue
         ligados = [r for r in revisores if j["id"] in (r.get("dependencias") or [])]
@@ -650,7 +658,7 @@ def _piso_lp_faltando(d: dict) -> list:
     revisores = [j for j in jobs if j["agente"] == AGENTE_REVISOR]
     trava = []
     for j in jobs:
-        if j["agente"] == AGENTE_REVISOR or j["status"] != "CONCLUIDO":
+        if j["agente"] != AGENTE_LP or j["status"] != "CONCLUIDO":
             continue
         arts = [str(x) for x in ((j.get("resultado") or {}).get("artefatos") or [])]
         paginas = [a for a in arts if a.lower().endswith(EXT_PAGINA)]

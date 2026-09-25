@@ -315,6 +315,35 @@ t = " ".join(demanda._piso_lp_faltando(modelo.carregar(dem_ok)))
 checar("B11 · mexer na página depois do parecer volta a travar o gate",
        "mudou depois da captura" in t, t[:200])
 
+# B12 · a fronteira que a produção real encontrou: o painel de decisão do Gestor
+# também é .html, e a primeira versão desta regra travou a entrega de um relatório
+# de tráfego pedindo "qual é o conceito da primeira dobra" de um dashboard interno.
+dem_dash = nova_demanda("Relatório com painel", "quero o relatório do mês")
+roda(demanda.cmd_planejar, demanda=dem_dash, plano="gestor analisa")
+roda(demanda.cmd_job_add, demanda=dem_dash, agente="gestor-de-trafego",
+     objetivo="analisar a conta", entrada=None, saida="relatório com painel",
+     depende=None, criterio=None, restricao=None, fonte=None)
+roda(demanda.cmd_job_iniciar, demanda=dem_dash, job="JOB-001")
+painel = LPD / "dashboard.html"
+painel.write_text("<html><body>painel interno</body></html>", encoding="utf-8")
+roda(demanda.cmd_job_concluir, demanda=dem_dash, job="JOB-001", retorno=None,
+     status="concluido", resumo="análise entregue", artefato=[str(painel)], decisao=None,
+     observacao=None, proximo=None, pendencia=None)
+d_dash = modelo.carregar(dem_dash)
+t = demanda._piso_lp_faltando(d_dash) + demanda._revisoes_faltando(d_dash)
+checar("B12 · .html de quem não é LP Builder não cai no piso da LP", t == [], str(t)[:300])
+
+# e a peça visual de qualquer agente continua exigindo Revisor, como antes
+roda(demanda.cmd_job_add, demanda=dem_dash, agente="designer", objetivo="arte",
+     entrada=None, saida="peça", depende=None, criterio=None, restricao=None, fonte=None)
+roda(demanda.cmd_job_iniciar, demanda=dem_dash, job="JOB-002")
+roda(demanda.cmd_job_concluir, demanda=dem_dash, job="JOB-002", retorno=None,
+     status="concluido", resumo="arte pronta", artefato=[str(cap / "desktop.png")],
+     decisao=None, observacao=None, proximo=None, pendencia=None)
+t = " ".join(demanda._revisoes_faltando(modelo.carregar(dem_dash)))
+checar("B13 · .png de outro agente continua exigindo Revisor",
+       "revisão obrigatória ausente" in t, t[:160])
+
 
 # ============================================================ C · CONSULTA
 CLI_C = "cliente-trafego-p0"
