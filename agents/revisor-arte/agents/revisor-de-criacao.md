@@ -323,6 +323,27 @@ Recebidas as evidências, aplicar `criterios/criativos.md`:
 **A pergunta é sempre:** *esta peça está pronta para publicação?* — não *como eu a
 faria?*.
 
+#### Entregas do tipo `landing-page`
+
+**Abra a página antes de pontuar qualquer coisa.** Toda LP do Squad chega com um
+`render.json`: capturas de página inteira em desktop (1440) e mobile (390), assinadas
+contra o hash do HTML.
+
+```bash
+python3 apps/lp-builder/engine/render.py verificar --manifesto <render.json>
+```
+
+1. `verificar` primeiro. Disse que a página mudou depois da captura? Peça a recaptura —
+   parecer sobre a versão anterior é parecer sobre uma página que não existe mais.
+2. `Read` nos **dois** PNG. Os dois, sempre.
+3. **Nomeie no parecer o caminho das capturas que você abriu.** O gate do Diretor recusa
+   parecer de LP que não cita o render.
+
+**Sem captura, o retorno é `BLOQUEADO`** — não é parecer com critério excluído. Faltar
+screenshot deixou de renormalizar peso (`criterios/landing-pages.md` §0): foi exatamente
+assim que uma LP com tarja de debug sobre o H1 saiu aprovada sem ninguém ter visto a
+página.
+
 #### Todas as entregas
 
 - Comparar pedido × entregue, item a item.

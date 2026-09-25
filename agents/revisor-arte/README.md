@@ -167,8 +167,11 @@ e acrescentar uma linha em `conhecimento/deteccao-de-tipo.md`. O agente não é 
 
 ## Limitações conhecidas
 
-- **Landing pages** não são renderizadas (não há navegador): revisão por código-fonte
-  e/ou screenshots. Responsividade e interações não são verificáveis.
+- **Landing pages**: existe navegador, e a captura é obrigatória. `apps/lp-builder/engine/
+  render.py` entrega desktop e mobile de página inteira, assinados contra o hash do arquivo,
+  e o parecer tem de nomear a captura que abriu. Sem ela o retorno é `BLOQUEADO` — nunca
+  parecer com critério excluído (`criterios/landing-pages.md` §0). Continua fora do alcance
+  só o que exige interação: hover, foco, animação, scroll, menu, envio real de formulário.
 - **Vídeos**: o Revisor mede o arquivo e lê frames amostrados. Não assiste e não escuta —
   qualidade de locução, trilha, mixagem e ritmo **não** são avaliados.
 - **Imagens**: leitura visual é estimativa, não medição. DPI, CMYK e perfil de cor não
