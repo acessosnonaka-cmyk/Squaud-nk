@@ -160,9 +160,69 @@ def linhas_do_painel(d: dict) -> tuple:
     return linhas, prova
 
 
+ROTULO_PARA_ESTADO = {"NA FILA": "CRIADO", "TRABALHANDO": "DISPARADO",
+                      "CONCLUÍDO": "EXECUTADO", "CONCLUIDO": "EXECUTADO"}
+FORCA = {"CRIADO": 0, "DISPARADO": 1, "EXECUTADO": 2}
+
+
+def conferir_painel(d: dict, texto: str) -> list:
+    """Divergências entre um painel escrito à mão e o que o estado sustenta.
+
+    Existe porque a primeira versão desta rodada confiou no prompt, e o prompt
+    não segurou: o Diretor publicou três especialistas como TRABALHANDO com os
+    três jobs ainda PENDENTES. Ninguém mentiu de propósito — o painel escrito à
+    mão descreve a intenção, e a intenção dele era mesmo acionar os três. Só que
+    quem lê entende que o trabalho começou.
+    """
+    _, prova = linhas_do_painel(d)
+    porid = {e["subagent_type"]: e for e in roster.especialistas()
+             if e.get("subagent_type")}
+    divergencias = []
+    for linha in texto.splitlines():
+        if "║" not in linha or "SQUAD" in linha:
+            continue
+        achado = next((ag for ag, e in porid.items()
+                       if e["nome"].upper() in linha.upper()), None)
+        if not achado:
+            continue
+        alegado = next((ROTULO_PARA_ESTADO[r] for r in ROTULO_PARA_ESTADO
+                        if r in linha.upper()), None)
+        if alegado is None:
+            continue
+        if achado not in prova:
+            divergencias.append(
+                f"{porid[achado]['nome']} aparece no painel e não tem job nesta demanda")
+            continue
+        real = prova[achado]["estado"]
+        if FORCA[alegado] > FORCA[real]:
+            divergencias.append(
+                f"{porid[achado]['nome']}: o painel diz {alegado}, o estado sustenta "
+                f"{real} ({', '.join(j['id'] + ' ' + j['status'] for j in prova[achado]['jobs'])})")
+    vistos = {ag for ag in porid if porid[ag]["nome"].upper() in texto.upper()}
+    for ag in prova:
+        if ag not in vistos:
+            divergencias.append(
+                f"{porid[ag]['nome']} tem job e ficou de fora do painel")
+    return divergencias
+
+
 def cmd_painel(a) -> int:
     d = modelo.carregar(a.demanda)
     linhas, prova = linhas_do_painel(d)
+
+    if getattr(a, "conferir", None):
+        alvo = pathlib.Path(a.conferir)
+        texto = alvo.read_text(encoding="utf-8") if alvo.is_file() else a.conferir
+        divergencias = conferir_painel(d, texto)
+        if divergencias:
+            p(f"PAINEL NÃO CONFERE — {len(divergencias)} divergência(s)")
+            for x in divergencias:
+                p(f"  ✗ {x}")
+            p("\nO painel verdadeiro desta demanda, agora:")
+            print("\n".join(linhas) if linhas else "  (sem linhas)")
+            return 2
+        p("PAINEL CONFERE — cada linha é sustentada pelo estado da demanda.")
+        return 0
 
     if a.verificar:
         cab(f"EVIDÊNCIA DO PAINEL · {d['id']}")
@@ -1522,6 +1582,9 @@ def main(argv=None) -> int:
     pn.add_argument("demanda")
     pn.add_argument("--verificar", action="store_true",
                     help="a evidencia por job: criado / disparado / executado")
+    pn.add_argument("--conferir", metavar="PAINEL",
+                    help="confere um painel escrito a mao (texto ou arquivo) "
+                         "contra o estado real")
     pn.set_defaults(fn=cmd_painel)
     l = sub.add_parser("listar", help="lista demandas"); l.add_argument("--status")
     l.add_argument("--cliente", help="pelo CLIENT_ID ou por qualquer apelido dele")

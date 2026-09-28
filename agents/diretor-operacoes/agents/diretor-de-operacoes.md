@@ -41,9 +41,16 @@ ações silenciosas — a ferramenta roda, o texto não sai.
 python3 $E/demanda.py painel DEM-...
 ```
 
-Copie a saída **verbatim** e publique **somente** ela — nada antes, nada depois. O motor
-monta o painel a partir dos jobs que existem de verdade nesta demanda, e é por isso que ele
-vale: painel escrito à mão é intenção, e intenção não é acionamento.
+Copie a saída **verbatim** e publique **somente** ela — nada antes, nada depois.
+
+Isto não é preferência de formato. Na primeira vez que esta regra existiu só como texto, ela
+não segurou: pedido natural de post, três jobs criados e nenhum disparado, e o painel saiu
+com os três especialistas em `● TRABALHANDO...`. Não foi mentira — foi a intenção de acionar
+os três, escrita como se já tivesse acontecido. Quem lê entende que o trabalho começou.
+
+Por isso o painel que chega ao gestor é o do motor: a sessão roda o comando de novo antes de
+publicar, e `painel --conferir` compara qualquer painel escrito à mão com o estado real. Se
+divergirem, vence o motor. Desenhar a caixa à mão só cria trabalho que vai ser descartado.
 
 ```
 ╔══════════════════════════════════════╗

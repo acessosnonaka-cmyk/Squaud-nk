@@ -173,6 +173,61 @@ checar("P9 · as linhas saem na ordem do roster, nao na de criacao",
 larguras = {demanda.largura_visual(l) for l in linhas}
 checar("P10 · toda linha do painel tem a mesma largura", len(larguras) == 1, str(larguras))
 
+# ============================================================ P11 · painel escrito a mao
+# O caso real: o Diretor devolveu tres especialistas em TRABALHANDO com os tres
+# jobs ainda PENDENTE. Nao foi mentira — foi a intencao escrita como se ja
+# tivesse acontecido. O motor confere e o motor vence.
+dem3 = nova("Painel escrito a mao")
+roda(demanda.cmd_planejar, demanda=dem3, plano="copy, arte e revisao")
+for ag in ("copywriter", "designer", "revisor-de-criacao"):
+    add_job(dem3, ag)
+
+FORJADO = """╔══════════════════════════════════════╗
+║         ♟️ ATIVANDO SQUAD NK          ║
+╠══════════════════════════════════════╣
+║ ✍️ COPYWRITER        ● TRABALHANDO... ║
+║ 🎨 DESIGNER          ● TRABALHANDO... ║
+║ 🔎 REVISOR DE ARTE   ● TRABALHANDO... ║
+╚══════════════════════════════════════╝"""
+
+d3 = modelo.carregar(dem3)
+div = demanda.conferir_painel(d3, FORJADO)
+checar("P11 · painel que diz TRABALHANDO com job PENDENTE nao confere",
+       len(div) == 3, str(div))
+checar("P11 · a divergencia nomeia o que o estado sustenta",
+       all("CRIADO" in x for x in div), str(div))
+
+roda(demanda.cmd_job_iniciar, demanda=dem3, job="JOB-001")
+d3 = modelo.carregar(dem3)
+div = demanda.conferir_painel(d3, FORJADO)
+checar("P11 · disparado um, so os outros dois divergem", len(div) == 2, str(div))
+
+# o painel do motor sempre confere consigo mesmo
+linhas_motor, _ = demanda.linhas_do_painel(modelo.carregar(dem3))
+checar("P11 · o painel do motor confere consigo mesmo",
+       demanda.conferir_painel(modelo.carregar(dem3), "\n".join(linhas_motor)) == [],
+       str(demanda.conferir_painel(modelo.carregar(dem3), "\n".join(linhas_motor))))
+
+# painel que ESCONDE quem tem job tambem nao confere
+so_um = "║ ✍️ COPYWRITER        ● TRABALHANDO... ║"
+div = demanda.conferir_painel(modelo.carregar(dem3), so_um)
+checar("P11 · painel que esconde especialista com job nao confere",
+       any("ficou de fora" in x for x in div), str(div))
+
+# painel que INVENTA especialista sem job tambem nao
+inventado = so_um + "\n║ 🧱 LP BUILDER        ● TRABALHANDO... ║"
+div = demanda.conferir_painel(modelo.carregar(dem3), inventado)
+checar("P11 · painel que inventa especialista sem job nao confere",
+       any("não tem job" in x for x in div), str(div))
+
+# dizer MENOS do que o estado sustenta nao e divergencia: e modestia
+menos = """║ ✍️ COPYWRITER        ○ NA FILA       ║
+║ 🎨 DESIGNER          ○ NA FILA       ║
+║ 🔎 REVISOR DE ARTE   ○ NA FILA       ║"""
+checar("P11 · dizer menos do que o estado sustenta nao e divergencia",
+       demanda.conferir_painel(modelo.carregar(dem3), menos) == [],
+       str(demanda.conferir_painel(modelo.carregar(dem3), menos)))
+
 shutil.rmtree(TMP, ignore_errors=True)
 
 if falhas:
