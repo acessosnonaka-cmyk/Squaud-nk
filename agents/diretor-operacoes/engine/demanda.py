@@ -20,6 +20,7 @@ import argparse
 import json
 import pathlib
 import sys
+import unicodedata
 
 if __package__ in (None, ""):                      # permite rodar por caminho direto
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
@@ -43,7 +44,7 @@ def cab(titulo: str) -> None:
 def cmd_nova(a) -> int:
     did = modelo.novo_id()
     d = {
-        "id": did, "cliente": modelo.slug(a.cliente), "titulo": a.titulo,
+        "id": did, "cliente": modelo.canonico(a.cliente, criar=True), "titulo": a.titulo,
         "descricao": a.descricao, "objetivo": a.objetivo or "",
         "contexto": a.contexto or "", "prioridade": a.prioridade,
         "status": "RECEBIDA", "plano": "", "agentes": [], "jobs": [],
@@ -57,10 +58,165 @@ def cmd_nova(a) -> int:
     return 0
 
 
+# ------------------------------------------------------------------ painel
+#
+# O painel é a única coisa que o gestor vê antes do silêncio começar, e por isso
+# ele não pode ser escrito à mão. À mão, ele vira intenção: lista quem o Diretor
+# pretendia acionar, e quem foi acionado de verdade fica sendo outra coisa.
+#
+# Aqui ele é DERIVADO do estado. Três fatos diferentes, que antes se misturavam
+# numa linha só:
+#
+#   CRIADO     existe job para o especialista. Não é acionamento.
+#   DISPARADO  a sessão chamou `job iniciar`: o Agent está sendo executado agora.
+#   EXECUTADO  o retorno do Agent está em disco, em handoffs/<JOB>.retorno.json.
+#
+# E duas coisas que o painel não consegue dizer por construção, que é o ponto:
+#   - especialista sem job nenhum não tem linha. Não há como inventar uma.
+#   - skill não aparece. Skill não cria job; o painel lê jobs.
+
+PAINEL_INTERNO = 38
+PAINEL_LARGURA_NOME = 18
+PAINEL_LARGURA_STATUS = 16
+PAINEL_ESTADOS = {
+    "EXECUTADO": "✓ CONCLUÍDO",
+    "DISPARADO": "● TRABALHANDO...",
+    "CRIADO": "○ NA FILA",
+}
+
+
+def largura_visual(texto: str) -> int:
+    """Quantas colunas o texto ocupa no terminal.
+
+    `len()` não serve: `✍️` são dois code points (o emoji e o seletor de
+    variação) e ocupa duas colunas; `🧱` é um code point e ocupa duas. Contar
+    caracteres desalinha a borda direita do painel, e painel torto parece
+    quebrado — o que tira dele exatamente a autoridade que ele precisa ter.
+    """
+    t = unicodedata.normalize("NFC", texto)
+    largura, i = 0, 0
+    while i < len(t):
+        c = t[i]
+        if c == "️" or unicodedata.combining(c):
+            i += 1
+            continue
+        # seletor de variação logo depois: o caractere vira emoji e ocupa duas
+        emoji = i + 1 < len(t) and t[i + 1] == "️"
+        largura += 2 if (emoji or unicodedata.east_asian_width(c) in ("W", "F")
+                         or 0x1F300 <= ord(c) <= 0x1FAFF) else 1
+        i += 1
+    return largura
+
+
+def evidencia_do_job(demanda_id: str, j: dict) -> str:
+    """O que se pode AFIRMAR sobre este job, pela prova que existe em disco."""
+    retorno = modelo.dir_demanda(demanda_id) / "handoffs" / f"{j['id']}.retorno.json"
+    if retorno.is_file():
+        return "EXECUTADO"
+    if j["status"] == "EM_EXECUCAO":
+        return "DISPARADO"
+    return "CRIADO"
+
+
+def linhas_do_painel(d: dict) -> tuple:
+    """(linhas do painel, evidência por especialista). Só quem tem job aparece."""
+    porid = {e["subagent_type"]: e for e in roster.especialistas()
+             if e.get("subagent_type")}
+    ordem = [e["subagent_type"] for e in roster.especialistas() if e.get("subagent_type")]
+
+    prova = {}
+    for j in d.get("jobs", []):
+        ag = j["agente"]
+        if ag not in porid:
+            continue                      # não é especialista do roster: não entra
+        ev = evidencia_do_job(d["id"], j)
+        prova.setdefault(ag, {"jobs": [], "evidencias": []})
+        prova[ag]["jobs"].append(j)
+        prova[ag]["evidencias"].append(ev)
+
+    linhas = []
+    for ag in ordem:
+        if ag not in prova:
+            continue
+        evs = prova[ag]["evidencias"]
+        jobs = prova[ag]["jobs"]
+        if "DISPARADO" in evs:
+            estado = "DISPARADO"
+        elif "EXECUTADO" in evs and all(j["status"] == "CONCLUIDO" for j in jobs):
+            estado = "EXECUTADO"
+        elif "EXECUTADO" in evs:
+            estado = "DISPARADO"
+        else:
+            estado = "CRIADO"
+        prova[ag]["estado"] = estado
+        e = porid[ag]
+        rotulo = e["nome"].upper()
+        status = PAINEL_ESTADOS[estado]
+        corpo = (f" {e['emoji']} {rotulo}"
+                 + " " * max(1, PAINEL_LARGURA_NOME - largura_visual(rotulo))
+                 + status)
+        corpo += " " * max(0, PAINEL_INTERNO - largura_visual(corpo))
+        linhas.append(f"║{corpo}║")
+    return linhas, prova
+
+
+def cmd_painel(a) -> int:
+    d = modelo.carregar(a.demanda)
+    linhas, prova = linhas_do_painel(d)
+
+    if a.verificar:
+        cab(f"EVIDÊNCIA DO PAINEL · {d['id']}")
+        p("  job CRIADO não é Agent DISPARADO, e Agent DISPARADO não é EXECUTADO.")
+        for j in d.get("jobs", []):
+            ev = evidencia_do_job(d["id"], j)
+            arq = modelo.dir_demanda(d["id"]) / "handoffs" / f"{j['id']}.retorno.json"
+            p(f"  {j['id']}  {j['agente']:<20} status {j['status']:<14} {ev:<10}"
+              f" retorno em disco: {'sim' if arq.is_file() else 'não'}")
+        fora = sorted({j["agente"] for j in d.get("jobs", [])}
+                      - {e["subagent_type"] for e in roster.especialistas()
+                         if e.get("subagent_type")})
+        if fora:
+            p(f"  FORA DO ROSTER, não entram no painel: {', '.join(fora)}")
+        p(f"  linhas do painel: {len(linhas)}")
+        return 0
+
+    if not linhas:
+        p("  SEM PAINEL — nenhum job para especialista do roster nesta demanda.")
+        p("  Painel de demanda sem especialista acionado seria simulação.")
+        return 0
+
+    titulo = "♟️ ATIVANDO SQUAD NK"
+    folga = PAINEL_INTERNO - largura_visual(titulo)
+    saida = ["╔" + "═" * PAINEL_INTERNO + "╗",
+             "║" + " " * (folga // 2) + titulo + " " * (folga - folga // 2) + "║",
+             "╠" + "═" * PAINEL_INTERNO + "╣",
+             *linhas,
+             "╚" + "═" * PAINEL_INTERNO + "╝"]
+    print("\n".join(saida))
+
+    d.setdefault("paineis", []).append({
+        "em": modelo.agora(),
+        "agentes": {ag: v["estado"] for ag, v in prova.items()},
+        "linhas": len(linhas),
+    })
+    modelo.salvar(d)
+    return 0
+
+
 def cmd_listar(a) -> int:
     ds = modelo.listar()
     if a.status:
         ds = [d for d in ds if d["status"] == a.status.upper()]
+    if getattr(a, "cliente", None):
+        # Pelo CLIENT_ID e por todo apelido dele: demanda aberta sob o nome antigo
+        # continua sendo desse cliente. O campo gravado na demanda é histórico e
+        # não se reescreve — quem reconcilia é a identidade, na hora da leitura.
+        nomes = modelo.nomes_do_cliente(a.cliente)
+        ds = [d for d in ds if d.get("cliente") in nomes]
+        if not ds:
+            p(f"  nenhuma demanda para {a.cliente} "
+              f"(procurado como: {', '.join(sorted(nomes))})")
+            return 0
     if not ds:
         p("  nenhuma demanda"); return 0
     cab(f"DEMANDAS ({len(ds)})")
@@ -1036,16 +1192,17 @@ def dir_memoria_cliente(cliente: str) -> str:
 
 
 def cmd_cliente_ver(a) -> int:
-    texto = dir_memoria_cliente(modelo.slug(a.cliente))
-    p(texto or f"  sem memória para o cliente '{modelo.slug(a.cliente)}'")
+    sid = modelo.canonico(a.cliente)
+    texto = dir_memoria_cliente(sid)
+    p(texto or f"  sem memória para o cliente '{sid}'")
     return 0
 
 
 def cmd_cliente_anotar(a) -> int:
-    caminho = modelo.dir_clientes() / f"{modelo.slug(a.cliente)}.md"
+    caminho = modelo.dir_clientes() / f"{modelo.canonico(a.cliente, criar=True)}.md"
     caminho.parent.mkdir(parents=True, exist_ok=True)
     if not caminho.exists():
-        caminho.write_text(f"# Memória do cliente · {modelo.slug(a.cliente)}\n\n"
+        caminho.write_text(f"# Memória do cliente · {modelo.canonico(a.cliente)}\n\n"
                            "Contexto estável. O que vale para toda demanda deste cliente.\n",
                            encoding="utf-8")
     with caminho.open("a", encoding="utf-8") as fh:
@@ -1070,6 +1227,51 @@ def _validar_fontes(cliente: str, ids: list) -> list:
     return ids
 
 
+def cmd_cliente_identidades(a) -> int:
+    ids = modelo.identidades().get("identidades", [])
+    cab(f"IDENTIDADES DE CLIENTE ({len(ids)})")
+    for i in sorted(ids, key=lambda x: x["id"]):
+        apelidos = ", ".join(i.get("aliases") or []) or "—"
+        p(f"  {i['id']:<26} {apelidos}")
+        for f in i.get("fusoes", []) or []:
+            p(f"       ↳ fundiu {f['de']} em {f['em'][:10]}: {', '.join(f['trouxe'])}")
+    p("\n  O nome digitado chega ao CLIENT_ID pelo id ou por apelido. "
+      "Nada é aproximado por semelhança.")
+    return 0
+
+
+def cmd_cliente_identidade(a) -> int:
+    achados = modelo.identidades_de(a.cliente)
+    if not achados:
+        p(f"  '{a.cliente}' não alcança identidade nenhuma "
+          f"(seria {modelo.slug(a.cliente)} se criado agora)")
+        return 0
+    for i in achados:
+        cab(f"CLIENT_ID · {i['id']}")
+        p(f"  nome       {i.get('nome', i['id'])}")
+        p(f"  apelidos   {', '.join(i.get('aliases') or []) or '—'}")
+        p(f"  criado em  {i.get('criado_em', '?')[:10]} ({i.get('origem', '?')})")
+        dados = modelo.dados_em_disco(i["id"])
+        p(f"  em disco   {'; '.join(dados) if dados else 'nada ainda'}")
+    if len(achados) > 1:
+        p("\n  AMBÍGUO: este nome alcança mais de um cliente. O motor não escolhe.")
+        return 2
+    return 0
+
+
+def cmd_cliente_alias(a) -> int:
+    """Liga um apelido a um CLIENT_ID. Recusa tudo que seria fusão calada."""
+    ident = modelo.adicionar_alias(a.cliente, a.alias, fundir=a.fundir)
+    p(f"  {ident['id']}  ← apelido '{a.alias}'")
+    p(f"  apelidos agora: {', '.join(ident.get('aliases') or [])}")
+    if ident.get("fusoes"):
+        ult = ident["fusoes"][-1]
+        p(f"  FUNDIDO {ult['de']}: {', '.join(ult['trouxe'])}")
+        if any("fonte" in t or "memória" in t for t in ult["trouxe"]):
+            p("  Os arquivos de origem viraram .fundido — nada foi apagado.")
+    return 0
+
+
 def cmd_cliente_resolver(a) -> int:
     """Do nome falado para o cliente registrado. Três saídas, e só três.
 
@@ -1081,7 +1283,7 @@ def cmd_cliente_resolver(a) -> int:
         p(f"RESOLVIDO {achados[0]['cliente']}")
         return 0
     if not achados:
-        p(f"SEM BASE  {modelo.slug(a.cliente)}")
+        p(f"SEM BASE  {modelo.canonico(a.cliente)}")
         p("  nenhum cliente registrado com este nome. Localize a pasta no acervo e "
           "registre com 'cliente base definir', ou siga sem base externa.")
         return 0
@@ -1096,7 +1298,7 @@ def cmd_cliente_resolver(a) -> int:
 
 def cmd_cliente_base_definir(a) -> int:
     reg = modelo.carregar_fontes(a.cliente)
-    reg["cliente"] = modelo.slug(a.cliente)
+    reg["cliente"] = modelo.canonico(a.cliente, criar=True)
     reg["base"] = {"fonte": a.fonte_externa, "pasta_id": a.pasta_id,
                    "pasta_nome": a.pasta_nome or "", "definida_em": modelo.agora()}
     for apelido in (a.alias or []):
@@ -1146,7 +1348,7 @@ def cmd_cliente_fonte_add(a) -> int:
                 "  Sem isso, o estado correto é NAO_VERIFICADO — que não vira fato.")
 
     reg = modelo.carregar_fontes(a.cliente)
-    reg["cliente"] = modelo.slug(a.cliente)
+    reg["cliente"] = modelo.canonico(a.cliente, criar=True)
     fonte = {
         "id": modelo.proxima_fonte_id(reg), "classe": a.classe, "titulo": a.titulo,
         "resumo": a.resumo or "", "fonte_externa": a.fonte_externa,
@@ -1187,7 +1389,7 @@ def cmd_cliente_fonte_listar(a) -> int:
 def cmd_cliente_contexto(a) -> int:
     """O que iria para um briefing deste cliente agora — canônico e referência."""
     ctx = modelo.contexto_cliente(a.cliente, a.fonte or [])
-    cab(f"CONTEXTO · {modelo.slug(a.cliente)}")
+    cab(f"CONTEXTO · {modelo.canonico(a.cliente)}")
     p(f"  ACERVO             {ctx['base_externa'] or '(sem base externa)'}")
     p("  SOURCE OF TRUTH")
     for linha in ctx["fontes_canonicas"] or ["    (nada vigente registrado)"]:
@@ -1316,7 +1518,13 @@ def main(argv=None) -> int:
     n.add_argument("--prioridade", default="normal", choices=["baixa", "normal", "alta", "urgente"])
     n.set_defaults(fn=cmd_nova)
 
+    pn = sub.add_parser("painel", help="o painel do Squad, derivado do estado real")
+    pn.add_argument("demanda")
+    pn.add_argument("--verificar", action="store_true",
+                    help="a evidencia por job: criado / disparado / executado")
+    pn.set_defaults(fn=cmd_painel)
     l = sub.add_parser("listar", help="lista demandas"); l.add_argument("--status")
+    l.add_argument("--cliente", help="pelo CLIENT_ID ou por qualquer apelido dele")
     l.set_defaults(fn=cmd_listar)
 
     v = sub.add_parser("ver", help="mostra uma demanda"); v.add_argument("demanda")
@@ -1455,6 +1663,16 @@ def main(argv=None) -> int:
     c2.add_argument("--secao", required=True); c2.add_argument("--texto", required=True)
     c2.set_defaults(fn=cmd_cliente_anotar)
 
+    ci = cs.add_parser("identidades", help="todos os CLIENT_ID e seus apelidos")
+    ci.set_defaults(fn=cmd_cliente_identidades)
+    cid = cs.add_parser("identidade", help="qual CLIENT_ID este nome alcanca")
+    cid.add_argument("cliente"); cid.set_defaults(fn=cmd_cliente_identidade)
+    cal = cs.add_parser("alias", help="liga um apelido a um CLIENT_ID")
+    cal.add_argument("cliente", help="o CLIENT_ID (ou um nome que chegue nele)")
+    cal.add_argument("alias", help="o apelido a ligar")
+    cal.add_argument("--fundir", action="store_true",
+                     help="o apelido ja tem dado proprio: junta os dois, com registro")
+    cal.set_defaults(fn=cmd_cliente_alias)
     c3 = cs.add_parser("resolver", help="nome falado -> cliente registrado")
     c3.add_argument("cliente"); c3.set_defaults(fn=cmd_cliente_resolver)
 

@@ -78,6 +78,12 @@ improvisa, não entrega pela metade fingindo que está inteiro.
    antes de comentário, de prévia de achado, de aviso de ressalva. Demanda acionada sem painel
    visível é o mesmo que Squad não acionado: o gestor não tem como saber quem está trabalhando
    no material dele.
+
+   **E o painel sai do motor, não da mão:** `demanda.py painel <ID>` monta as linhas a partir
+   dos jobs que existem, e distingue três coisas que antes se confundiam numa só — `○ NA FILA`
+   (job criado), `● TRABALHANDO...` (Agent disparado) e `✓ CONCLUÍDO` (retorno do Agent em
+   disco). Especialista sem job não tem linha, e skill não aparece porque skill não recebe
+   job. `painel --verificar` mostra a prova de cada linha.
 8. **Trabalho de cliente entra pelo Diretor.** Caindo no domínio do Squad, é acionado com
    `Agent(diretor-de-operacoes)` — nunca executado direto na sessão. O domínio é o das
    capabilities do `REGISTRY.md` (regra 4), e vale inteiro:

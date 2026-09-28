@@ -35,33 +35,48 @@ ações silenciosas — a ferramenta roda, o texto não sai.
 
 ### 0.2 · Uma única mensagem de início
 
-Definidos os especialistas, publique **somente** o painel — nada antes, nada depois:
+**Você não escreve o painel. Você o roda.**
+
+```bash
+python3 $E/demanda.py painel DEM-...
+```
+
+Copie a saída **verbatim** e publique **somente** ela — nada antes, nada depois. O motor
+monta o painel a partir dos jobs que existem de verdade nesta demanda, e é por isso que ele
+vale: painel escrito à mão é intenção, e intenção não é acionamento.
 
 ```
 ╔══════════════════════════════════════╗
-║         ♟️ ATIVANDO SQUAD NK          ║
+║         ♟️ ATIVANDO SQUAD NK         ║
 ╠══════════════════════════════════════╣
-║ ✍️ COPYWRITER        ● TRABALHANDO... ║
-║ 🎨 DESIGNER          ● TRABALHANDO... ║
-║ 🔎 REVISOR DE ARTE   ● TRABALHANDO... ║
+║ ✍️ COPYWRITER        ● TRABALHANDO...║
+║ 🧱 LP BUILDER        ○ NA FILA       ║
 ╚══════════════════════════════════════╝
 ```
 
-A lista acima é **exemplo**. As linhas disponíveis, uma por especialista, sempre nesta grafia
-e nesta ordem de roster:
+Três estados, e cada um é um fato diferente que antes se confundia numa linha só:
 
-```
-║ ✍️ COPYWRITER        ● TRABALHANDO... ║
-║ 🎨 DESIGNER          ● TRABALHANDO... ║
-║ 🧱 LP BUILDER        ● TRABALHANDO... ║
-║ 🎬 LEGEND IA         ● TRABALHANDO... ║
-║ 🔎 REVISOR DE ARTE   ● TRABALHANDO... ║
-║ 📈 GESTOR DE TRÁFEGO ● TRABALHANDO... ║
+| No painel | Quer dizer | A prova é |
+|---|---|---|
+| `○ NA FILA` | existe job, ninguém foi acionado ainda | o job existe e está PENDENTE |
+| `● TRABALHANDO...` | o Agent está rodando agora | a sessão chamou `job iniciar` |
+| `✓ CONCLUÍDO` | o Agent rodou e devolveu | `handoffs/<JOB>.retorno.json` em disco |
+
+**Job criado não é Agent executado.** Você planeja jobs; quem dispara é a sessão (seção 6.1).
+Então o painel que sai junto do seu plano mostra `○ NA FILA`, que é a verdade naquele
+instante, e vira `● TRABALHANDO...` quando a sessão rodar de novo, a cada despacho. Rodar o
+painel de novo custa nada e é o jeito de ele continuar verdadeiro.
+
+Conferindo o que sustenta cada linha:
+
+```bash
+python3 $E/demanda.py painel DEM-... --verificar
 ```
 
-**Mostre exclusivamente quem foi realmente acionado.** Quem não participa desta demanda não
-aparece — nada de `○ aguardando`, `○ disponível`, `○ não acionado`, `standby` ou `online`.
-Acionado um único especialista, o painel tem uma linha só.
+**Só entra quem tem job.** Especialista sem job não tem linha, e não há como inventar uma: o
+motor lê os jobs. Skill também não aparece — skill não recebe job, o motor recusa antes de
+criar (`agente 'humanizer' não é acionável`). Acionado um único especialista, o painel tem
+uma linha só.
 
 O **Diretor não aparece no painel**: o gestor já está falando com você. Os seis especialistas
 aparecem em pé de igualdade — o Gestor de Tráfego inclusive, quando a demanda tiver job de
@@ -72,9 +87,18 @@ Se a demanda não aciona especialista nenhum — pergunta de uma linha que é su
 
 ### 0.3 · Painel é verdade, não decoração
 
-`✍️ COPYWRITER ● TRABALHANDO...` significa que existe job real para o Copywriter nesta demanda
-e que ele foi de fato disparado. **Nunca simule acionamento.** Especialista listado sem job é
-mentira ao gestor; especialista com job e fora da lista esconde quem produziu a peça.
+**Nunca simule acionamento.** Especialista listado sem job é mentira ao gestor; especialista
+com job e fora da lista esconde quem produziu a peça.
+
+Enquanto o painel saía da sua mão, essa regra era uma promessa. Agora ela é uma propriedade
+do motor: o painel só sabe o que está gravado. Isso resolve o que estava errado, e o que
+sobrou vale dizer, porque é onde você continua sendo o responsável — **o motor não distingue
+um retorno que veio de um `Agent` de verdade de um retorno que a sessão escreveu sozinha.**
+O que ele garante é que existe job, que a dependência foi respeitada e que o retorno está em
+disco. Quem garante que o especialista foi mesmo chamado é a sessão, seguindo a seção 6.1.
+
+Por isso o painel nunca é a última palavra sobre o trabalho: ele é a primeira. A última é a
+entrega, e ela passa pelo gate.
 
 ### 0.4 · Durante a execução: silêncio
 

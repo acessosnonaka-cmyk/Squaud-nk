@@ -23,6 +23,66 @@ atualizado_em: "2026-09-15"
 # Ação não reconhecida NÃO é liberada por omissão.
 padrao_desconhecido: REQUER_APROVACAO
 
+# ---------------------------------------------------------------
+# SUPERFÍCIE DO SHELL — onde o hook procura a ação dentro do comando.
+#
+# As regras abaixo classificam AÇÃO. Num comando de shell, a ação está no
+# esqueleto (programa, subcomando, opções, alvo), não na carga que ele carrega:
+# corpo de heredoc, comentário, valor de campo de prosa. Um briefing que cita
+# faixa de valor, o resumo de um job, uma copy de landing page e um comentário
+# de código não executam nada — e todos os quatro foram barrados pela regra
+# `dinheiro` no mesmo dia, antes desta separação existir.
+#
+# A carga não é ignorada: só sai do esqueleto se NÃO casar com
+# `marcas_de_execucao`. Heredoc com `requests.post` ou `curl` é programa, volta
+# inteiro e é classificado. Depoimento de cliente não contém `subprocess`.
+#
+# Isto não afrouxa regra nenhuma: o mesmo padrão continua valendo, aplicado ao
+# lugar do comando onde ação de verdade mora.
+shell:
+  # Se a carga casar com um destes, ela NÃO é tratada como texto.
+  marcas_de_execucao:
+    - "\\b(requests|httpx)\\s*\\.\\s*(post|put|patch|delete|request)\\b"
+    - "\\burllib\\b|\\bhttp\\.client\\b|\\bsocket\\b"
+    - "\\b(curl|wget|http|xh)\\b"
+    - "\\bsubprocess\\b|\\bos\\.system\\b|\\bpopen\\b|\\bexec\\b|\\beval\\("
+    - "graph\\.facebook\\.com|business-api\\.tiktok|googleads|google-ads|ads\\.google"
+    - "\\bfacebook_business\\b|\\bfacebookads\\b|\\bgoogle\\.ads\\b"
+    - "\\brm\\s+-[a-z]*r|\\bgit\\s+push\\b|\\bmkfs\\b|\\bdd\\s+if="
+  # Nome de motor do proprio Squad NAO entra aqui. Ficou na primeira versao e o
+  # efeito foi imediato: qualquer heredoc que DOCUMENTA policy.py ou demanda.py
+  # passava a contar como programa, e a prosa dentro dele voltava a ser
+  # classificada. Invocar o motor ja aparece no esqueleto do comando; citar o
+  # motor num texto nao executa nada.
+  # Campos cujo VALOR é prosa por contrato. `--acao` fica de fora de propósito:
+  # ele é a ação descrita, e é exatamente o que o portão precisa classificar.
+  campos_de_conteudo:
+    - "--resumo"
+    - "--texto"
+    - "--descricao"
+    - "--pedido"
+    - "--observacao"
+    - "--pergunta"
+    - "--corrigir"
+    - "--evidencia"
+    - "--motivo"
+    - "--plano"
+    - "--objetivo"
+    - "--contexto"
+    - "--entrada"
+    - "--saida"
+    - "--criterio"
+    - "--restricao"
+    - "--decisao"
+    - "--hipotese"
+    - "--corte"
+    - "--busca"
+    - "--titulo"
+    - "--proximo"
+    - "--pendencia"
+    - "--caption"
+    - "-m"
+
 classes:
 
   PROIBIDO:
@@ -81,6 +141,12 @@ classes:
         padroes:
           - "(subir|ativar|pausar|despausar|encerrar|excluir|duplicar) .*(campanha|conjunto|anuncio|ad ?set)"
           - "publicar .*(campanha|anuncio)"
+          # Escrita direta na API da plataforma, sem passar por verbo em português.
+          # Faltava: um POST para graph.facebook.com muda a conta do cliente do
+          # mesmo jeito que "subir campanha", e não casava com padrão nenhum.
+          # O método de escrita é o que importa — GET de leitura continua livre.
+          - "(post|put|patch|delete).{0,80}(graph\\.facebook\\.com|googleads|google-ads|business-api\\.tiktok|ads\\.google)"
+          - "(graph\\.facebook\\.com|googleads|google-ads|business-api\\.tiktok).{0,120}(daily_budget|lifetime_budget|bid_amount|campaign_budget)"
       - id: publicacao-externa
         motivo: "Sai da máquina e chega a terceiros."
         impacto: "Conteúdo fica acessível fora do ambiente local."

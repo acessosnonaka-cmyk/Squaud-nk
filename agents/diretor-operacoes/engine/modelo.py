@@ -353,10 +353,269 @@ def proxima_alteracao_id(demanda: dict) -> str:
     return f"ALT-{len(demanda.get('alteracoes', [])) + 1:03d}"
 
 
+# --------------------------------------------------- identidade canônica do cliente
+#
+# O nome digitado não é a identidade. Foi por confiar nele que a mesma conta da
+# Clínica Vitta virou duas memórias: uma demanda entrou como `clinica-vitta` e
+# outra como `clinica-aurora`, e o motor tratou as duas como clientes diferentes
+# porque `slug()` não sabe que são a mesma coisa. O especialista percebeu, e o
+# aviso dele foi explícito: reconcilie o slug antes da próxima demanda, ou a
+# memória se parte em duas.
+#
+# Então existe um CLIENT_ID canônico, e o nome digitado passa a ser um caminho
+# até ele:
+#
+#     nome digitado -> slug -> alias -> CLIENT_ID -> Source of Truth, memória, demandas
+#
+# Duas coisas que este registro NUNCA faz:
+#
+#   - aproximar por semelhança. "Clínica Vitta" e "Clínica Vita" são dois
+#     clientes até que alguém diga que não são. Heurística de parecido é como se
+#     funde o acervo de um cliente com o de outro, e isso não tem desfazer.
+#   - fundir dado calado. Apelido cujo lado já tem fontes ou memória em disco é
+#     recusado; para fundir é preciso pedir a fusão, e ela fica registrada.
+
+ARQ_IDENTIDADES = "_identidades.json"
+
+
+def caminho_identidades() -> pathlib.Path:
+    return dir_clientes() / ARQ_IDENTIDADES
+
+
+def _semear_identidades() -> dict:
+    """Primeira leitura: todo cliente que já existe em disco vira identidade.
+
+    Semeia de três lugares, porque cliente pode existir em qualquer um deles:
+    arquivo de fontes, memória em markdown e o campo `cliente` das demandas.
+    Cada slug encontrado vira um CLIENT_ID próprio — nada é fundido aqui, e
+    nenhuma memória existente deixa de ser alcançável.
+    """
+    vistos = {}
+
+    def registrar(sid: str, nome: str | None = None) -> None:
+        if sid and sid not in vistos:
+            vistos[sid] = {"id": sid, "nome": nome or sid, "aliases": [],
+                           "criado_em": agora(), "origem": "migracao"}
+
+    if dir_clientes().is_dir():
+        for c in sorted(dir_clientes().glob("*.fontes.json")):
+            try:
+                reg = ler_json(c)
+            except Exception:
+                continue
+            registrar(reg.get("cliente") or c.name.split(".")[0])
+            # apelido que já existia no arquivo de fontes continua valendo
+            alvo = vistos.get(reg.get("cliente") or c.name.split(".")[0])
+            for ap in reg.get("aliases", []) or []:
+                if slug(ap) != alvo["id"] and slug(ap) not in [slug(x) for x in alvo["aliases"]]:
+                    alvo["aliases"].append(ap)
+        for c in sorted(dir_clientes().glob("*.md")):
+            registrar(c.stem)
+    if dir_demandas().is_dir():
+        for d in sorted(dir_demandas().glob("*/demanda.json")):
+            try:
+                registrar(ler_json(d).get("cliente"))
+            except Exception:
+                continue
+
+    dados = {"versao": 1, "criado_em": agora(), "identidades": list(vistos.values())}
+    gravar_json(caminho_identidades(), dados)
+    return dados
+
+
+def identidades() -> dict:
+    caminho = caminho_identidades()
+    if not caminho.is_file():
+        return _semear_identidades()
+    return ler_json(caminho)
+
+
+def salvar_identidades(dados: dict) -> None:
+    dados["atualizado_em"] = agora()
+    gravar_json(caminho_identidades(), dados)
+
+
+def identidades_de(nome: str) -> list:
+    """Toda identidade alcançada por este nome — pelo id ou por apelido.
+
+    Mais de uma é ambiguidade real, e ambiguidade não se resolve no palpite.
+    """
+    alvo = slug(nome)
+    return [i for i in identidades().get("identidades", [])
+            if i["id"] == alvo or alvo in [slug(a) for a in i.get("aliases", [])]]
+
+
+def canonico(nome: str, *, criar: bool = False) -> str:
+    """O CLIENT_ID deste nome. Toda leitura e escrita de cliente passa por aqui.
+
+    `criar=False` (padrão) resolve sem gravar: consulta de cliente que não existe
+    não deve inventar cliente. `criar=True` registra a identidade nova, e é o que
+    as escritas usam.
+    """
+    achados = identidades_de(nome)
+    if len(achados) > 1:
+        raise ErroDeEstado(
+            f"'{nome}' alcança {len(achados)} clientes diferentes: "
+            + ", ".join(i["id"] for i in achados)
+            + ".\n  Isto é ambiguidade real e o motor não escolhe por semelhança. "
+            "Use o CLIENT_ID direto, ou corrija o apelido duplicado com "
+            "`cliente alias`.")
+    if achados:
+        return achados[0]["id"]
+
+    sid = slug(nome)
+    if criar:
+        dados = identidades()
+        dados.setdefault("identidades", []).append(
+            {"id": sid, "nome": nome, "aliases": [], "criado_em": agora(),
+             "origem": "novo"})
+        salvar_identidades(dados)
+    return sid
+
+
+def nomes_do_cliente(nome: str) -> set:
+    """Todo nome sob o qual este cliente pode ter dado gravado.
+
+    O CLIENT_ID mais os slugs de todos os apelidos. Existe porque demanda é
+    registro histórico: a que foi aberta como `clinica-aurora-teste` continua
+    gravada assim, e reescrevê-la seria falsificar o que aconteceu. Quem
+    reconcilia é a leitura.
+    """
+    achados = identidades_de(nome)
+    if not achados:
+        return {slug(nome)}
+    nomes = set()
+    for i in achados:
+        nomes.add(i["id"])
+        nomes.update(slug(a) for a in i.get("aliases", []) or [])
+        nomes.update(f["de"] for f in i.get("fusoes", []) or [])
+    return nomes
+
+
+def dados_em_disco(sid: str) -> list:
+    """O que existe gravado sob este id. Serve para não fundir nada calado."""
+    achados = []
+    f = dir_clientes() / f"{sid}.fontes.json"
+    if f.is_file():
+        try:
+            achados.append(f"{len(ler_json(f).get('fontes', []))} fonte(s) em {f.name}")
+        except Exception:
+            achados.append(f"{f.name}")
+    m = dir_clientes() / f"{sid}.md"
+    if m.is_file():
+        achados.append(f"memória em {m.name}")
+    if dir_demandas().is_dir():
+        n = 0
+        for d in dir_demandas().glob("*/demanda.json"):
+            try:
+                n += 1 if ler_json(d).get("cliente") == sid else 0
+            except Exception:
+                pass
+        if n:
+            achados.append(f"{n} demanda(s)")
+    return achados
+
+
+def adicionar_alias(nome_canonico: str, alias: str, *, fundir: bool = False) -> dict:
+    """Liga um apelido a uma identidade. Recusa tudo que seria fusão silenciosa."""
+    alvo = identidades_de(nome_canonico)
+    if not alvo:
+        raise ErroDeEstado(f"não existe identidade para '{nome_canonico}'. "
+                           "Use `cliente identidades` para ver as que existem.")
+    if len(alvo) > 1:
+        raise ErroDeEstado(f"'{nome_canonico}' é ambíguo entre "
+                           + ", ".join(i["id"] for i in alvo))
+    alvo = alvo[0]
+    sa = slug(alias)
+    if sa == alvo["id"] or sa in [slug(x) for x in alvo.get("aliases", [])]:
+        return alvo
+
+    outros = [i for i in identidades_de(alias) if i["id"] != alvo["id"]]
+    if outros and not fundir:
+        raise ErroDeEstado(
+            f"'{alias}' já é o cliente {outros[0]['id']}. Ligar o mesmo apelido a dois "
+            "clientes é o começo de uma fusão errada — e fusão errada mistura acervo "
+            "de cliente, que não tem desfazer.\n"
+            f"  Em disco, {outros[0]['id']} tem: "
+            + ("; ".join(dados_em_disco(outros[0]["id"])) or "nada ainda") + ".\n"
+            "  Conferiu e é o mesmo cliente? Repita com --fundir. Nada é apagado: "
+            "as fontes são anexadas, a memória é concatenada e a fusão fica "
+            "registrada na identidade.")
+
+    existente = dados_em_disco(sa)
+    if existente and not fundir:
+        raise ErroDeEstado(
+            f"'{sa}' já tem dado próprio em disco: " + "; ".join(existente) + ".\n"
+            f"  Virar apelido de {alvo['id']} junta os dois, e isso não pode "
+            "acontecer calado.\n"
+            "  Conferiu e é o mesmo cliente? Repita com --fundir. "
+            "Nada é apagado: as fontes são anexadas e a memória é concatenada.")
+
+    # Absorver é um ato só: mover o que existe em arquivo E tirar a identidade
+    # antiga do registro. Fazer metade deixa o mesmo nome alcançando dois
+    # CLIENT_ID, que é a ambiguidade que este registro existe para não ter.
+    absorvida = next((i for i in identidades_de(alias) if i["id"] != alvo["id"]), None)
+    fundido = _fundir_dados(sa, alvo["id"]) if existente else []
+    if absorvida and not fundido:
+        fundido = ["identidade sem arquivo próprio (demandas continuam pelo apelido)"]
+
+    dados = identidades()
+    for i in dados["identidades"]:
+        if i["id"] != alvo["id"]:
+            continue
+        i.setdefault("aliases", []).append(alias)
+        if absorvida:
+            # o que a absorvida sabia sobre si vem junto: apelido dela é apelido dele
+            for ap in absorvida.get("aliases", []) or []:
+                if slug(ap) != alvo["id"] and slug(ap) not in [slug(x) for x in i["aliases"]]:
+                    i["aliases"].append(ap)
+        if fundido:
+            i.setdefault("fusoes", []).append(
+                {"de": sa, "em": agora(), "trouxe": fundido})
+        dados["identidades"] = [x for x in dados["identidades"]
+                                if x["id"] == alvo["id"] or x["id"] != sa]
+        salvar_identidades(dados)
+        return i
+    raise ErroDeEstado(f"identidade '{alvo['id']}' sumiu durante a gravação")
+
+
+def _fundir_dados(de: str, para: str) -> list:
+    """Junta o que existe sob `de` no `para`. Anexa, nunca sobrescreve."""
+    trouxe = []
+    f_de, f_para = dir_clientes() / f"{de}.fontes.json", dir_clientes() / f"{para}.fontes.json"
+    if f_de.is_file():
+        origem = ler_json(f_de)
+        destino = ler_json(f_para) if f_para.is_file() else \
+            {"cliente": para, "base": None, "aliases": [], "fontes": []}
+        base = len(destino.get("fontes", []))
+        for n, fonte in enumerate(origem.get("fontes", []), 1):
+            fonte = dict(fonte)
+            fonte["id"] = f"FONTE-{base + n:03d}"
+            fonte["fundida_de"] = de
+            destino.setdefault("fontes", []).append(fonte)
+        if origem.get("base") and not destino.get("base"):
+            destino["base"] = origem["base"]
+        destino["atualizado_em"] = agora()
+        gravar_json(f_para, destino)
+        os.replace(f_de, f_de.with_suffix(".json.fundido"))
+        trouxe.append(f"{len(origem.get('fontes', []))} fonte(s)")
+
+    m_de, m_para = dir_clientes() / f"{de}.md", dir_clientes() / f"{para}.md"
+    if m_de.is_file():
+        anterior = m_para.read_text(encoding="utf-8") if m_para.is_file() else \
+            f"# Memória do cliente · {para}\n"
+        m_para.write_text(
+            anterior.rstrip() + f"\n\n<!-- fundido de {de} em {agora()[:10]} -->\n"
+            + m_de.read_text(encoding="utf-8").strip() + "\n", encoding="utf-8")
+        os.replace(m_de, m_de.with_suffix(".md.fundido"))
+        trouxe.append("memória")
+    return trouxe
+
+
 # --------------------------------------------------- contexto externo do cliente
 
 def caminho_fontes(cliente: str) -> pathlib.Path:
-    return dir_clientes() / f"{slug(cliente)}.fontes.json"
+    return dir_clientes() / f"{canonico(cliente)}.fontes.json"
 
 
 def carregar_fontes(cliente: str) -> dict:
@@ -368,7 +627,7 @@ def carregar_fontes(cliente: str) -> dict:
     caminho = caminho_fontes(cliente)
     if caminho.is_file():
         return ler_json(caminho)
-    return {"cliente": slug(cliente), "base": None, "aliases": [], "fontes": []}
+    return {"cliente": canonico(cliente), "base": None, "aliases": [], "fontes": []}
 
 
 def salvar_fontes(cliente: str, dados: dict) -> None:

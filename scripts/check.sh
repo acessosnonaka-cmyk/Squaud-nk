@@ -143,6 +143,15 @@ for f in publish.py lp_qa.py drive_ingest.py suficiencia.py render.py; do
 done
 # Os dois portões que o lp_qa.py nunca foi: piso de suficiência e captura assinada.
 # Sumindo um deles, volta a sair página com tarja de debug que ninguém abriu.
+grep -q "def esqueleto_shell" "$REPO/agents/diretor-operacoes/engine/policy.py" \
+  && green "politica separa acao de conteudo (F6)" \
+  || red "esqueleto_shell ausente - a politica volta a barrar briefing e comentario"
+grep -q "def canonico" "$REPO/agents/diretor-operacoes/engine/modelo.py" \
+  && green "identidade canonica de cliente (CLIENT_ID)" \
+  || red "canonico() ausente - o mesmo cliente volta a virar duas memorias"
+grep -q "def cmd_painel" "$REPO/agents/diretor-operacoes/engine/demanda.py" \
+  && green "painel derivado do estado real" \
+  || red "cmd_painel ausente - painel volta a ser escrito a mao"
 grep -q "_piso_lp_faltando(d)" "$REPO/agents/diretor-operacoes/engine/demanda.py" \
   && green "portão da LP no gate (piso + captura + Revisor)" \
   || red "portão da LP ausente no gate — página volta a sair sem ninguém ter olhado"
