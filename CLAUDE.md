@@ -102,7 +102,7 @@ improvisa, não entrega pela metade fingindo que está inteiro.
    | `lp.*` | landing page, arquitetura, QA, publicação |
    | `video.*` · `legend.*` | edição, legenda, finalização |
    | `revisao.*` | revisão de criação, parecer de peça |
-   | `trafego.*` | Meta, Google e TikTok Ads, análise de conta, diagnóstico, planejamento de mídia, relatório de performance, decisão de escala |
+   | `trafego.*` | Meta, Google e TikTok Ads, análise de conta, diagnóstico, planejamento de mídia, relatório de performance, decisão de escala. A fonte operacional prioritária é o conector **Ads Editor**, que é ferramenta do Gestor — não é agente, não tem linha no painel e não recebe job |
 
    **Quem decide é o Diretor; quem dispara é a sessão.** A plataforma não deixa um subagente
    iniciar outro, então o Diretor planeja — demanda, jobs, dependências, briefings, painel — e

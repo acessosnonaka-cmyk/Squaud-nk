@@ -982,7 +982,14 @@ def formatar_gate(d: dict, trava: list) -> str:
 # o runtime executa o conector como I/O e devolve o dado bruto. Quem escolhe a
 # análise continua sendo o especialista; quem tem a tomada continua sendo o
 # runtime. Nenhum dos dois faz o trabalho do outro.
-FONTES_CONSULTA = ["meta_ads", "google_ads", "tiktok_ads", "ga4", "drive", "crm", "outra"]
+#
+# `ads_editor` é a fonte operacional prioritária de mídia paga: um conector só,
+# com Meta e Google na mesma superfície, leitura de conta, campanha, conjunto,
+# anúncio, criativo, público, placement e histórico de alteração. Está acima de
+# `meta_ads` e `google_ads` por cobertura, não por preferência — havendo as duas,
+# o corte sai mais fundo pelo Ads Editor.
+FONTES_CONSULTA = ["ads_editor", "meta_ads", "google_ads", "tiktok_ads",
+                   "ga4", "drive", "crm", "outra"]
 
 
 def cmd_consulta_abrir(a) -> int:
@@ -1079,14 +1086,27 @@ def cmd_consulta_responder(a) -> int:
             raise modelo.ErroDeEstado(
                 f"o dado bruto precisa existir em disco: {arq} não existe.\n"
                 "  Resposta que fica só na conversa não chega ao especialista.")
+        # Qual ferramenta o runtime REALMENTE chamou. Sem isto, "o Ads Editor foi
+        # consultado" é afirmação do runtime sobre si mesmo — e a autópsia já
+        # mostrou onde isso termina: o Gestor passou meses analisando resumo
+        # achando que analisava conta. Com o nome gravado, a diferença entre
+        # conector chamado e conector citado para de ser questão de confiança.
+        ferramentas = [f.strip() for f in (a.ferramenta or []) if f.strip()]
         c["status"] = "RESPONDIDA"
         c["arquivo"] = str(arq.resolve())
         c["observacao"] = a.observacao or ""
+        c["ferramentas"] = ferramentas
         c["resposta_em"] = modelo.agora()
         modelo.salvar(d)
         modelo.registrar_evento(d["id"], "CONSULTA_RESPONDIDA", job=c["job"],
-                                resumo=f"{c['id']} -> RESPONDIDA ({arq.name})")
+                                resumo=f"{c['id']} -> RESPONDIDA ({arq.name})"
+                                       + (f" via {', '.join(ferramentas)}" if ferramentas else ""))
         p(f"  {c['id']} -> RESPONDIDA · {arq}")
+        if ferramentas:
+            p(f"  executado por: {', '.join(ferramentas)}")
+        else:
+            p("  sem --ferramenta: o motor não registra qual conector trouxe este dado. "
+              "Informe, e a origem para de depender da palavra de quem respondeu.")
         p(f"  Redispare {c['agente']} no {c['job']} com este arquivo no briefing.")
         return 0
     raise modelo.ErroDeEstado(f"consulta '{a.consulta}' não existe em {d['id']}")
@@ -1101,6 +1121,8 @@ def cmd_consulta_listar(a) -> int:
     for c in cs:
         p(f"  {c['id']} {c['status']:<11} {c['fonte']:<11} {c['job']} ({c['agente']})")
         p(f"     {c['pergunta'][:96]}")
+        if c.get("ferramentas"):
+            p(f"     executado por: {', '.join(c['ferramentas'])}")
         if c.get("arquivo"):
             p(f"     dado: {c['arquivo']}")
     return 0
@@ -1622,6 +1644,9 @@ def main(argv=None) -> int:
     co3.add_argument("--observacao", help="com --sem-dado: o que foi tentado, mín. 40 caracteres")
     co3.add_argument("--sem-dado", dest="sem_dado", action="store_true",
                      help="não há o dado: fonte sem conector, sem permissão, sem instrumentação")
+    co3.add_argument("--ferramenta", action="append",
+                     help="qual ferramenta o runtime chamou de verdade (repetível; "
+                          "ex.: mcp__Ads_Editor__get_account_insights)")
     co3.set_defaults(fn=cmd_consulta_responder)
     co4 = cos.add_parser("listar"); co4.add_argument("demanda")
     co4.set_defaults(fn=cmd_consulta_listar)

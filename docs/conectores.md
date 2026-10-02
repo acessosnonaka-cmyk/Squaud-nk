@@ -1,21 +1,40 @@
 # Conectores — o que existe, quem alcança, e o que isso obriga
 
-Levantado em **2026-09-25**, com chamada real, não com leitura de configuração.
-Este documento existe porque a autópsia da produção real achou uma coisa que nenhum
-teste anterior tinha achado: **o Gestor de Tráfego nunca leu uma conta de anúncio.**
-Não por bug — por arquitetura. Ele não tem como.
+Levantado em **2026-09-25**, revisto em **2026-10-02**, com chamada real — não com
+leitura de configuração. Este documento existe porque a autópsia da produção real achou
+uma coisa que nenhum teste anterior tinha achado: **o Gestor de Tráfego nunca leu uma
+conta de anúncio.** Não por bug — por arquitetura. Ele não tem como.
 
 ## 1. O que está conectado
 
 | Conector | Estado | Cobre | Provado por |
 |---|---|---|---|
-| **Meta ADS** | conectado, ativo na sessão | contas, campanhas, insights, criativos, públicos, catálogo, pixel, benchmark | `ads_get_ad_accounts` devolveu 25+ contas reais, com `is_queryable` e moeda |
-| **Ads Editor** | conectado, ativo na sessão | Meta **e Google Ads**: campanha, ad set, anúncio, keyword, orçamento, regra, relatório, UTM | listado como `connected` / `enabledInChat` |
-| **Google Drive** | conectado, ativo na sessão | busca, leitura, metadado, permissão, upload | acervo de cliente lido em produção nesta semana |
+| **Ads Editor** | conectado, ativo na sessão | **fonte operacional prioritária de mídia paga.** Meta **e** Google Ads na mesma superfície: conta, campanha, conjunto, anúncio, criativo, público, placement, keyword, termo de busca, orçamento, regra, otimização, relatório, UTM | `list_meta_accounts` devolveu **120 contas reais** com id, status e moeda (2026-10-02) |
+| **Meta ADS** | conectado | contas, campanhas, insights, criativos, públicos, catálogo, pixel, benchmark de leilão | `ads_get_ad_accounts` devolveu 25+ contas, com `is_queryable` e moeda |
+| **Google Drive** | conectado, ativo na sessão | busca, leitura, metadado, permissão, upload | acervo de cliente lido em produção |
 | **Canva** | conectado | design, template de marca, export, remoção de fundo | — |
 | **Gamma** | conectado | apresentação, doc, site | — |
 | **ClickUp** | conectado | tarefa, lista, comentário, doc, tempo | — |
 | **Higgsfield** | **desconectado** | — | `installState: disconnected` |
+
+### 1.1 Ads Editor — as capacidades reais, por família
+
+Conferidas no inventário de ferramentas da sessão. **Nada aqui é endpoint inventado**:
+o que não estiver nesta lista, o runtime não executa.
+
+| Família | Leitura (livre) | Alteração (passa pelo portão) |
+|---|---|---|
+| **Conta Meta** | `list_meta_accounts` · `get_account_dashboard` · `get_account_insights` · `get_account_info` · `get_account_summary` · `get_account_balance_status` | `hide_account_in_central` |
+| **Campanha / conjunto / anúncio** | `list_campaigns` · `get_campaign_details` · `get_campaign_metrics` · `get_campaigns_budgets` · `list_adsets` · `get_adset_details` · `get_adset_insights` · `list_ads` · `list_ads_with_insights` · `get_ad_details` · `get_ad_insights` | `create_campaign` · `update_campaign` · `update_budget` · `pause_*` · `activate_*` · `toggle_*` · `delete_*` · `clone_*` · `bulk_pause_ads` |
+| **Recorte analítico** | `get_insights_breakdown` (idade, gênero, dispositivo, placement) · `get_adsets_locations` | — |
+| **Criativo** | `get_creatives` · `get_ad_post_links` · `list_campaign_videos` · `list_page_videos` · `list_ig_videos` | `update_ad_creative` · `upload_ad_media` · `create_ads_from_media` |
+| **Público** | `list_audiences` · `get_audience_size` · `list_audience_campaigns` | `create_audience` · `update_*` · `delete_audience` |
+| **Tracking** | `list_pixel_events` · `list_pixel_custom_events` · `list_lead_forms` · `list_integrations_utms` | `set_google_url_options` · `create_lead_form` |
+| **Google Ads** | `list_google_accounts` · `list_google_campaigns` · `get_google_campaign_details` · `get_google_campaign_metrics` · `list_google_adgroups` · `list_google_ads` · `list_google_keywords` · `list_google_search_terms` · `list_google_demographics` · `list_google_recommendations` · `get_google_account_timeseries` | `update_google_budget` · `update_google_bidding` · `add/remove_google_keyword` · `pause_google_*` · `create_google_*` |
+| **Histórico de alteração** | `get_optimization_history` · `get_google_optimization_history` · `list_recent_rule_executions` | `create_optimization` · `create_rule` · `toggle_rule` |
+
+**O que o Ads Editor NÃO cobre, e por isso continua lacuna:** comportamento na página
+(sem GA4), TikTok Ads, CRM e WhatsApp. Ver §2 — o conector novo não fecha nenhuma delas.
 
 ## 2. O que NÃO existe
 
@@ -71,14 +90,25 @@ Por isso o motor ganhou `demanda.py consulta`. O especialista declara o que quer
 descobrir; a sessão executa o conector; o dado bruto volta em arquivo.
 
 ```bash
-demanda.py consulta abrir <DEM> <JOB> --fonte meta_ads \
+demanda.py consulta abrir <DEM> <JOB> --fonte ads_editor \
   --pergunta "<o que se quer DESCOBRIR, não a tabela que se quer puxar>" \
   --corte    "<nível, campos, período, quebra, filtro — o que o runtime executa>" \
   --hipotese "<o que este dado pode DERRUBAR>"
 
 demanda.py consulta pendentes <DEM>                       # fila do runtime
-demanda.py consulta responder <DEM> CONSULTA-001 --arquivo <caminho>
+demanda.py consulta responder <DEM> CONSULTA-001 --arquivo <caminho> \
+  --ferramenta mcp__Ads_Editor__get_account_insights \
+  --ferramenta mcp__Ads_Editor__get_insights_breakdown
 ```
+
+`ads_editor` é a fonte prioritária de mídia paga: um conector só, Meta e Google na mesma
+superfície, e é o único que desce a placement, dispositivo, termo de busca e histórico de
+alteração.
+
+**`--ferramenta` registra o que o runtime chamou de verdade.** Sem ele, "o Ads Editor foi
+consultado" é afirmação do runtime sobre si mesmo — e a autópsia já mostrou onde isso
+termina. Com o nome gravado em `consultas[].ferramentas`, a diferença entre conector
+chamado e conector citado para de ser questão de confiança. `consulta listar` imprime.
 
 Três travas, todas do motor e nenhuma de etiqueta:
 

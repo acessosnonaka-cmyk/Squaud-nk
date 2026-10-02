@@ -78,6 +78,12 @@ def roda(fn, **kw):
     return code, buf.getvalue()
 
 
+def _sem_acento(t):
+    import unicodedata
+    t = unicodedata.normalize("NFKD", t or "")
+    return "".join(c for c in t if not unicodedata.combining(c))
+
+
 def nova_demanda(titulo: str, descricao: str, cliente="cliente-ficticio-p0") -> str:
     _, saida = roda(demanda.cmd_nova, titulo=titulo, cliente=cliente, descricao=descricao,
                     objetivo="prova de invariante", contexto="", prioridade="normal", fonte=None)
@@ -389,11 +395,12 @@ t = " ".join(demanda.avaliar_gate(modelo.carregar(dem_c)))
 checar("C5 · consulta PENDENTE trava o gate", "CONSULTA-001" in t and "não recebeu" in t, t[:200])
 
 code, msg = roda(demanda.cmd_consulta_responder, demanda=dem_c, consulta="CONSULTA-001",
-                 arquivo=str(LPD / "nao-existe.json"), observacao=None, sem_dado=False)
+                 arquivo=str(LPD / "nao-existe.json"), observacao=None, sem_dado=False,
+                 ferramenta=None)
 checar("C6 · responder com arquivo que não existe é recusado", code is None, f"exit={code}")
 
 code, msg = roda(demanda.cmd_consulta_responder, demanda=dem_c, consulta="CONSULTA-001",
-                 arquivo=None, observacao="não deu", sem_dado=True)
+                 arquivo=None, observacao="não deu", sem_dado=True, ferramenta=None)
 checar("C7 · --sem-dado sem justificativa real é recusado", code is None, f"exit={code}")
 checar("C7 · a recusa distingue 'não deu' de 'não tentei'",
        "não tentei" in (msg or ""), (msg or "")[:160])
@@ -401,7 +408,7 @@ checar("C7 · a recusa distingue 'não deu' de 'não tentei'",
 bruto = LPD / "meta-adset-60d.json"
 bruto.write_text('{"adsets": []}', encoding="utf-8")
 code, saida = roda(demanda.cmd_consulta_responder, demanda=dem_c, consulta="CONSULTA-001",
-                   arquivo=str(bruto), observacao="", sem_dado=False)
+                   arquivo=str(bruto), observacao="", sem_dado=False, ferramenta=None)
 checar("C8 · responder com dado bruto em disco é aceito", code == 0, f"exit={code}")
 t = " ".join(demanda.avaliar_gate(modelo.carregar(dem_c)))
 checar("C8 · com a consulta respondida o gate não trava mais por ela",
@@ -414,6 +421,7 @@ code, _ = abrir_consulta(
 checar("C9 · consulta a fonte sem conector é aberta normalmente", code == 0, f"exit={code}")
 code, saida = roda(
     demanda.cmd_consulta_responder, demanda=dem_c, consulta="CONSULTA-002", arquivo=None,
+    ferramenta=None,
     observacao="Não há conector de GA4 nesta sessão (docs/conectores.md §2) e a propriedade "
                "não foi compartilhada; o evento click_whatsapp também não aparece instrumentado.",
     sem_dado=True)
@@ -425,6 +433,75 @@ checar("C11 · SEM_DADO não trava o gate", "CONSULTA-002" not in t, t[:200])
 saida_gate = demanda.formatar_gate(modelo.carregar(dem_c), [])
 checar("C11 · mas a lacuna aparece no gate, nomeada",
        "LACUNA DECLARADA" in saida_gate and "CONSULTA-002" in saida_gate, saida_gate[-400:])
+
+# ============================================================ D · ADS EDITOR
+# O conector novo entra como FONTE do mecanismo que ja existia, nao como fluxo
+# paralelo e nao como agente. Duas coisas aqui: ele e fonte valida, e o motor
+# grava qual ferramenta o runtime chamou de verdade.
+
+checar("D1 · ads_editor e fonte de consulta valida",
+       "ads_editor" in demanda.FONTES_CONSULTA, str(demanda.FONTES_CONSULTA))
+checar("D2 · ads_editor vem antes de meta_ads e google_ads (prioritaria)",
+       demanda.FONTES_CONSULTA.index("ads_editor")
+       < min(demanda.FONTES_CONSULTA.index("meta_ads"),
+             demanda.FONTES_CONSULTA.index("google_ads")))
+
+dem_ae = nova_demanda("Analise de conta", "analise a performance e diga o que merece atencao",
+                      cliente="cliente-ads-editor-teste")
+roda(demanda.cmd_planejar, demanda=dem_ae, plano="gestor analisa")
+roda(demanda.cmd_job_add, demanda=dem_ae, agente="gestor-de-trafego",
+     objetivo="analisar a conta", entrada=None, saida="analise", depende=None,
+     criterio=None, restricao=None, fonte=None)
+roda(demanda.cmd_job_iniciar, demanda=dem_ae, job="JOB-001")
+
+code, saida = roda(demanda.cmd_consulta_abrir, demanda=dem_ae, job="JOB-001",
+                   fonte="ads_editor",
+                   pergunta="o gasto esta concentrado em algum conjunto sem retorno",
+                   corte="nivel adset, ultimos 30 dias, campos spend/results/cpl/frequency",
+                   hipotese="um conjunto consome a verba e nao converte — derruba se o CPL for homogeneo")
+checar("D3 · consulta em ads_editor e aceita", code == 0, f"exit={code}")
+
+bruto = pathlib.Path(TMP) / "adsets.json"
+bruto.write_text('{"adsets": [{"id": "1", "spend": 100}]}', encoding="utf-8")
+code, saida = roda(demanda.cmd_consulta_responder, demanda=dem_ae, consulta="CONSULTA-001",
+                   arquivo=str(bruto), observacao="", sem_dado=False,
+                   ferramenta=["mcp__Ads_Editor__get_account_insights",
+                               "mcp__Ads_Editor__list_ads_with_insights"])
+checar("D4 · responder com --ferramenta e aceito", code == 0, f"exit={code}")
+checar("D4 · o retorno nomeia as ferramentas chamadas",
+       "get_account_insights" in saida, saida[:160])
+
+d_ae = modelo.carregar(dem_ae)
+c = d_ae["consultas"][0]
+checar("D5 · as ferramentas ficam gravadas na consulta",
+       c.get("ferramentas") == ["mcp__Ads_Editor__get_account_insights",
+                                "mcp__Ads_Editor__list_ads_with_insights"],
+       str(c.get("ferramentas")))
+_, listagem = roda(demanda.cmd_consulta_listar, demanda=dem_ae)
+checar("D5 · e aparecem no consulta listar",
+       "executado por" in listagem and "get_account_insights" in listagem, listagem[:200])
+
+# sem --ferramenta continua funcionando, mas o motor avisa que a origem nao ficou gravada
+code, saida = roda(demanda.cmd_consulta_abrir, demanda=dem_ae, job="JOB-001",
+                   fonte="ads_editor",
+                   pergunta="a frequencia subiu no conjunto de maior gasto no periodo",
+                   corte="nivel adset, 30 dias, quebra semanal, campo frequency",
+                   hipotese=None)
+code, saida = roda(demanda.cmd_consulta_responder, demanda=dem_ae, consulta="CONSULTA-002",
+                   arquivo=str(bruto), observacao="", sem_dado=False, ferramenta=None)
+checar("D6 · sem --ferramenta a consulta fecha, mas o motor avisa",
+       code == 0 and "nao registra" in _sem_acento(saida), saida[:160])
+
+# o Ads Editor NAO e agente: nao recebe job e nao tem linha no painel
+code, msg = roda(demanda.cmd_job_add, demanda=dem_ae, agente="ads-editor",
+                 objetivo="puxar dados", entrada=None, saida="dados", depende=None,
+                 criterio=None, restricao=None, fonte=None)
+checar("D7 · ads-editor nao recebe job: nao e agente do roster", code is None,
+       f"exit={code}")
+_, painel = roda(demanda.cmd_painel, demanda=dem_ae, verificar=False, conferir=None)
+checar("D7 · e nao aparece no painel", "ADS EDITOR" not in painel.upper(), painel)
+checar("D7 · o painel mostra o Gestor, que e quem tem job",
+       "GESTOR DE TRÁFEGO" in painel, painel)
 
 shutil.rmtree(TMP, ignore_errors=True)
 

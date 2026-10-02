@@ -391,8 +391,17 @@ Consulta `PENDENTE` trava o gate, então demanda não fecha com dado pedido e n�
 
 ```bash
 python3 $E/demanda.py consulta pendentes DEM-...   # o que o runtime tem de executar
-python3 $E/demanda.py consulta responder DEM-... CONSULTA-001 --arquivo <caminho>
+python3 $E/demanda.py consulta responder DEM-... CONSULTA-001 --arquivo <caminho> \
+    --ferramenta mcp__Ads_Editor__get_account_insights
 ```
+
+Em mídia paga a fonte prioritária é **`ads_editor`**: um conector só, Meta e Google na
+mesma superfície, e o único que desce a placement, dispositivo, termo de busca e histórico
+de alteração (`docs/conectores.md` §1.1). Ele é **ferramenta do Gestor, não um agente** —
+não tem linha no painel, não recebe job e não aparece como quem trabalhou.
+
+`--ferramenta` grava o que o runtime chamou de verdade. Conector citado e conector chamado
+deixam de se parecer no registro.
 
 Sem isso, o especialista analisa o resumo do briefing achando que analisou a conta — e é assim
 que sai relatório de tráfego que não sobrevive ao primeiro print da plataforma.
