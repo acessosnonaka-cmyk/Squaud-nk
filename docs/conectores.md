@@ -48,6 +48,20 @@ falha como contrato. Vale conferir contra o inventário antes de escrever um `--
 | `get_optimization_history` | exige `optimization_id`. Com `list_optimizations` vazia, não há change log |
 | `list_audience_campaigns` | devolve as campanhas da conta, **não** o vínculo público→campanha |
 | `list_campaigns` | parou em 200 numa conta com 270+ campanhas: corte silencioso, pagine |
+| `get_account_insights` | **devolveu, em duas contas diferentes, um esqueleto de campanhas com `spend`, `impressions`, `clicks` e `reach` todos em `"0"`** — e as linhas de dois períodos distintos voltaram idênticas uma à outra. Não é fato sobre gasto, é retorno vazio com forma de retorno cheio |
+
+**O zero falso do `get_account_insights` é o limite mais perigoso da lista**, porque não
+parece limite: a chamada responde `200`, a estrutura vem completa, e o número é `0`. Na coleta da
+Arte Mineira ele disse `spend: "0"` nas 200 campanhas de uma conta que `get_account_summary`,
+`get_account_dashboard` e `get_insights_breakdown` mostravam com **R$ 18.485,52** — e disse o
+mesmo na segunda conta, que de fato não gastou nada. Quem tivesse usado só essa ferramenta
+reportaria as duas contas como paradas, com número, sem nenhum sinal de erro.
+
+O que separou um zero do outro foi **corroboração cruzada**: a soma do `get_account_dashboard`
+bateu exatamente, as somas de `get_insights_breakdown` por semana, posicionamento e dispositivo
+bateram dentro do arredondamento, e a contagem de conversão fechou. **Número de conta não se
+apoia em uma leitura só** — e dado idêntico em dois períodos diferentes é defeito de ferramenta,
+nunca coincidência.
 
 **O que o Ads Editor NÃO cobre, e por isso continua lacuna:** comportamento na página
 (sem GA4), TikTok Ads, CRM e WhatsApp. Ver §2 — o conector novo não fecha nenhuma delas.
