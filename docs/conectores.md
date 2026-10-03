@@ -27,11 +27,27 @@ o que não estiver nesta lista, o runtime não executa.
 | **Conta Meta** | `list_meta_accounts` · `get_account_dashboard` · `get_account_insights` · `get_account_info` · `get_account_summary` · `get_account_balance_status` | `hide_account_in_central` |
 | **Campanha / conjunto / anúncio** | `list_campaigns` · `get_campaign_details` · `get_campaign_metrics` · `get_campaigns_budgets` · `list_adsets` · `get_adset_details` · `get_adset_insights` · `list_ads` · `list_ads_with_insights` · `get_ad_details` · `get_ad_insights` | `create_campaign` · `update_campaign` · `update_budget` · `pause_*` · `activate_*` · `toggle_*` · `delete_*` · `clone_*` · `bulk_pause_ads` |
 | **Recorte analítico** | `get_insights_breakdown` (idade, gênero, dispositivo, placement) · `get_adsets_locations` | — |
-| **Criativo** | `get_creatives` · `get_ad_post_links` · `list_campaign_videos` · `list_page_videos` · `list_ig_videos` | `update_ad_creative` · `upload_ad_media` · `create_ads_from_media` |
+| **Criativo** | `get_ad_details` (um `ad_id` por chamada) · `get_ad_post_links` · `list_campaign_videos` · `list_page_videos` · `list_ig_videos` | `update_ad_creative` · `upload_ad_media` · `create_ads_from_media` |
 | **Público** | `list_audiences` · `get_audience_size` · `list_audience_campaigns` | `create_audience` · `update_*` · `delete_audience` |
 | **Tracking** | `list_pixel_events` · `list_pixel_custom_events` · `list_lead_forms` · `list_integrations_utms` | `set_google_url_options` · `create_lead_form` |
 | **Google Ads** | `list_google_accounts` · `list_google_campaigns` · `get_google_campaign_details` · `get_google_campaign_metrics` · `list_google_adgroups` · `list_google_ads` · `list_google_keywords` · `list_google_search_terms` · `list_google_demographics` · `list_google_recommendations` · `get_google_account_timeseries` | `update_google_budget` · `update_google_bidding` · `add/remove_google_keyword` · `pause_google_*` · `create_google_*` |
 | **Histórico de alteração** | `get_optimization_history` · `get_google_optimization_history` · `list_recent_rule_executions` | `create_optimization` · `create_rule` · `toggle_rule` |
+
+**Corrigido em 2026-10-03, por execução:** `get_creatives` estava listado aqui e **não existe**
+no inventário da sessão. Quem achou foi a coleta da Arte Mineira, tentando chamá-lo. A lição não
+é o nome errado — é que lista de capacidade escrita de memória envelhece como documentação e
+falha como contrato. Vale conferir contra o inventário antes de escrever um `--corte`.
+
+**Limites de leitura medidos na mesma coleta, que mudam o que se pode pedir:**
+
+| Ferramenta | O limite |
+|---|---|
+| `list_adsets`, `list_ads_with_insights` | **ignoram `date_since`/`date_until`**. As chamadas com dois períodos diferentes voltam idênticas. A única janela que funciona é `period="last_30d"` |
+| `get_insights_breakdown` | recusa chamada sem `breakdowns` nem `time_increment`. Agregado de período por campanha sai com `time_increment=7` dentro da janela |
+| `list_pixel_events` | não aceita período e não devolve data do último evento: os counts vêm sem recorte |
+| `get_optimization_history` | exige `optimization_id`. Com `list_optimizations` vazia, não há change log |
+| `list_audience_campaigns` | devolve as campanhas da conta, **não** o vínculo público→campanha |
+| `list_campaigns` | parou em 200 numa conta com 270+ campanhas: corte silencioso, pagine |
 
 **O que o Ads Editor NÃO cobre, e por isso continua lacuna:** comportamento na página
 (sem GA4), TikTok Ads, CRM e WhatsApp. Ver §2 — o conector novo não fecha nenhuma delas.
