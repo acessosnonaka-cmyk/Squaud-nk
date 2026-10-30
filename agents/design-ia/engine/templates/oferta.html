@@ -1,0 +1,281 @@
+<!-- FAMILIA: OFERTA (painel + lista de beneficios)
+     Para peca promocional que precisa nomear brindes/itens, e nao so headline+apoio.
+     O `composer` tem seis slots de texto e nenhum slot de lista: oferta com tres
+     brindes virava uma linha de `body` sem icone e sem hierarquia propria.
+
+     Arquitetura, de cima para baixo:
+       fotografia sangrada no topo  ->  friso de cor (base)  ->  painel solido com
+       quatro grupos (chamada / destaque sangrado / lista de beneficios / assinatura)
+       ->  rodape de cor (plinto).
+
+     Nada aqui conhece cliente: cor vem de --c-<papel> do brand kit, corpo vem de
+     type_vars, texto e icone vem do briefing. Icone entra como SVG inline pelo
+     briefing (b1_icon..b3_icon) justamente para o template nao ter desenho proprio.
+
+     Papeis tipograficos usados:
+       eyebrow -> chapeu | headline -> chamada e a palavra sobre o traco
+       display -> destaque sangrado | subheadline -> condicao/prazo
+       body -> apoio | caption -> rotulo da lista e 1a linha de cada item
+       cta -> 2a linha de cada item (a palavra que vende) | signature -> assinatura
+-->
+<meta charset="utf-8">
+<style>
+  {{font_face}}
+  :root {
+    {{palette}}
+    {{type_vars}}
+    --pad: calc({{pad_pct=6.7}} * 1%);
+    --split: calc({{split_pct=33}} * 1%);
+    --photo-pos: {{photo_pos=center}};
+    --rule-h: {{rule_h=14}}px;
+    --plinth-h: {{plinth_h=40}}px;
+    --icon: {{icon_size=86}}px;
+    --radius: {{radius=0}}px;
+    --treat-sat: {{treat_saturate=100}}%;
+    --treat-con: {{treat_contrast=100}}%;
+    --treat-bri: {{treat_brightness=100}}%;
+    --treat-sepia: {{treat_sepia=0}}%;
+    --brush-op: {{brush_opacity=1}};
+    --divider-w: {{divider_w=2}}px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:{{format_w}}px; height:{{format_h}}px; overflow:hidden; }
+  body {
+    background: var(--c-{{panel_role=ink}}, #111);
+    font-family: var(--font-body), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+  }
+
+  /* ---------- fotografia: sangra o topo, sem tratamento por padrao ---------- */
+  .photo { position:absolute; inset:0 0 auto 0; height:var(--split); overflow:hidden;
+           background:var(--c-line, #222); }
+  .photo img {
+    width:100%; height:100%; object-fit:cover; object-position:var(--photo-pos);
+    display:block;
+    filter: saturate(var(--treat-sat)) contrast(var(--treat-con))
+            brightness(var(--treat-bri)) sepia(var(--treat-sepia));
+  }
+
+  /* ---------- friso e plinto: a cor de base do sistema, como estrutura --------- */
+  .rule {
+    position:absolute; left:0; right:0; top:var(--split); height:var(--rule-h);
+    background:var(--c-{{accent_role=accent}}, #e44);
+  }
+  .plinth {
+    position:absolute; left:0; right:0; bottom:0; height:var(--plinth-h);
+    background:var(--c-{{accent_role=accent}}, #e44);
+  }
+
+  /* ---------- painel: onde o conteudo vive ------------------------------------ */
+  .content {
+    position:absolute; left:0; right:0;
+    top:calc(var(--split) + var(--rule-h)); bottom:var(--plinth-h);
+    padding:{{panel_pad_t=46}}px var(--pad) {{panel_pad_b=40}}px var(--pad);
+    display:flex; flex-direction:column; justify-content:space-between;
+    text-align:{{align=left}};
+  }
+  .grp { display:flex; flex-direction:column; align-items:flex-start; align-self:stretch; }
+
+  /* ---------- chamada --------------------------------------------------------- */
+  .eyebrow {
+    font-family:var(--font-eyebrow); font-size:var(--s-eyebrow); font-weight:var(--w-eyebrow);
+    letter-spacing:var(--t-eyebrow); text-transform:var(--c-case-eyebrow); line-height:1.2;
+    color:var(--c-{{eyebrow_role=silver}}, #999); margin-bottom:{{g_eyebrow=20}}px;
+  }
+  .hl {
+    font-family:var(--font-headline); font-size:var(--s-headline); font-weight:var(--w-headline);
+    letter-spacing:var(--t-headline); line-height:var(--l-headline);
+    text-transform:var(--c-case-headline); color:var(--c-{{headline_role=paper}}, #fff);
+    width:100%; white-space:nowrap;
+  }
+  /* a palavra-chave sobre o traco de pincel: o traco e um SVG do briefing, nao um
+     retangulo. Sem SVG, a caixa fica so com a cor de fundo do papel declarado. */
+  .markwrap {
+    position:relative; display:inline-block;
+    font-family:var(--font-headline); font-size:var(--s-headline); font-weight:var(--w-headline);
+    letter-spacing:var(--t-headline); line-height:var(--l-headline);
+    text-transform:var(--c-case-headline); color:var(--c-{{mark_fg=paper}}, #fff);
+    padding:{{mark_pad=.06em .17em .10em}}; margin-top:{{g_hl=10}}px;
+    max-width:100%; white-space:nowrap;
+  }
+  .markwrap .brush {
+    position:absolute; inset:0; width:100%; height:100%;
+    color:var(--c-{{brush_role=brush}}, #c22); opacity:var(--brush-op);
+  }
+  .markwrap .mark { position:relative; }
+  .apoio {
+    font-family:var(--font-body); font-size:var(--s-body); font-weight:var(--w-body);
+    letter-spacing:var(--t-body); line-height:var(--l-body); max-width:var(--m-body);
+    text-transform:var(--c-case-body); color:var(--c-{{apoio_role=paper}}, #fff);
+    margin-top:{{g_apoio=22}}px;
+  }
+
+  /* ---------- condicao + destaque sangrado ------------------------------------ */
+  .prazo {
+    font-family:var(--font-sub); font-size:var(--s-sub); font-weight:var(--w-sub);
+    letter-spacing:var(--t-sub); line-height:var(--l-sub);
+    text-transform:var(--c-case-sub); color:var(--c-{{prazo_role=paper}}, #fff);
+    margin-bottom:{{g_prazo=12}}px;
+  }
+  /* sangra os dois lados do painel: o destaque e estrutura, nao caixa de texto */
+  .band {
+    align-self:stretch; margin:0 calc(-1 * var(--pad));
+    background:var(--c-{{band_role=primary}}, #c00);
+    color:var(--c-{{band_fg=on-primary}}, #fff);
+    font-family:var(--font-display); font-size:var(--s-display); font-weight:var(--w-display);
+    letter-spacing:var(--t-display); line-height:var(--l-display);
+    text-transform:var(--c-case-display);
+    padding:{{band_pad=.08em}} var(--pad) {{band_pad_b=.12em}} var(--pad);
+  }
+
+  /* ---------- lista de beneficios --------------------------------------------- */
+  .rotulo {
+    font-family:var(--font-caption); font-size:var(--s-caption); font-weight:var(--w-caption);
+    letter-spacing:var(--t-caption); line-height:1.3; text-transform:var(--c-case-caption);
+    color:var(--c-{{rotulo_role=silver}}, #999); margin-bottom:{{g_rotulo=24}}px;
+  }
+  .strip {
+    align-self:stretch; margin:0 calc(-1 * var(--pad));
+    background:var(--c-{{strip_role=graphite}}, #333);
+    padding:{{strip_pad=34}}px var(--pad);
+    display:flex; align-items:stretch;
+  }
+  .ben { flex:1 1 0; display:flex; flex-direction:column; align-items:flex-start;
+         padding:0 {{ben_pad=20}}px; }
+  .ben:first-child { padding-left:0; }
+  .ben:last-child  { padding-right:0; }
+  .ben + .ben { border-left:var(--divider-w) solid var(--c-{{divider_role=primary}}, #c00); }
+  .ico { width:var(--icon); height:var(--icon); color:var(--c-{{icon_role=paper}}, #fff);
+         margin-bottom:{{g_icon=18}}px; }
+  .ico svg { width:100%; height:100%; display:block; }
+  .btop {
+    font-family:var(--font-caption); font-size:calc(var(--s-caption) * {{btop_mult=1.08}});
+    font-weight:{{btop_weight=600}}; letter-spacing:{{btop_tracking=.03em}};
+    line-height:1.15; text-transform:uppercase;
+    color:var(--c-{{btop_role=paper}}, #fff); margin-bottom:{{g_btop=10}}px;
+    align-self:stretch;
+  }
+  /* a palavra que vende: letra branca sobre cor chapada -- e assim que o material
+     impresso resolve cor de marca que nao tem contraste como letra sobre escuro */
+  .kick {
+    display:inline-block;
+    font-family:var(--font-cta); font-size:var(--s-cta); font-weight:var(--w-cta);
+    letter-spacing:var(--t-cta); line-height:1; text-transform:var(--c-case-cta);
+    background:var(--c-{{kick_bg=primary}}, #c00); color:var(--c-{{kick_fg=on-primary}}, #fff);
+    padding:{{kick_pad=.16em .22em .22em}}; border-radius:var(--radius);
+    /* as colunas tem alturas de texto diferentes; a palavra que vende alinha
+       pelo pe da fileira, nunca pelo fim do texto de cada coluna */
+    margin-top:auto;
+  }
+
+  /* ---------- assinatura ------------------------------------------------------ */
+  .sig { align-self:stretch; display:flex; align-items:center;
+         justify-content:space-between; gap:24px; }
+  .plate {
+    display:inline-flex; flex-direction:column; align-items:stretch;
+    background:var(--c-{{plate_role=paper}}, #fff);
+    padding:{{plate_pad=16px 22px 18px}}; border-radius:var(--radius);
+  }
+  .plate img { height:calc(var(--s-sig) * 1.6); width:auto; display:block; }
+  .sig-name {
+    font-family:var(--font-sig); font-size:var(--s-sig); font-weight:var(--w-sig);
+    letter-spacing:var(--t-sig); line-height:1; text-transform:var(--c-case-sig);
+    color:var(--c-{{signame_role=primary}}, #c00);
+  }
+  /* travado na mesma largura da linha de cima: o conjunto fecha um retangulo */
+  .sig-sub {
+    font-family:var(--font-sub); font-size:calc(var(--s-sig) * {{sigsub_mult=.33}});
+    font-weight:{{sigsub_weight=600}}; line-height:1.1; text-transform:uppercase;
+    color:var(--c-{{sigsub_role=ink}}, #111);
+    text-align:justify; text-align-last:justify; margin-top:{{g_sigsub=6}}px;
+  }
+  .contact {
+    font-family:var(--font-sub); font-size:calc(var(--s-sig) * {{contact_mult=.62}});
+    font-weight:{{contact_weight=600}}; letter-spacing:{{contact_tracking=.01em}};
+    line-height:1; color:var(--c-{{contact_role=paper}}, #fff); white-space:nowrap;
+  }
+</style>
+
+<body>
+  <div class="photo"><img src="{{photo=}}" data-role="photo" alt=""></div>
+  <div class="rule"></div>
+
+  <div class="content" data-fit-scope="painel">
+
+    <div class="grp">
+      <div class="eyebrow" data-fit="eyebrow" data-fit-min="16">{{eyebrow=}}</div>
+      <h1 class="hl" data-fit="headline" data-fit-min="30">{{headline}}</h1>
+      <div class="markwrap" data-fit="mark" data-fit-min="30">
+        {{brush_svg=}}
+        <span class="mark">{{mark=}}</span>
+      </div>
+      <div class="apoio" data-fit="apoio" data-fit-min="16">{{apoio=}}</div>
+    </div>
+
+    <div class="grp">
+      <div class="prazo" data-fit="prazo" data-fit-min="16">{{prazo=}}</div>
+      <div class="band" data-fit="destaque" data-fit-min="30">{{destaque=}}</div>
+    </div>
+
+    <div class="grp">
+      <div class="rotulo" data-fit="rotulo" data-fit-min="16">{{rotulo=}}</div>
+      <div class="strip">
+        <div class="ben" data-ben>
+          <div class="ico">{{b1_icon=}}</div>
+          <div class="btop" data-fit="b1" data-fit-min="16">{{b1_top=}}</div>
+          <div class="kick" data-fit="b1k" data-fit-min="16">{{b1_kick=}}</div>
+        </div>
+        <div class="ben" data-ben>
+          <div class="ico">{{b2_icon=}}</div>
+          <div class="btop" data-fit="b2" data-fit-min="16">{{b2_top=}}</div>
+          <div class="kick" data-fit="b2k" data-fit-min="16">{{b2_kick=}}</div>
+        </div>
+        <div class="ben" data-ben>
+          <div class="ico">{{b3_icon=}}</div>
+          <div class="btop" data-fit="b3" data-fit-min="16">{{b3_top=}}</div>
+          <div class="kick" data-fit="b3k" data-fit-min="16">{{b3_kick=}}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sig">
+      <div class="plate">
+        <img src="{{logo=}}" data-role="logo" alt="">
+        <div class="sig-name" data-fit="wordmark" data-fit-min="24">{{sig_name=}}</div>
+        <div class="sig-sub" data-fit="wordsub" data-fit-min="16">{{sig_sub=}}</div>
+      </div>
+      <div class="contact" data-fit="contact" data-fit-min="16">{{inst_phone=}}</div>
+    </div>
+
+  </div>
+  <div class="plinth"></div>
+</body>
+
+<script>
+  // Item de lista sem conteudo nenhum sai do fluxo: a fileira se redistribui para
+  // dois ou um item sem deixar coluna vazia nem divisor orfao.
+  for (const b of document.querySelectorAll('[data-ben]')) {
+    if (!b.textContent.trim() && !b.querySelector('svg')) b.remove();
+  }
+  // Slot de texto opcional vazio nao vira caixa fantasma nem entra no auto-fit.
+  for (const el of document.querySelectorAll('[data-fit]')) {
+    if (!el.textContent.trim()) el.remove();
+  }
+  // Caixa do traco sem SVG e sem palavra nao deve ocupar espaco.
+  const mw = document.querySelector('.markwrap');
+  if (mw && !mw.textContent.trim()) mw.remove();
+  // <img> sem src conta como imagem quebrada e como dependencia remota na validacao.
+  for (const im of document.querySelectorAll('img')) {
+    if (!im.getAttribute('src')) {
+      const w = im.closest('.photo');
+      (w || im).remove();
+    }
+  }
+  // Sem arquivo de logo, a assinatura e a reconstrucao tipografica.
+  const plate = document.querySelector('.plate');
+  if (plate) {
+    const im = plate.querySelector('img');
+    if (im) { plate.querySelectorAll('.sig-name, .sig-sub').forEach(e => e.remove()); }
+  }
+</script>

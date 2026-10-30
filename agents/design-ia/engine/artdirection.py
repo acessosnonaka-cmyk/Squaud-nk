@@ -62,6 +62,21 @@ PRESETS = {
         "band_h_pct": 34, "band_y": "topo", "gap_pct": 3.4, "pad_pct": 7.4,
         "bg_role": "paper",
     },
+    # Familia para peca de OFERTA com lista de beneficios: painel solido, chamada
+    # tipografica, banda de destaque sangrada e uma fileira de N itens com icone de
+    # linha. Existe porque o sistema de camadas do `composer` tem seis slots de texto
+    # e nenhum slot de lista -- oferta com tres brindes nomeados nao cabia nele, e o
+    # que acontecia era a lista virar uma linha de `body` sem icone e sem hierarquia.
+    # Tem arquivo proprio em templates/oferta.html. Tudo parametrizado por dados.
+    "oferta": {
+        "template": "oferta",
+        "image_mode": "split-top", "text_position": "block-bottom",
+        "brand_position": "integrated", "cta_style": "none", "dominance": "typography",
+        "split_pct": 33, "pad_pct": 6.7, "gap_pct": 2.0,
+        "panel_role": "ink", "strip_role": "graphite", "accent_role": "accent",
+        "band_role": "primary", "plate_role": "paper",
+        "rule_h": 14, "plinth_h": 40, "icon_size": 86,
+    },
     "retrato": {
         "template": "retrato",
         "image_mode": "split-left", "text_position": "split-right",
@@ -139,7 +154,7 @@ SCHEMA = """{
   },
 
   "composition": {
-    "family": "editorial | promocional | minimal | faixa | retrato",
+    "family": "editorial | promocional | minimal | faixa | retrato | oferta",
     "image_mode": "full | background | bleed | split-top | split-bottom | split-left | split-right | inset | none",
     "text_position": "overlay | edge-top | block-top | block-bottom | split-left | split-right | floating | center",
     "alignment": "left | center | right",
