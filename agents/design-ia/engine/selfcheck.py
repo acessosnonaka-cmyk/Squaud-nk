@@ -61,7 +61,14 @@ def analisar(job_dir: pathlib.Path, version: int) -> dict:
     if "decorative-type" in layers and (float(lay.get("deco_opacity", 0) or 0) == 0
                                         or not lay.get("deco_text")):
         inertes.append("decorative-type declarada sem texto ou sem opacidade")
-    if "shapes" in layers and not any(lay.get(k) for k in ("rule_style", "block_style", "frame_w")):
+    # Cada familia configura forma com os tokens que ela tem. Checar so os do
+    # `composer` dava "camada sem efeito" em peca cheia de faixa, banda e tarja --
+    # aviso falso ensina a ignorar o aviso.
+    TOKENS_DE_FORMA = ("rule_style", "block_style", "frame_w",      # composer
+                       "rule_h", "plinth_h", "band_role", "kick_bg",  # oferta
+                       "brush_opacity", "divider_w",
+                       "band_h_pct", "photo_shape")                 # faixa / retrato
+    if "shapes" in layers and not any(lay.get(k) for k in TOKENS_DE_FORMA):
         inertes.append("shapes declarada sem nenhuma forma configurada")
 
     texto_sobre_foto = bool(lay.get("over_image"))
