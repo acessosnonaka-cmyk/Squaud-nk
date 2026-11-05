@@ -49,6 +49,28 @@ Playwright, e só o Designer e o Legend precisam dos motores visuais.
 o especialista diz o que falta e como instalar, e para. Não entrega por outro caminho, não
 improvisa, não entrega pela metade fingindo que está inteiro.
 
+## Estado: ARQUIVADO — não aciona sozinho
+
+**Decisão do gestor em 2026-11-05.** O Squad está **arquivado, não desmontado**: nada foi
+apagado, tudo continua em disco e versionado, e qualquer demanda antiga é retomável por
+`demanda.py retomar <ID>`.
+
+O que muda é só uma coisa, e é a regra 8: **o acionamento automático está desligado.**
+Pedido que cai no domínio das capabilities do REGISTRY — copy, arte, LP, vídeo, revisão,
+tráfego — **não dispara mais `Agent(diretor-de-operacoes)` por conta própria**. A sessão
+responde direto, como responde qualquer outro assunto.
+
+**Para religar, o gestor diz.** Basta pedir o Squad pelo nome — *"usa o squad"*, *"aciona o
+Diretor"*, *"abre uma demanda"* — e a regra 8 volta a valer inteira para aquele pedido:
+painel do motor, briefing com `EXECUTION_MODE: SILENT`, gate e `demanda.py entregar`.
+Pedido explícito vence este estado; o silêncio, não.
+
+**O que continua valendo mesmo arquivado:** as regras 1, 2 e 3 — nada de segredo, nada de
+dado de cliente no git, nada de caminho absoluto de máquina. Essas não dependem de o Squad
+estar de pé.
+
+Para desarquivar de vez, apague esta seção.
+
 ## Regras
 
 1. **Nada de segredo.** Nenhuma chave, token, cookie, `.env` ou credencial entra no repositório,
