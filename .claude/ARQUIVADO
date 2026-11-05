@@ -1,0 +1,27 @@
+SQUAD NK — ARQUIVADO EM 2026-11-05, por decisão do gestor.
+
+Nada foi apagado. O que foi feito, e é tudo reversível:
+
+  .claude/agents   -> .claude/agents-ARQUIVADO      (7 agentes)
+  .claude/skills   -> .claude/skills-ARQUIVADO      (skills próprias)
+  .claude/settings.json -> .claude/settings.json.ARQUIVADO   (hooks)
+
+E fora do git, na máquina:
+  os symlinks de ~/.claude/agents e ~/.claude/skills que apontavam
+  para este repositório foram movidos para
+  ~/.squad-nk/ARQUIVADO-2026-11-05/
+
+Renomear as pastas tira os agentes e as skills da descoberta do
+Claude Code sem mexer em nenhum arquivo canônico: tudo continua em
+agents/ e apps/, versionado, e os symlinks continuam resolvendo.
+
+PARA DESARQUIVAR
+  git mv .claude/agents-ARQUIVADO .claude/agents
+  git mv .claude/skills-ARQUIVADO .claude/skills
+  git mv .claude/settings.json.ARQUIVADO .claude/settings.json
+  git rm .claude/ARQUIVADO
+  e apague a seção "Estado: ARQUIVADO" do CLAUDE.md.
+  Os symlinks de ~/.claude voltam com: bash scripts/setup.sh
+
+As demandas, a memória de cliente, os brand kits e as peças entregues
+não foram tocados e seguem em ~/.squad-nk e ~/.claude/art-builder.

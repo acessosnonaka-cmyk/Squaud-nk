@@ -10,6 +10,19 @@
 # ---------------------------------------------------------------
 set -euo pipefail
 
+# --- TRAVA DE ARQUIVAMENTO -------------------------------------
+# O Squad esta ARQUIVADO por decisao do gestor (ver a secao "Estado:
+# ARQUIVADO" no CLAUDE.md). Este script reconstroi os symlinks de
+# ~/.claude e religaria os sete agentes sem ninguem pedir -- um
+# arquivamento que se desfaz sozinho nao e arquivamento.
+# Para desarquivar: apague .claude/ARQUIVADO e a secao do CLAUDE.md.
+if [ -e "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.claude/ARQUIVADO" ]; then
+  printf '\n\033[33mSQUAD NK ARQUIVADO\033[0m — setup.sh nao roda neste estado.\n'
+  printf 'Ele religaria os agentes em ~/.claude. Para desarquivar, apague\n'
+  printf '.claude/ARQUIVADO e a secao "Estado: ARQUIVADO" do CLAUDE.md.\n\n'
+  exit 0
+fi
+
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLAUDE_HOME="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 DATA_HOME="${SQUAD_DATA_HOME:-$HOME/.squad-nk}"

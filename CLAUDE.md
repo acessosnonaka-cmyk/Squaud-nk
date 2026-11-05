@@ -49,27 +49,36 @@ Playwright, e só o Designer e o Legend precisam dos motores visuais.
 o especialista diz o que falta e como instalar, e para. Não entrega por outro caminho, não
 improvisa, não entrega pela metade fingindo que está inteiro.
 
-## Estado: ARQUIVADO — não aciona sozinho
+## Estado: ARQUIVADO — desligado, não desmontado
 
-**Decisão do gestor em 2026-11-05.** O Squad está **arquivado, não desmontado**: nada foi
-apagado, tudo continua em disco e versionado, e qualquer demanda antiga é retomável por
-`demanda.py retomar <ID>`.
+**Decisão do gestor em 2026-11-05: o Squad não é para ser usado.** Nem ele, nem os sete
+agentes, nem as skills próprias. **Nada foi apagado** — repositório, demandas, memória de
+cliente, brand kits e peças entregues seguem inteiros em disco.
 
-O que muda é só uma coisa, e é a regra 8: **o acionamento automático está desligado.**
-Pedido que cai no domínio das capabilities do REGISTRY — copy, arte, LP, vídeo, revisão,
-tráfego — **não dispara mais `Agent(diretor-de-operacoes)` por conta própria**. A sessão
-responde direto, como responde qualquer outro assunto.
+O desligamento é material, não um aviso em texto:
 
-**Para religar, o gestor diz.** Basta pedir o Squad pelo nome — *"usa o squad"*, *"aciona o
-Diretor"*, *"abre uma demanda"* — e a regra 8 volta a valer inteira para aquele pedido:
-painel do motor, briefing com `EXECUTION_MODE: SILENT`, gate e `demanda.py entregar`.
-Pedido explícito vence este estado; o silêncio, não.
+| | |
+|---|---|
+| `.claude/agents` | renomeada para `.claude/agents-ARQUIVADO` — os 7 agentes saem da descoberta |
+| `.claude/skills` | renomeada para `.claude/skills-ARQUIVADO` |
+| `.claude/settings.json` | renomeado para `.claude/settings.json.ARQUIVADO` — os hooks `PreToolUse` e `Stop` não rodam |
+| `~/.claude/agents` e `~/.claude/skills` | os symlinks que apontavam para este repositório foram movidos para `~/.squad-nk/ARQUIVADO-2026-11-05/` |
+| `scripts/setup.sh` | tem trava: recusa rodar enquanto `.claude/ARQUIVADO` existir, porque religaria os symlinks sem ninguém pedir |
 
-**O que continua valendo mesmo arquivado:** as regras 1, 2 e 3 — nada de segredo, nada de
-dado de cliente no git, nada de caminho absoluto de máquina. Essas não dependem de o Squad
-estar de pé.
+Renomear tira da descoberta sem tocar em arquivo canônico: tudo continua em `agents/` e
+`apps/`, versionado, e os symlinks continuam resolvendo.
 
-Para desarquivar de vez, apague esta seção.
+**Enquanto este estado valer, a regra 8 não se aplica.** Pedido de copy, arte, LP, vídeo,
+revisão ou tráfego **não aciona o Diretor nem especialista nenhum** — a sessão responde
+direto, como responde qualquer outro assunto, ou diz que não faz. Não existe acionamento
+por insistência: pedir de novo não religa.
+
+**Religar é um ato deliberado do gestor**, e o passo a passo está em `.claude/ARQUIVADO`.
+Enquanto os arquivos estiverem renomeados, o Squad está desligado de fato — este texto
+descreve o estado, não o produz.
+
+**O que continua valendo:** as regras 1, 2 e 3 — nada de segredo, nada de dado de cliente
+no git, nada de caminho absoluto de máquina. Não dependem de o Squad estar de pé.
 
 ## Regras
 
